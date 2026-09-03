@@ -7,6 +7,9 @@ import datetime
 import re
 import json
 import time
+import math
+import os
+import threading
 import base64
 import uuid
 
@@ -2876,16 +2879,42 @@ def _polygon_area_km2(geom_json: dict):
         return None
 
 
+def _geom_bbox(geom_json: dict):
+    """[west, south, east, north] over a GeoJSON Polygon/MultiPolygon's
+    coordinates; None when it has none. Pure arithmetic, no libraries."""
+    w, s, e, n = 180.0, 90.0, -180.0, -90.0
+    found = False
+
+    def walk(node):
+        nonlocal w, s, e, n, found
+        if not isinstance(node, (list, tuple)) or not node:
+            return
+        if isinstance(node[0], (int, float)):
+            if len(node) >= 2:
+                found = True
+                w, e = min(w, node[0]), max(e, node[0])
+                s, n = min(s, node[1]), max(n, node[1])
+            return
+        for child in node:
+            walk(child)
+
+    walk((geom_json or {}).get("coordinates"))
+    return [round(w, 3), round(s, 3), round(e, 3), round(n, 3)] if found else None
+
+
 def _affected_area(event_type: str, event_id: str, episode_id: str):
-    """(area_km2, basis, zones) from the published footprint polygons.
-    zones lists each published polygon with its own area (cyclone wind
-    buffers each get one). Nothing is drawn or estimated: absent = None."""
+    """(area_km2, basis, zones, bbox, geoms) from the published footprint
+    polygons. zones lists each published polygon with its own area (cyclone
+    wind buffers each get one); bbox and geoms are the accepted polygons'
+    bounding box and raw GeoJSON geometries, kept for the EcoLens reading
+    (they need no geometry library, so they exist even when the area does
+    not). Nothing is drawn or estimated: absent = None."""
     ptype = _AFFECTED_POLYGONTYPE.get(event_type)
     if not ptype or not episode_id:
-        return None, "", []
+        return None, "", [], None, []
     url = GDACS_GEOM_URL.format(t=event_type, i=event_id, e=episode_id, p=ptype)
     fc = _http_get(url, timeout=45).json()
-    zones = []
+    zones, geoms = [], []
     for f in fc.get("features", []):
         props = f.get("properties") or {}
         klass = str(props.get("Class") or "")
@@ -2900,18 +2929,24 @@ def _affected_area(event_type: str, event_id: str, episode_id: str):
                 continue  # per-timestep forecast footprints share the class
         elif klass not in ("Poly_Affected", "Poly_area"):
             continue
+        geoms.append(geom)
         km2 = _polygon_area_km2(geom)
         if km2 is None:
             continue
         zones.append({"label": label or klass, "km2": km2})
+    bbox = None
+    for geom in geoms:
+        b = _geom_bbox(geom)
+        if b:
+            bbox = b if bbox is None else [min(bbox[0], b[0]), min(bbox[1], b[1]), max(bbox[2], b[2]), max(bbox[3], b[3])]
     if not zones:
-        return None, "", []
+        return None, "", [], bbox, geoms
     if event_type == "TC":
         zones.sort(key=lambda z: -z["km2"])
         widest = zones[0]
-        return widest["km2"], f"area inside the published {widest['label']} wind buffer", zones
+        return widest["km2"], f"area inside the published {widest['label']} wind buffer", zones, bbox, geoms
     total = round(sum(z["km2"] for z in zones), 1)
-    return total, _AFFECTED_BASIS.get(event_type, "published affected area"), zones
+    return total, _AFFECTED_BASIS.get(event_type, "published affected area"), zones, bbox, geoms
 
 
 # ── Story composition ─────────────────────────────────────────────
@@ -3351,11 +3386,16 @@ def _enrich_event(d: dict) -> dict:
     # 3. Published footprint area, only when the statement did not give one
     if not out.get("affected_area_km2") and t in _AFFECTED_POLYGONTYPE:
         try:
-            km2, basis, zones = _affected_area(t, i, e)
+            km2, basis, zones, bbox, geoms = _affected_area(t, i, e)
             if km2:
                 out["affected_area_km2"] = km2
                 out["affected_area_basis"] = basis
                 out["affected_zones"] = zones
+            if bbox:
+                out["affected_bbox"] = bbox
+                # Transient (underscore keys are dropped before the write):
+                # the EcoLens reading counts fire detections inside it.
+                out["_footprint_geoms"] = geoms
         except Exception as ex:
             errors.append(f"geometry: {type(ex).__name__}: {str(ex)[:120]}")
 
@@ -3380,6 +3420,640 @@ def _enrich_event(d: dict) -> dict:
 
     out["enrich_errors"] = errors
     return out
+
+
+# ── EcoLens reading ───────────────────────────────────────────────
+#
+# What EcoLens itself can add to a GDACS story, computed server-side from
+# EcoLens data and the public catalogs the map already draws: VIIRS fire
+# detections around the event (NASA FIRMS for the last 48 hours, the
+# EcoLens fire archive for the two UTC days before that), the USGS catalog
+# around an earthquake, the Open-Meteo air-quality model at the centroid,
+# the nearest gazetteer place, and where the alert sits on the rest of the
+# GDACS wire. Every number is a count, a sum, a maximum, a distance or a
+# ratio over published or archived records, and every block names its
+# source, window and box so a reader can repeat the query. The sentences
+# are assembled from those fields only. The optional editorial is
+# model-written, but it is kept only when it passes checks that it uses no
+# number, place or speculation the fact sheet did not carry.
+
+FIRMS_AREA_URL = "https://firms.modaps.eosdis.nasa.gov/api/area/csv/{key}/{sat}/{area}/{days}/{date}"
+USGS_FDSN_URL = (
+    "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson"
+    "&starttime={start}&endtime={end}&latitude={lat:.4f}&longitude={lon:.4f}"
+    "&maxradiuskm={radius}&minmagnitude={mag}&orderby=time&limit=2000"
+)
+OPEN_METEO_AQ_URL = (
+    "https://air-quality-api.open-meteo.com/v1/air-quality"
+    "?latitude={lat:.4f}&longitude={lon:.4f}&current=pm2_5,pm10"
+)
+ARCHIVE_PUBLIC_URL = f"https://storage.googleapis.com/{ARCHIVE_BUCKET_NAME}/{ARCHIVE_PREFIX}"
+_GAZETTEER_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "gazetteer.json")
+_READING_TIMEOUT = 30
+_READING_FIRE_WINDOW_H = 48
+_READING_FIRE_SOURCE = "NASA FIRMS VIIRS NRT (NOAA-20 and SNPP)"
+_READING_FIRE_SATS = ("VIIRS_NOAA20_NRT", "VIIRS_SNPP_NRT")
+_READING_RADIUS_KM = {"WF": 100}
+_READING_DEFAULT_RADIUS_KM = 150
+# A published footprint widens the fire box only while the result stays
+# under this many degrees a side (a cyclone track can span an ocean).
+_READING_MAX_UNION_DEG = 10.0
+_READING_PLACE_MAX_KM = 400
+_READING_QUAKE_DAYS = 60
+_READING_QUAKE_RADIUS_KM = 200
+_READING_QUAKE_MIN_MAG = 4.0
+_READING_AFTERSHOCK_KM = 100
+_COMPASS = ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"]
+_TYPE_PLURAL = {
+    "EQ": "earthquakes", "TC": "tropical cyclones", "FL": "floods", "VO": "volcano alerts",
+    "DR": "droughts", "WF": "wildfires", "TS": "tsunamis",
+}
+_EDITORIAL_MODEL = "gemini-2.5-flash"
+_EDITORIAL_MAX_WORDS = 90
+_EDITORIAL_ALLOW = {"the", "this", "it", "its", "in", "on", "at", "as", "an", "a",
+                    "gdacs", "ecolens", "usgs", "viirs", "nasa", "firms"}
+_EDITORIAL_BANNED = re.compile(
+    r"\b(cause[sd]?|causing|because|due to|likely|expected?|will|forecast\w*|should|could|may|might|predict\w*)\b",
+    re.I,
+)
+_NUMBER_TOKEN = re.compile(r"[0-9][0-9,]*(?:\.[0-9]+)?")
+_CAP_TOKEN = re.compile(r"\b[A-Z][A-Za-z]+\b")
+_GAZETTEER = None
+_GAZETTEER_LOCK = threading.Lock()
+_ARCHIVE_FIRE_CACHE = {}  # "YYYY-MM-DD" -> [(lon, lat), ...] for the whole archived day
+_ARCHIVE_FIRE_LOCK = threading.Lock()
+
+
+def _haversine_km(lat1, lon1, lat2, lon2) -> float:
+    rad = math.pi / 180
+    dlat, dlon = (lat2 - lat1) * rad, (lon2 - lon1) * rad
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1 * rad) * math.cos(lat2 * rad) * math.sin(dlon / 2) ** 2
+    return 6371.0 * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def _bearing_word(lat1, lon1, lat2, lon2) -> str:
+    """Eight-point compass word for the direction from point 1 to point 2."""
+    rad = math.pi / 180
+    dlon = (lon2 - lon1) * rad
+    y = math.sin(dlon) * math.cos(lat2 * rad)
+    x = math.cos(lat1 * rad) * math.sin(lat2 * rad) - math.sin(lat1 * rad) * math.cos(lat2 * rad) * math.cos(dlon)
+    deg = (math.degrees(math.atan2(y, x)) + 360.0) % 360.0
+    return _COMPASS[int((deg + 22.5) // 45) % 8]
+
+
+def _gazetteer() -> list:
+    """[lat, lon, name] places from functions/data/gazetteer.json, loaded once."""
+    global _GAZETTEER
+    with _GAZETTEER_LOCK:
+        if _GAZETTEER is None:
+            with open(_GAZETTEER_PATH, encoding="utf-8") as fh:
+                _GAZETTEER = [p for p in (json.load(fh).get("places") or []) if len(p) >= 3]
+    return _GAZETTEER
+
+
+def _nearest_place(lat, lon):
+    """Nearest gazetteer place by great-circle distance; the bearing runs
+    from the place to the centroid so '12 km north-east of X' reads true."""
+    best, best_km = None, None
+    for plat, plon, name in _gazetteer():
+        km = _haversine_km(lat, lon, plat, plon)
+        if best_km is None or km < best_km:
+            best, best_km = (plat, plon, name), km
+    if best is None:
+        return None
+    return {"name": best[2], "km": round(best_km), "bearing": _bearing_word(best[0], best[1], lat, lon)}
+
+
+def _reading_bbox(lat, lon, radius_km, footprint_bbox=None):
+    """([west, south, east, north], widened): the centroid plus and minus
+    radius_km, widened to the published footprint's bounding box when the
+    union stays under _READING_MAX_UNION_DEG a side."""
+    dlat = radius_km / 111.32
+    dlon = radius_km / max(111.32 * math.cos(math.radians(lat)), 1e-6)
+    box = [lon - dlon, lat - dlat, lon + dlon, lat + dlat]
+    widened = False
+    if footprint_bbox and len(footprint_bbox) == 4:
+        u = [min(box[0], footprint_bbox[0]), min(box[1], footprint_bbox[1]),
+             max(box[2], footprint_bbox[2]), max(box[3], footprint_bbox[3])]
+        if u[2] - u[0] <= _READING_MAX_UNION_DEG and u[3] - u[1] <= _READING_MAX_UNION_DEG:
+            box, widened = u, True
+    box = [max(-180.0, box[0]), max(-90.0, box[1]), min(180.0, box[2]), min(90.0, box[3])]
+    return [round(v, 3) for v in box], widened
+
+
+def _scrub(msg: str, secret: str) -> str:
+    """Request errors echo the URL, and the FIRMS URL carries the key."""
+    return msg.replace(secret, "<key>") if secret else msg
+
+
+def _firms_area_detections(key: str, bbox: list, since: datetime.datetime, days: int) -> list:
+    """VIIRS NRT detections from both sensors inside bbox with acquisition
+    time at or after `since`. The area API serves whole UTC days forward
+    from a start date, so `days` calendar days are requested from the date
+    of `since` and filtered to the window. Raises on any sensor failure: a
+    one-sensor count would misstate the total."""
+    import csv as _csv
+    import io as _io
+    import requests
+
+    area = ",".join(f"{v:.3f}" for v in bbox)
+    out = []
+    for sat in _READING_FIRE_SATS:
+        url = FIRMS_AREA_URL.format(key=key, sat=sat, area=area, days=days, date=since.strftime("%Y-%m-%d"))
+        resp = requests.get(url, timeout=_READING_TIMEOUT, headers={"User-Agent": _NEWS_UA})
+        if resp.status_code != 200:
+            raise RuntimeError(f"{sat}: HTTP {resp.status_code}")
+        text = resp.text
+        head = text[:200].lower()
+        # FIRMS returns plain-text errors with HTTP 200.
+        if any(tok in head for tok in ("invalid", "error", "<html")):
+            raise RuntimeError(f"{sat}: error body — {_scrub(text[:100].strip(), key)}")
+        for row in _csv.DictReader(_io.StringIO(text)):
+            try:
+                lon, lat = float(row["longitude"]), float(row["latitude"])
+                stamp = datetime.datetime.strptime(
+                    f"{row['acq_date']} {int(row['acq_time']):04d}", "%Y-%m-%d %H%M"
+                ).replace(tzinfo=datetime.timezone.utc)
+            except (KeyError, TypeError, ValueError):
+                continue
+            if stamp < since:
+                continue
+            out.append({"lon": lon, "lat": lat, "frp": _to_float(row.get("frp")) or 0.0,
+                        "stamp": stamp, "satellite": row.get("satellite") or sat})
+    return out
+
+
+def _archive_fire_points(date_str: str):
+    """(lon, lat) of every archived VIIRS detection for one UTC day, from
+    the public EcoLens archive; None when that day is not archived. Loaded
+    once per instance and shared by the run's workers."""
+    import requests
+
+    with _ARCHIVE_FIRE_LOCK:
+        if date_str in _ARCHIVE_FIRE_CACHE:
+            return _ARCHIVE_FIRE_CACHE[date_str]
+        url = f"{ARCHIVE_PUBLIC_URL}/fires/daily/{date_str[:4]}/{date_str}.geojson"
+        resp = requests.get(url, timeout=_READING_TIMEOUT, headers={"User-Agent": _NEWS_UA})
+        if resp.status_code == 404:
+            return None
+        resp.raise_for_status()
+        pts = []
+        for f in resp.json().get("features") or []:
+            c = (f.get("geometry") or {}).get("coordinates") or ()
+            if len(c) >= 2:
+                pts.append((c[0], c[1]))
+        for old in sorted(_ARCHIVE_FIRE_CACHE)[:-3]:  # keep at most four days resident
+            del _ARCHIVE_FIRE_CACHE[old]
+        _ARCHIVE_FIRE_CACHE[date_str] = pts
+        return pts
+
+
+def _count_in_bbox(points, bbox) -> int:
+    w, s, e, n = bbox
+    return sum(1 for lon, lat in points if w <= lon <= e and s <= lat <= n)
+
+
+def _count_in_footprint(detections: list, geoms: list):
+    """Detections inside any published polygon. None without shapely or
+    without a footprint: never estimated."""
+    if not geoms:
+        return None
+    try:
+        from shapely.geometry import shape, Point
+        from shapely.prepared import prep
+    except ImportError:
+        return None
+    try:
+        polys = [prep(shape(g)) for g in geoms]
+    except Exception:
+        return None
+    return sum(1 for d in detections if any(p.contains(Point(d["lon"], d["lat"])) for p in polys))
+
+
+def _usgs_quakes(lat, lon, from_iso: str, now: datetime.datetime) -> dict:
+    start = now - datetime.timedelta(days=_READING_QUAKE_DAYS)
+    url = USGS_FDSN_URL.format(
+        start=start.strftime("%Y-%m-%dT%H:%M:%S"), end=now.strftime("%Y-%m-%dT%H:%M:%S"),
+        lat=lat, lon=lon, radius=_READING_QUAKE_RADIUS_KM, mag=_READING_QUAKE_MIN_MAG,
+    )
+    feats = _http_get(url, timeout=_READING_TIMEOUT).json().get("features") or []
+    from_dt = _api_date(from_iso)
+    # Two minutes clear of the published start time so the main shock is
+    # not counted as its own aftershock when GDACS truncates the seconds.
+    after_ms = int(from_dt.timestamp() * 1000) + 120_000 if from_dt else None
+    count, since, largest = 0, 0, None
+    for f in feats:
+        pr = f.get("properties") or {}
+        c = (f.get("geometry") or {}).get("coordinates") or []
+        mag, t = _to_float(pr.get("mag")), pr.get("time")
+        if mag is None or len(c) < 2 or not isinstance(t, (int, float)):
+            continue
+        count += 1
+        km = _haversine_km(lat, lon, c[1], c[0])
+        if largest is None or mag > largest["mag"]:
+            when = datetime.datetime.fromtimestamp(t / 1000, datetime.timezone.utc)
+            largest = {"mag": mag, "date": when.strftime("%Y-%m-%dT%H:%M:%SZ"), "km": round(km)}
+        if after_ms is not None and t > after_ms and km <= _READING_AFTERSHOCK_KM:
+            since += 1
+    return {
+        "window_days": _READING_QUAKE_DAYS,
+        "radius_km": _READING_QUAKE_RADIUS_KM,
+        "min_magnitude": _READING_QUAKE_MIN_MAG,
+        "count": count,
+        "largest": largest,
+        "since_event": since,
+        "source": "USGS earthquake catalog",
+        "method": (
+            f"USGS fdsnws event query for magnitude {_READING_QUAKE_MIN_MAG:.1f} and above within "
+            f"{_READING_QUAKE_RADIUS_KM} km of {lat:.3f}, {lon:.3f} between {start:%Y-%m-%d %H:%M} and "
+            f"{now:%Y-%m-%d %H:%M} UTC; since_event counts those within {_READING_AFTERSHOCK_KM} km whose "
+            f"origin time is more than two minutes after the GDACS start time"
+            + (f" {from_iso}" if from_iso else "") + "."
+        ),
+    }
+
+
+def _open_meteo_air(lat, lon):
+    j = _http_get(OPEN_METEO_AQ_URL.format(lat=lat, lon=lon), timeout=_READING_TIMEOUT).json()
+    cur = j.get("current") or {}
+    pm25, pm10 = _to_float(cur.get("pm2_5")), _to_float(cur.get("pm10"))
+    if pm25 is None and pm10 is None:
+        return None
+    hour = str(cur.get("time") or "")
+    return {
+        "pm25": pm25,
+        "pm10": pm10,
+        "as_of": hour,
+        "source": "Open-Meteo air-quality model, centroid grid point",
+        "method": (
+            f"Open-Meteo air-quality API, current pm2_5 and pm10 for the hour {hour} UTC at its model grid "
+            f"point {j.get('latitude')}, {j.get('longitude')}, the point nearest the event centroid; model "
+            f"output, not a measurement."
+        ),
+    }
+
+
+def _death_headline_value(x: dict):
+    h = x.get("impact_headline")
+    if isinstance(h, dict) and _indicator_factor(h.get("indicator", "")) >= 1000.0 and h.get("value") is not None:
+        return float(h["value"])
+    return None
+
+
+def _wire_context(d: dict, x: dict, all_docs: list) -> dict:
+    t, rank = d["event_type"], d.get("rank", 2)
+    same = [o for o in all_docs if o.get("event_type") == t]
+    deaths = [v for v in (_death_headline_value(o) for o in all_docs) if v is not None]
+    mine = _death_headline_value(x)
+    return {
+        "same_type_active": sum(1 for o in same if o.get("is_current")),
+        "same_type_total": len(same),
+        "higher_alerts_on_wire": sum(1 for o in all_docs if o.get("rank", 2) < rank),
+        "deadliest_report_on_wire": (mine >= max(deaths + [mine])) if mine is not None else None,
+        "method": (
+            f"Counted over the {len(all_docs)} alerts in the GDACS RSS feed at "
+            f"{d.get('fetched_at') or 'this refresh'}: alerts of the same type and those flagged current, "
+            f"alerts with a higher GDACS level, and whether this alert's death-indicator headline report is "
+            f"the largest death-indicator headline report on the wire (reports are compared one to one, "
+            f"never added together)."
+        ),
+    }
+
+
+def _fmt_mw(v) -> str:
+    try:
+        v = float(v)
+    except (TypeError, ValueError):
+        return str(v)
+    return f"{v:,.0f}" if v >= 10 else f"{v:.1f}"
+
+
+def _footprint_name(basis: str) -> str:
+    if basis.startswith("area inside the "):
+        return basis[len("area inside the "):]
+    return basis or "published footprint"
+
+
+def _reading_paragraphs(d: dict, x: dict, r: dict) -> list:
+    """Deterministic sentences from the reading fields and the GDACS fields
+    only. Absent data means an absent sentence; a model value is called one."""
+    t = d["event_type"]
+    hm = _hm_utc(r["computed_at"])
+    out = []
+
+    f = r.get("fires")
+    if f and (f["detections"] > 0 or t in ("WF", "VO", "DR")):
+        box = (f"a box reaching {r['scope_km']} km from the event centroid"
+               + (" and covering the published footprint" if f.get("widened") else ""))
+        if f["detections"] > 0:
+            s = (f"EcoLens counted {_fmt_int(f['detections'])} VIIRS fire detections within {box} in the "
+                 f"{f['window_h']} hours to {hm}, with a combined fire radiative power of "
+                 f"{_fmt_mw(f['frp_mw_total'])} MW and a largest single detection of {_fmt_mw(f['frp_mw_max'])} MW")
+            if f.get("in_footprint") is not None:
+                s += f"; {_fmt_int(f['in_footprint'])} fall inside the {_footprint_name(x.get('affected_area_basis') or '')}"
+            s += "."
+        else:
+            s = f"EcoLens found no VIIRS fire detections within {box} in the {f['window_h']} hours to {hm}."
+        prev, days = f.get("previous_detections"), f.get("previous_days") or []
+        source = f"{f['source']}, {f['window_h']} hours to {hm}"
+        if prev is not None and len(days) == 2:
+            when = f"on {_dm(days[0])} and {_dm(days[1])}"
+            if prev == 0:
+                s += f" The EcoLens archive holds no detections in the same box {when}."
+            else:
+                pct = f.get("change_pct") or 0.0
+                change = "unchanged" if pct == 0 else (f"a rise of {abs(pct):.0f}%" if pct > 0 else f"a fall of {abs(pct):.0f}%")
+                s += f" The same box held {_fmt_int(prev)} detection{'s' if prev != 1 else ''} {when}, {change}."
+            source += f"; EcoLens fire archive, {_dm(days[0])} and {_dm(days[1])}"
+        out.append({"text": s, "source": source})
+
+    q = r.get("quakes")
+    if q:
+        n, to = q["count"], _dm(r["computed_at"])
+        if n:
+            s = (f"The USGS catalog lists {_fmt_int(n)} earthquake{'s' if n != 1 else ''} of magnitude "
+                 f"{q['min_magnitude']:.1f} or more within {q['radius_km']} km of the epicentre in the "
+                 f"{q['window_days']} days to {to}.")
+            lg = q.get("largest")
+            if lg and n > 1:
+                s += (f" The largest, magnitude {lg['mag']:.1f} on {_dm(lg['date'])}, was "
+                      f"{_fmt_int(lg['km'])} km from the epicentre.")
+            k = q["since_event"]
+            s += (f" {_fmt_int(k)} of them came after the GDACS start time within {_READING_AFTERSHOCK_KM} km."
+                  if k else f" None of them came after the GDACS start time within {_READING_AFTERSHOCK_KM} km.")
+        else:
+            s = (f"The USGS catalog lists no earthquakes of magnitude {q['min_magnitude']:.1f} or more within "
+                 f"{q['radius_km']} km of the epicentre in the {q['window_days']} days to {to}.")
+        out.append({"text": s, "source": (f"USGS earthquake catalog, {q['window_days']} days to {to}, "
+                                          f"{q['radius_km']} km radius, magnitude {q['min_magnitude']:.1f} and above")})
+
+    a = r.get("air")
+    if a and (a.get("pm25") is not None or a.get("pm10") is not None):
+        vals = []
+        if a.get("pm25") is not None:
+            vals.append(f"PM2.5 at {a['pm25']:g} µg/m³")
+        if a.get("pm10") is not None:
+            vals.append(f"PM10 at {a['pm10']:g} µg/m³")
+        hour = a.get("as_of") or ""
+        s = (f"The Open-Meteo air-quality model puts {' and '.join(vals)} at its grid point nearest the event centroid"
+             + (f" for the hour {hour[11:16]} UTC on {_dm(hour)}" if len(hour) >= 16 else "")
+             + "; these are model estimates, not measurements.")
+        out.append({"text": s, "source": "Open-Meteo air-quality model, current hour at the centroid grid point"})
+
+    p = r.get("nearest_place")
+    if p and p["km"] <= _READING_PLACE_MAX_KM:
+        s = (f"The event centroid lies within 5 km of {p['name']}." if p["km"] < 5
+             else f"The event centroid lies {_fmt_int(p['km'])} km {p['bearing']} of {p['name']}.")
+        out.append({"text": s, "source": "EcoLens gazetteer, great-circle distance from the GDACS centroid"})
+
+    w = r.get("wire")
+    if w:
+        label = _NEWS_TYPE_LABELS.get(t, "alert").lower()
+        plural = _TYPE_PLURAL.get(t, "alerts")
+        total, active, higher = w["same_type_total"], w["same_type_active"], w["higher_alerts_on_wire"]
+        s = f"On the GDACS wire at {hm}, "
+        if total <= 1:
+            s += f"this is the only {label} listed"
+        else:
+            s += f"{_fmt_int(active)} of the {_fmt_int(total)} {plural} listed {'is' if active == 1 else 'are'} current"
+        if higher == 0:
+            s += ", and no alert carries a higher level than this one."
+        else:
+            s += f", and {_fmt_int(higher)} alert{'s carry' if higher != 1 else ' carries'} a higher level than this one."
+        if w.get("deadliest_report_on_wire") is True:
+            s += " The death toll GDACS lists for this event is the largest death-indicator report on the wire."
+        elif w.get("deadliest_report_on_wire") is False:
+            s += " At least one other alert on the wire carries a larger death-indicator report."
+        out.append({"text": s, "source": "GDACS RSS feed, every alert listed at this refresh"})
+    return out
+
+
+def _fact_sheet(d: dict, x: dict, r: dict) -> str:
+    """Everything the editorial is allowed to draw on: the GDACS story
+    fields and the reading sentences. The validator checks against it."""
+    lines = [f"Event: {d.get('headline')} (GDACS {d.get('type_label')}, alert level {d.get('alert_level')})"]
+    if d.get("country"):
+        lines.append(f"Country: {d['country']}")
+    if x.get("affected_countries"):
+        lines.append("Affected countries: " + ", ".join(x["affected_countries"]))
+    if d.get("from_date"):
+        lines.append(f"Start: {_dmy(d['from_date'])}")
+    lines.append("Status: " + ("current" if d.get("is_current") else "closed"))
+    sev = d.get("severity_text") or ""
+    if sev and not sev.startswith("Magnitude 0"):
+        lines.append(f"Severity: {sev}")
+    if d.get("population_text"):
+        lines.append(f"Population statement: {d['population_text']}")
+    head = x.get("impact_headline")
+    if isinstance(head, dict) and head.get("description"):
+        lines.append(f"Lead impact report: {_clean_report(head['description'])}"
+                     + (f" ({_dmy(head['date'])})" if head.get("date") else ""))
+    if x.get("affected_area_km2"):
+        lines.append(f"Published affected area: {_fmt_int(x['affected_area_km2'])} km2 ({x.get('affected_area_basis') or ''})")
+    art = x.get("article") or {}
+    if art.get("standfirst"):
+        lines.append("Standfirst: " + art["standfirst"])
+    lines.append("EcoLens reading:")
+    for p in r.get("paragraphs") or []:
+        lines.append("- " + p["text"])
+    return "\n".join(lines)
+
+
+def _sheet_numbers(text: str) -> set:
+    nums = set()
+    for tok in _NUMBER_TOKEN.findall(text):
+        try:
+            nums.add(round(float(tok.replace(",", "")), 6))
+        except ValueError:
+            pass
+    return nums
+
+
+def _validate_editorial(text: str, sheet: str) -> dict:
+    """numbers_ok: every number in the text is a number in the sheet
+    (compared numerically). places_ok: every capitalised word appears in
+    the sheet, bar a few sentence openers and the source names.
+    speculation_ok: no causal, predictive or advisory words."""
+    allowed = _sheet_numbers(sheet)
+    numbers_ok = all(n in allowed for n in _sheet_numbers(text))
+    hay = sheet.casefold()
+    places_ok = all(w.casefold() in _EDITORIAL_ALLOW or w.casefold() in hay for w in _CAP_TOKEN.findall(text))
+    # "12 May" is a date, not a modal verb.
+    speculation_ok = _EDITORIAL_BANNED.search(re.sub(r"\b\d{1,2} May\b", "", text)) is None
+    return {"numbers_ok": numbers_ok, "places_ok": places_ok, "speculation_ok": speculation_ok}
+
+
+def _editorial(d: dict, x: dict, r: dict, errors: list):
+    """At most 90 words relating the sheet's figures to each other, kept
+    only when every check passes. Skipped silently without a Gemini key."""
+    try:
+        api_key = GEMINI_API_KEY.value or ""
+    except Exception:
+        api_key = ""
+    if not api_key:
+        return None
+    sheet = _fact_sheet(d, x, r)
+    prompt = (
+        "Below is a fact sheet for one disaster alert. Write at most "
+        f"{_EDITORIAL_MAX_WORDS} words of plain prose for a local newspaper's disaster wire that only "
+        "relates the listed figures to each other: which is larger, how the counts, areas and distances "
+        "compare, where the alert sits on the wire. Rules: use only numbers and place names that appear "
+        "in the fact sheet, written exactly as they appear there; keep every figure next to the thing it "
+        "counts and the window it covers; add no figure, place, organisation or date that is not in the "
+        "sheet; state no causes, forecasts, expectations, consequences or advice; "
+        "do not use the words cause, because, due to, likely, expected, will, forecast, should, could, "
+        "may, might or predict; no headline, no bullet points, no quotation marks, no preamble. "
+        "Output the prose only.\n\nFACT SHEET\n" + sheet
+    )
+    try:
+        client = genai.Client(api_key=api_key)
+        try:
+            config = types.GenerateContentConfig(
+                temperature=0.2, max_output_tokens=400,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
+            )
+        except Exception:
+            config = types.GenerateContentConfig(temperature=0.2, max_output_tokens=400)
+        resp = client.models.generate_content(model=_EDITORIAL_MODEL, contents=prompt, config=config)
+        text = re.sub(r"\s+", " ", (resp.text or "")).strip().strip('"')
+    except Exception as ex:
+        errors.append(f"editorial: {type(ex).__name__}: {_scrub(str(ex), api_key)[:120]}")
+        return None
+    if not text:
+        errors.append("editorial: rejected (empty)")
+        return None
+    if len(text.split()) > _EDITORIAL_MAX_WORDS + 10:
+        errors.append("editorial: rejected (length)")
+        return None
+    checks = _validate_editorial(text, sheet)
+    if all(checks.values()):
+        return {"text": text, "model": _EDITORIAL_MODEL, "checks": checks}
+    failed = ", ".join(k[:-3] for k, ok in checks.items() if not ok)
+    errors.append(f"editorial: rejected ({failed})")
+    return None
+
+
+def _ecolens_reading(d: dict, x: dict, all_docs: list) -> dict:
+    """The EcoLens reading for one enriched alert (d: the RSS record, x: its
+    enrichment, all_docs: every alert on the wire this run). Each block is
+    best-effort and independent: a failed source is null and noted in
+    x["enrich_errors"], never guessed."""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    errors = x.setdefault("enrich_errors", [])
+    t, lat, lon = d["event_type"], d.get("lat"), d.get("lon")
+    scope = _READING_RADIUS_KM.get(t, _READING_DEFAULT_RADIUS_KM)
+    r = {
+        "computed_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "centroid": {"lat": lat, "lon": lon},
+        "scope_km": scope,
+        "fires": None,
+        "quakes": None,
+        "air": None,
+        "nearest_place": None,
+        "wire": _wire_context(d, x, all_docs),
+        "paragraphs": [],
+        "editorial": None,
+    }
+    if lat is None or lon is None:
+        r["paragraphs"] = _reading_paragraphs(d, x, r)
+        return r
+
+    # Fires: FIRMS for the last 48 hours; the EcoLens archive for the two
+    # whole UTC days before the day that window starts in.
+    try:
+        key = FIRMS_MAP_KEY.value or ""
+    except Exception:
+        key = ""
+    if not key:
+        errors.append("fires: FIRMS key not bound")
+    else:
+        try:
+            bbox, widened = _reading_bbox(lat, lon, scope, x.get("affected_bbox"))
+            since = now - datetime.timedelta(hours=_READING_FIRE_WINDOW_H)
+            days = (now.date() - since.date()).days + 1
+            dets = _firms_area_detections(key, bbox, since, days)
+            frps = [p["frp"] for p in dets]
+            prev_days = [(now.date() - datetime.timedelta(days=4)).isoformat(),
+                         (now.date() - datetime.timedelta(days=3)).isoformat()]
+            fires = {
+                "window_h": _READING_FIRE_WINDOW_H,
+                "source": _READING_FIRE_SOURCE,
+                "detections": len(dets),
+                "frp_mw_total": round(float(sum(frps)), 1),
+                "frp_mw_max": round(max(frps), 1) if frps else 0.0,
+                "in_footprint": _count_in_footprint(dets, x.get("_footprint_geoms") or []),
+                "previous_detections": None,
+                "previous_days": prev_days,
+                "change_pct": None,
+                "bbox": bbox,
+                "widened": widened,
+                "method": (
+                    f"FIRMS area CSV API, sources {' and '.join(_READING_FIRE_SATS)}, box west {bbox[0]}, "
+                    f"south {bbox[1]}, east {bbox[2]}, north {bbox[3]} (the event centroid plus and minus "
+                    f"{scope} km{', widened to the bounding box of the published footprint' if widened else ''}), "
+                    f"{days} UTC days requested from {since:%Y-%m-%d} and filtered to acquisition times from "
+                    f"{since:%Y-%m-%d %H:%M} to {now:%Y-%m-%d %H:%M} UTC as processed by FIRMS at query time; "
+                    f"previous_detections counts the archived detections in the same box on {prev_days[0]} and "
+                    f"{prev_days[1]} ({ARCHIVE_PUBLIC_URL}/fires/daily/); change_pct = (detections - previous) "
+                    f"/ previous x 100."
+                ),
+            }
+            try:
+                counts = []
+                for ds in prev_days:
+                    pts = _archive_fire_points(ds)
+                    if pts is None:
+                        raise RuntimeError(f"{ds} is not archived")
+                    counts.append(_count_in_bbox(pts, bbox))
+                prev = sum(counts)
+                fires["previous_detections"] = prev
+                fires["change_pct"] = round((len(dets) - prev) / prev * 100.0, 1) if prev > 0 else None
+            except Exception as ex:
+                errors.append(f"fires_previous: {type(ex).__name__}: {str(ex)[:120]}")
+            r["fires"] = fires
+        except Exception as ex:
+            errors.append(f"fires: {type(ex).__name__}: {_scrub(str(ex), key)[:120]}")
+
+    if t == "EQ":
+        try:
+            r["quakes"] = _usgs_quakes(lat, lon, d.get("from_date") or "", now)
+        except Exception as ex:
+            errors.append(f"quakes: {type(ex).__name__}: {str(ex)[:120]}")
+
+    if t in ("WF", "VO") or (r["fires"] and r["fires"]["detections"] > 0):
+        try:
+            r["air"] = _open_meteo_air(lat, lon)
+        except Exception as ex:
+            errors.append(f"air: {type(ex).__name__}: {str(ex)[:120]}")
+
+    try:
+        r["nearest_place"] = _nearest_place(lat, lon)
+    except Exception as ex:
+        errors.append(f"place: {type(ex).__name__}: {str(ex)[:120]}")
+
+    r["paragraphs"] = _reading_paragraphs(d, x, r)
+    r["editorial"] = _editorial(d, x, r, errors)
+    return r
+
+
+def _wire_docs(db, docs: dict, enriched_now: dict) -> list:
+    """Shallow copies of every alert on the wire carrying its impact
+    headline (this run's enrichment first, else the stored one), so the
+    wire context compares against the whole feed and not just this batch."""
+    wire = {g: dict(d) for g, d in docs.items()}
+    for g, extra in enriched_now.items():
+        if extra.get("impact_headline") is not None:
+            wire[g]["impact_headline"] = extra["impact_headline"]
+    try:
+        for snap in db.collection(NEWS_COLLECTION).select(["impact_headline"]).stream():
+            w = wire.get(snap.id)
+            if w is not None and "impact_headline" not in w:
+                head = (snap.to_dict() or {}).get("impact_headline")
+                if head:
+                    w["impact_headline"] = head
+    except Exception as ex:
+        print(f"[news] stored headlines for the wire context unavailable: {ex}")
+    return list(wire.values())
 
 
 def _refresh_environmental_news(max_enrich: int = 25, workers: int = 4, force: bool = False) -> str:
@@ -3428,7 +4102,33 @@ def _refresh_environmental_news(max_enrich: int = 25, workers: int = 4, force: b
         with ThreadPoolExecutor(max_workers=workers) as pool:
             for g, extra in zip(queue, pool.map(lambda g: _enrich_event(docs[g]), queue)):
                 enriched_now[g] = extra
+
+    # The EcoLens reading for every alert enriched this run. It needs the
+    # whole wire for context, so it runs after enrichment; each reading is
+    # three to five short HTTP calls, spread over the same worker pool.
+    if enriched_now:
+        wire = _wire_docs(db, docs, enriched_now)
+        order = list(enriched_now)
+
+        def reading(g):
+            try:
+                return _ecolens_reading(docs[g], enriched_now[g], wire)
+            except Exception as ex:
+                enriched_now[g].setdefault("enrich_errors", []).append(
+                    f"reading: {type(ex).__name__}: {str(ex)[:120]}")
+                return None
+
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            for g, r in zip(order, pool.map(reading, order)):
+                if r is not None:
+                    enriched_now[g]["ecolens_reading"] = r
+                article = enriched_now[g].get("article")
+                if isinstance(article, dict):
+                    first = ((r or {}).get("paragraphs") or [{}])[0]
+                    article["ecolens_summary"] = first.get("text", "")
     for g, extra in enriched_now.items():
+        for k in [k for k in extra if k.startswith("_")]:
+            extra.pop(k)  # transient working data (footprint geometries), never written
         docs[g].update(extra)
         enriched[g] = {"s": stamp(docs[g]), "t": now_ms}
     enriched = {g: v for g, v in enriched.items() if g in docs}
@@ -3489,6 +4189,9 @@ def _refresh_environmental_news(max_enrich: int = 25, workers: int = 4, force: b
                 "type": "Feature",
                 "geometry": {"type": "Point", "coordinates": [d["lon"], d["lat"]]},
                 "properties": {
+                    "id": d["id"],
+                    "event_id": d["event_id"],
+                    "episode_id": d["episode_id"],
                     "event_type": d["event_type"],
                     "event_name": d["event_name"] or d["headline"],
                     "alert_level": d["alert_level"],
@@ -3528,6 +4231,7 @@ def _refresh_environmental_news(max_enrich: int = 25, workers: int = 4, force: b
     schedule="every 15 minutes",
     timeout_sec=540,
     memory=options.MemoryOption.GB_1,
+    secrets=[FIRMS_MAP_KEY, GEMINI_API_KEY],
 )
 def refresh_environmental_news(event):
     """Keep `news_feed` in step with the GDACS RSS feed, enriching a bounded
@@ -3538,7 +4242,7 @@ def refresh_environmental_news(event):
 @https_fn.on_request(
     timeout_sec=900,
     memory=options.MemoryOption.GB_1,
-    secrets=["ADMIN_TRIGGER_TOKEN"],
+    secrets=["ADMIN_TRIGGER_TOKEN", FIRMS_MAP_KEY, GEMINI_API_KEY],
 )
 def refresh_news_now(request):
     """Force a refresh. Closed unless the caller presents ADMIN_TRIGGER_TOKEN

@@ -1,0 +1,1077 @@
+{
+"source": "assets/maplibre_map/js/anomaly-desk.js REGIONS (nearest-place reference list)",
+"generated_at": "2026-09-03T03:05:25Z",
+"format": "[lat, lon, name]",
+"places": [
+[
+64.28,
+100.22,
+"Tura, Evenkia"
+],
+[
+69.35,
+88.19,
+"Norilsk, Russia"
+],
+[
+60.34,
+102.28,
+"Vanavara, Evenkia"
+],
+[
+58.45,
+92.17,
+"Yeniseysk, Russia"
+],
+[
+56.15,
+101.63,
+"Bratsk, Russia"
+],
+[
+52.03,
+113.5,
+"Chita, Russia"
+],
+[
+51.83,
+107.58,
+"Ulan-Ude, Russia"
+],
+[
+51.72,
+94.45,
+"Kyzyl, Tuva"
+],
+[
+60.94,
+76.55,
+"Nizhnevartovsk, Russia"
+],
+[
+61.0,
+69.02,
+"Khanty-Mansiysk, Russia"
+],
+[
+66.53,
+66.61,
+"Salekhard, Yamal"
+],
+[
+67.5,
+64.03,
+"Vorkuta, Russia"
+],
+[
+64.73,
+177.51,
+"Anadyr, Chukotka"
+],
+[
+53.04,
+158.65,
+"Petropavlovsk-Kamchatsky"
+],
+[
+48.48,
+135.08,
+"Khabarovsk, Russia"
+],
+[
+53.2,
+63.62,
+"Kostanay, Kazakhstan"
+],
+[
+49.8,
+73.1,
+"Karaganda, Kazakhstan"
+],
+[
+40.97,
+-117.74,
+"Winnemucca, Nevada"
+],
+[
+40.83,
+-115.76,
+"Elko, Nevada"
+],
+[
+39.53,
+-119.81,
+"Reno, Nevada"
+],
+[
+36.17,
+-115.14,
+"Las Vegas, US"
+],
+[
+43.62,
+-116.2,
+"Boise, Idaho"
+],
+[
+46.87,
+-113.99,
+"Missoula, Montana"
+],
+[
+45.78,
+-108.5,
+"Billings, Montana"
+],
+[
+44.06,
+-121.31,
+"Bend, Oregon"
+],
+[
+40.59,
+-122.39,
+"Redding, California"
+],
+[
+40.76,
+-111.89,
+"Salt Lake City, US"
+],
+[
+33.45,
+-112.07,
+"Phoenix, US"
+],
+[
+31.76,
+-106.49,
+"El Paso, US"
+],
+[
+44.37,
+-100.35,
+"Pierre, South Dakota"
+],
+[
+46.81,
+-100.78,
+"Bismarck, North Dakota"
+],
+[
+62.03,
+129.73,
+"Yakutsk, Russia"
+],
+[
+66.42,
+112.4,
+"Mirny, Sakha"
+],
+[
+64.56,
+143.23,
+"Ust-Nera, Sakha"
+],
+[
+61.25,
+73.4,
+"Surgut, Russia"
+],
+[
+58.6,
+125.4,
+"Aldan, Sakha"
+],
+[
+56.01,
+92.87,
+"Krasnoyarsk, Russia"
+],
+[
+67.47,
+86.57,
+"Igarka, Krasnoyarsk"
+],
+[
+65.28,
+82.47,
+"Tazovsky, Yamal"
+],
+[
+52.29,
+104.3,
+"Irkutsk, Russia"
+],
+[
+55.03,
+82.92,
+"Novosibirsk, Russia"
+],
+[
+53.75,
+87.12,
+"Novokuznetsk, Russia"
+],
+[
+50.28,
+127.53,
+"Blagoveshchensk, Russia"
+],
+[
+59.57,
+150.8,
+"Magadan, Russia"
+],
+[
+43.12,
+131.89,
+"Vladivostok, Russia"
+],
+[
+55.75,
+37.62,
+"Moscow, Russia"
+],
+[
+-4.44,
+15.27,
+"Kinshasa, DR Congo"
+],
+[
+-11.66,
+27.48,
+"Kolwezi, DR Congo"
+],
+[
+-6.16,
+23.6,
+"Kananga, DR Congo"
+],
+[
+-8.9,
+13.24,
+"Luanda, Angola"
+],
+[
+-12.58,
+17.48,
+"Huambo, Angola"
+],
+[
+-14.66,
+17.69,
+"Menongue, Angola"
+],
+[
+-15.42,
+28.28,
+"Lusaka, Zambia"
+],
+[
+-17.83,
+31.05,
+"Harare, Zimbabwe"
+],
+[
+-19.05,
+17.08,
+"Grootfontein, Namibia"
+],
+[
+-25.75,
+28.19,
+"Pretoria, South Africa"
+],
+[
+-33.92,
+18.42,
+"Cape Town, South Africa"
+],
+[
+-18.88,
+47.51,
+"Antananarivo, Madagascar"
+],
+[
+-6.79,
+39.21,
+"Dar es Salaam, Tanzania"
+],
+[
+-1.29,
+36.82,
+"Nairobi, Kenya"
+],
+[
+9.02,
+38.75,
+"Addis Ababa, Ethiopia"
+],
+[
+15.59,
+32.53,
+"Khartoum, Sudan"
+],
+[
+12.65,
+-8.0,
+"Bamako, Mali"
+],
+[
+12.37,
+-1.53,
+"Ouagadougou, Burkina Faso"
+],
+[
+9.06,
+7.49,
+"Abuja, Nigeria"
+],
+[
+5.6,
+-0.19,
+"Accra, Ghana"
+],
+[
+14.72,
+-17.47,
+"Dakar, Senegal"
+],
+[
+30.04,
+31.24,
+"Cairo, Egypt"
+],
+[
+36.81,
+10.18,
+"Tunis, Tunisia"
+],
+[
+33.57,
+-7.59,
+"Casablanca, Morocco"
+],
+[
+39.9,
+116.41,
+"Beijing, China"
+],
+[
+31.23,
+121.47,
+"Shanghai, China"
+],
+[
+23.13,
+113.26,
+"Guangzhou, China"
+],
+[
+30.57,
+104.07,
+"Chengdu, China"
+],
+[
+43.83,
+87.62,
+"Urumqi, China"
+],
+[
+28.61,
+77.21,
+"Delhi, India"
+],
+[
+19.08,
+72.88,
+"Mumbai, India"
+],
+[
+22.57,
+88.36,
+"Kolkata, India"
+],
+[
+23.81,
+90.41,
+"Dhaka, Bangladesh"
+],
+[
+27.72,
+85.32,
+"Kathmandu, Nepal"
+],
+[
+24.86,
+67.01,
+"Karachi, Pakistan"
+],
+[
+13.76,
+100.5,
+"Bangkok, Thailand"
+],
+[
+21.03,
+105.85,
+"Hanoi, Vietnam"
+],
+[
+-6.21,
+106.85,
+"Jakarta, Indonesia"
+],
+[
+-2.99,
+104.76,
+"Palembang, Sumatra"
+],
+[
+-0.02,
+109.34,
+"Pontianak, Borneo"
+],
+[
+-2.2,
+113.92,
+"Palangkaraya, Borneo"
+],
+[
+14.6,
+120.98,
+"Manila, Philippines"
+],
+[
+35.68,
+139.69,
+"Tokyo, Japan"
+],
+[
+37.57,
+126.98,
+"Seoul, South Korea"
+],
+[
+47.89,
+106.91,
+"Ulaanbaatar, Mongolia"
+],
+[
+41.01,
+28.98,
+"Istanbul, Turkey"
+],
+[
+35.69,
+51.39,
+"Tehran, Iran"
+],
+[
+24.71,
+46.68,
+"Riyadh, Saudi Arabia"
+],
+[
+43.24,
+76.89,
+"Almaty, Kazakhstan"
+],
+[
+-3.12,
+-60.02,
+"Manaus, Brazil"
+],
+[
+-15.6,
+-56.1,
+"Cuiaba, Brazil"
+],
+[
+-23.55,
+-46.63,
+"Sao Paulo, Brazil"
+],
+[
+-8.05,
+-34.88,
+"Recife, Brazil"
+],
+[
+-16.5,
+-68.15,
+"La Paz, Bolivia"
+],
+[
+-17.78,
+-63.18,
+"Santa Cruz, Bolivia"
+],
+[
+-25.26,
+-57.58,
+"Asuncion, Paraguay"
+],
+[
+-34.6,
+-58.38,
+"Buenos Aires, Argentina"
+],
+[
+-33.45,
+-70.67,
+"Santiago, Chile"
+],
+[
+-12.05,
+-77.04,
+"Lima, Peru"
+],
+[
+4.71,
+-74.07,
+"Bogota, Colombia"
+],
+[
+10.49,
+-66.88,
+"Caracas, Venezuela"
+],
+[
+-12.46,
+130.84,
+"Darwin, Australia"
+],
+[
+-16.92,
+145.77,
+"Cairns, Australia"
+],
+[
+-31.95,
+115.86,
+"Perth, Australia"
+],
+[
+-33.87,
+151.21,
+"Sydney, Australia"
+],
+[
+-37.81,
+144.96,
+"Melbourne, Australia"
+],
+[
+-19.02,
+146.82,
+"Townsville, Australia"
+],
+[
+-36.85,
+174.76,
+"Auckland, New Zealand"
+],
+[
+-9.44,
+147.18,
+"Port Moresby, PNG"
+],
+[
+51.51,
+-0.13,
+"London, UK"
+],
+[
+48.86,
+2.35,
+"Paris, France"
+],
+[
+40.42,
+-3.7,
+"Madrid, Spain"
+],
+[
+38.72,
+-9.14,
+"Lisbon, Portugal"
+],
+[
+41.9,
+12.5,
+"Rome, Italy"
+],
+[
+37.98,
+23.73,
+"Athens, Greece"
+],
+[
+52.52,
+13.4,
+"Berlin, Germany"
+],
+[
+59.33,
+18.07,
+"Stockholm, Sweden"
+],
+[
+64.15,
+-21.94,
+"Reykjavik, Iceland"
+],
+[
+50.45,
+30.52,
+"Kyiv, Ukraine"
+],
+[
+53.92,
+-122.75,
+"Prince George, BC"
+],
+[
+54.78,
+-127.17,
+"Smithers, BC"
+],
+[
+54.52,
+-128.6,
+"Terrace, BC"
+],
+[
+54.32,
+-130.32,
+"Prince Rupert, BC"
+],
+[
+58.81,
+-122.7,
+"Fort Nelson, BC"
+],
+[
+56.25,
+-120.85,
+"Fort St. John, BC"
+],
+[
+55.76,
+-120.24,
+"Dawson Creek, BC"
+],
+[
+52.14,
+-122.14,
+"Williams Lake, BC"
+],
+[
+50.69,
+-121.94,
+"Lillooet, BC"
+],
+[
+49.89,
+-119.5,
+"Kelowna, BC"
+],
+[
+49.5,
+-119.59,
+"Penticton, BC"
+],
+[
+49.49,
+-117.29,
+"Nelson, BC"
+],
+[
+51.0,
+-118.2,
+"Revelstoke, BC"
+],
+[
+49.51,
+-115.77,
+"Cranbrook, BC"
+],
+[
+48.43,
+-123.365,
+"Victoria, BC"
+],
+[
+50.03,
+-125.25,
+"Campbell River, BC"
+],
+[
+56.73,
+-111.38,
+"Fort McMurray, AB"
+],
+[
+55.17,
+-118.8,
+"Grande Prairie, AB"
+],
+[
+49.69,
+-112.84,
+"Lethbridge, AB"
+],
+[
+62.45,
+-114.37,
+"Yellowknife, NWT"
+],
+[
+60.82,
+-115.8,
+"Hay River, NWT"
+],
+[
+60.0,
+-111.89,
+"Fort Smith, NWT"
+],
+[
+65.28,
+-126.83,
+"Norman Wells, NWT"
+],
+[
+68.36,
+-133.72,
+"Inuvik, NWT"
+],
+[
+60.72,
+-135.05,
+"Whitehorse, Yukon"
+],
+[
+63.75,
+-68.52,
+"Iqaluit, Nunavut"
+],
+[
+52.13,
+-106.67,
+"Saskatoon, Canada"
+],
+[
+50.45,
+-104.62,
+"Regina, Canada"
+],
+[
+49.9,
+-97.14,
+"Winnipeg, Canada"
+],
+[
+55.74,
+-97.86,
+"Thompson, Manitoba"
+],
+[
+48.38,
+-89.25,
+"Thunder Bay, Canada"
+],
+[
+46.49,
+-80.99,
+"Sudbury, Canada"
+],
+[
+46.81,
+-71.21,
+"Quebec City, Canada"
+],
+[
+44.65,
+-63.58,
+"Halifax, Canada"
+],
+[
+47.56,
+-52.71,
+"St. John's, Canada"
+],
+[
+64.84,
+-147.72,
+"Fairbanks, Alaska"
+],
+[
+61.22,
+-149.9,
+"Anchorage, Alaska"
+],
+[
+49.3,
+-123.1,
+"Vancouver, Canada"
+],
+[
+50.7,
+-120.3,
+"Kamloops, BC"
+],
+[
+53.5,
+-113.5,
+"Edmonton, Canada"
+],
+[
+51.0,
+-114.1,
+"Calgary, Canada"
+],
+[
+45.5,
+-73.6,
+"Montreal, Canada"
+],
+[
+43.7,
+-79.4,
+"Toronto, Canada"
+],
+[
+34.1,
+-118.2,
+"Los Angeles, US"
+],
+[
+37.8,
+-122.4,
+"San Francisco, US"
+],
+[
+45.5,
+-122.7,
+"Portland, US"
+],
+[
+47.6,
+-122.3,
+"Seattle, US"
+],
+[
+39.7,
+-105.0,
+"Denver, US"
+],
+[
+35.1,
+-106.6,
+"Albuquerque, US"
+],
+[
+30.3,
+-97.7,
+"Austin, US"
+],
+[
+25.8,
+-80.2,
+"Miami, US"
+],
+[
+19.4,
+-99.1,
+"Mexico City"
+],
+[
+4.7,
+-74.1,
+"Bogotá, Colombia"
+],
+[
+-3.1,
+-60.0,
+"Manaus, Amazon"
+],
+[
+-15.8,
+-47.9,
+"Brasília, Brazil"
+],
+[
+-23.5,
+-46.6,
+"São Paulo, Brazil"
+],
+[
+-34.6,
+-58.4,
+"Buenos Aires"
+],
+[
+-33.9,
+18.4,
+"Cape Town, SA"
+],
+[
+-26.2,
+28.0,
+"Johannesburg, SA"
+],
+[
+-1.3,
+36.8,
+"Nairobi, Kenya"
+],
+[
+9.0,
+38.7,
+"Addis Ababa"
+],
+[
+6.5,
+3.4,
+"Lagos, Nigeria"
+],
+[
+14.7,
+-17.5,
+"Dakar, Senegal"
+],
+[
+36.8,
+10.2,
+"Tunis"
+],
+[
+30.0,
+31.2,
+"Cairo, Egypt"
+],
+[
+40.4,
+-3.7,
+"Madrid, Spain"
+],
+[
+38.7,
+-9.1,
+"Lisbon, Portugal"
+],
+[
+41.9,
+12.5,
+"Rome, Italy"
+],
+[
+37.9,
+23.7,
+"Athens, Greece"
+],
+[
+48.9,
+2.3,
+"Paris, France"
+],
+[
+52.5,
+13.4,
+"Berlin, Germany"
+],
+[
+55.8,
+37.6,
+"Moscow, Russia"
+],
+[
+39.9,
+32.9,
+"Ankara, Türkiye"
+],
+[
+28.6,
+77.2,
+"Delhi, India"
+],
+[
+19.1,
+72.9,
+"Mumbai, India"
+],
+[
+13.8,
+100.5,
+"Bangkok, Thailand"
+],
+[
+-6.2,
+106.8,
+"Jakarta, Indonesia"
+],
+[
+1.4,
+103.8,
+"Singapore"
+],
+[
+14.6,
+121.0,
+"Manila, Philippines"
+],
+[
+39.9,
+116.4,
+"Beijing, China"
+],
+[
+31.2,
+121.5,
+"Shanghai, China"
+],
+[
+35.7,
+139.7,
+"Tokyo, Japan"
+],
+[
+37.6,
+126.9,
+"Seoul, Korea"
+],
+[
+-33.9,
+151.2,
+"Sydney, Australia"
+],
+[
+-37.8,
+145.0,
+"Melbourne, Australia"
+],
+[
+-31.9,
+115.9,
+"Perth, Australia"
+],
+[
+-41.3,
+174.8,
+"Wellington, NZ"
+],
+[
+64.1,
+-21.9,
+"Reykjavík, Iceland"
+],
+[
+61.2,
+-149.9,
+"Anchorage, Alaska"
+]
+]
+}

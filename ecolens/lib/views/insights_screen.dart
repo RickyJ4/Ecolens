@@ -2060,7 +2060,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
           '${hours is num ? _fmtInt(hours) : '48'} h',
           [
             if (scope is num && scope > 0) 'within ${_fmtNum(scope)} km',
-            if (inside is num) '${_fmtInt(inside)} inside the published polygon',
+            if (inside is num) '${_fmtInt(inside)} inside the event footprint',
             firms,
           ].join(' · '),
         ));
@@ -2098,14 +2098,14 @@ class _InsightsScreenState extends State<InsightsScreen> {
           [
             if (before is num)
               '${_fmtInt(before)} detection${before == 1 ? '' : 's'} then',
-            'same box, FIRMS archive',
+            firms,
           ].join(' · '),
         ));
       } else if (before is num) {
         tiles.add(_readingStat(
           _fmtInt(before),
           'detection${before == 1 ? '' : 's'} the two days before',
-          'same box, FIRMS archive',
+          firms,
         ));
       }
     }
@@ -2173,11 +2173,15 @@ class _InsightsScreenState extends State<InsightsScreen> {
       final name = (place['name'] ?? '').toString().trim();
       final km = place['km'];
       final bearing = (place['bearing'] ?? '').toString().trim();
+      // This block publishes no source field of its own, so the tile names
+      // the reading it came from rather than a lookup it cannot vouch for;
+      // a source the server does name is shown as given.
+      final src = (place['source'] ?? '').toString().trim();
       if (name.isNotEmpty && km is num) {
         tiles.add(_readingStat(
           '${_fmtNum(km)} km${bearing.isEmpty ? '' : ' $bearing'}',
           '$name, the nearest place',
-          'EcoLens gazetteer',
+          src.isEmpty ? 'EcoLens reading' : src,
         ));
       }
     }
@@ -2190,22 +2194,29 @@ class _InsightsScreenState extends State<InsightsScreen> {
       final deadliest = wire['deadliest_report_on_wire'];
       final level = (node.causeData['alert_level'] ?? '').toString().trim();
       final typeLabel = (node.causeData['type_label'] ?? node.type).toString();
-      // Published with each refresh in news_meta/latest; "the only Red
-      // alert" is true exactly when that count is one.
-      final atLevel = level.isEmpty ? null : vm.newsByLevel[level];
+      // The per-level count is published with each refresh in
+      // news_meta/latest. "The only Red alert" is claimed only when that
+      // count is one and this item is itself on the streamed wire, so the
+      // one alert counted is this one and not another that replaced it.
+      final onWire = vm.allAlerts.any((n) => n.id == node.id);
+      int? atLevel;
+      for (final e in vm.newsByLevel.entries) {
+        if (e.key.toLowerCase() == level.toLowerCase()) atLevel = e.value;
+      }
       tiles.add(_readingStat(
         '1 of ${_fmtInt(total)}',
         '${_typeNoun(typeLabel, total)} on the wire',
         [
-          if (active is num) '${_fmtInt(active)} active',
-          if (atLevel == 1) 'the only $level alert',
+          if (active is num) '${_fmtInt(active)} of them active',
+          if (onWire && level.isNotEmpty && atLevel == 1)
+            'the only $level alert',
           if (higher is num && higher > 0)
             '${_fmtInt(higher)} alert${higher == 1 ? '' : 's'} '
                 'outrank${higher == 1 ? 's' : ''} it',
           if (higher is num && higher == 0 && level.toLowerCase() != 'red')
             'none outranks it',
           if (deadliest == true) 'the deadliest report on the wire',
-          'EcoLens wire',
+          'GDACS wire, as mirrored by EcoLens',
         ].join(' · '),
       ));
     }

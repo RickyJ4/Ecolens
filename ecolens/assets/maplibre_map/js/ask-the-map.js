@@ -647,10 +647,15 @@ const AskTheMap = (function () {
                     ? WIRE_TYPE_NOUNS[t][byType[t] === 1 ? 0 : 1] : t));
             body += ' (' + parts.join(', ') + ')';
         }
+        // "all green" is only true when every listed event carries that
+        // level; an event without a published level is said to be one.
+        const unrated = n - levels.Red - levels.Orange - levels.Green;
         const levelBits = [];
         if (levels.Red) levelBits.push(levels.Red + ' red');
         if (levels.Orange) levelBits.push(levels.Orange + ' orange');
-        body += ', ' + (levelBits.length ? levelBits.join(', ') : 'all green') + '.';
+        if (!levelBits.length && levels.Green === n) levelBits.push('all green');
+        if (unrated) levelBits.push(unrated + ' with no published level');
+        body += (levelBits.length ? ', ' + levelBits.join(', ') : '') + '.';
         if (closed) body += ' ' + (n - closed) + ' current, ' + closed + ' closed.';
         if (n > WIRE_LIMIT) {
             body += ' Showing the ' + WIRE_LIMIT + ' highest-level, most recent.';
@@ -672,7 +677,10 @@ const AskTheMap = (function () {
                 country: p.country || '',
                 detail: impact || affected || '',
                 detailKind: impact ? 'Impact' : (affected ? 'Affected' : ''),
-                updated: wireDate(p.to_date || p.from_date),
+                // "updated" is the published to_date; an event that only
+                // carries a from_date is dated from it, and labelled so.
+                updated: wireDate(p.to_date),
+                from: wireDate(p.from_date),
                 status: p.is_current === false ? 'closed' : 'current',
             };
         });
@@ -938,7 +946,8 @@ const AskTheMap = (function () {
                 (it.level ? '<span class="atm-wire-level">' + esc(it.level) + ' alert</span> ' : '') +
                 '<span class="atm-wire-headline">' + esc(it.headline) + '</span></div>' +
                 '<div class="atm-wire-meta">' +
-                esc([it.country, it.status, it.updated ? 'updated ' + it.updated : '']
+                esc([it.country, it.status,
+                    it.updated ? 'updated ' + it.updated : (it.from ? 'from ' + it.from : '')]
                     .filter(Boolean).join(' · ')) + '</div>' +
                 (it.detail
                     ? '<div class="atm-wire-detail">' + esc(it.detailKind) + ': ' + esc(it.detail) + '</div>'
@@ -964,7 +973,12 @@ const AskTheMap = (function () {
         }
         findings.sections.forEach((s, si) => {
             html += '<div class="atm-section">' +
-                '<div class="atm-title">' + esc(s.title) + '</div>' +
+                '<div class="atm-title">' + esc(s.title) +
+                // A worldwide wire listing inside a view-scoped answer (e.g.
+                // "latest earthquakes" also gets the USGS section) says so
+                // in its title, since the head line describes the view.
+                (s.key === 'wire' && s.worldwide && !findings.worldwide ? ' · worldwide' : '') +
+                '</div>' +
                 '<div class="atm-body">' + esc(s.body) + '</div>' +
                 (s.key === 'wire' ? wireItemsHtml(s, si) : '') +
                 '<div class="atm-source">Source: ' + esc(s.source) + '</div>' +

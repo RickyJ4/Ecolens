@@ -521,7 +521,15 @@ class _MapLibreMapScreenState extends State<MapLibreMapScreen>
       // the news item; Insights resolves and opens it.
       case 'openNewsStory':
         if (data is Map) {
-          final id = (data['id'] ?? '').toString().trim();
+          var id = (data['id'] ?? '').toString().trim();
+          // The wire mirror may predate the id property: derive the GDACS guid
+          // (eventtype + eventid) from the report URL instead of doing nothing.
+          if (id.isEmpty) {
+            final uri = Uri.tryParse((data['url'] ?? '').toString());
+            final type = (uri?.queryParameters['eventtype'] ?? '').trim();
+            final eventId = (uri?.queryParameters['eventid'] ?? '').trim();
+            if (type.isNotEmpty && eventId.isNotEmpty) id = '$type$eventId';
+          }
           if (id.isNotEmpty) {
             context.read<InsightsViewModel>().openNewsById(id);
             context.read<NavigationViewModel>().setIndex(2);

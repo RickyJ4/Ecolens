@@ -1402,9 +1402,9 @@ const AtlasBridge = (function () {
         // Version banner: if you can't see this row in the feed, the
         // browser is running a stale bridge — hard-refresh.
         const feed = el('atlas-feed');
-        if (feed && !feed.textContent.includes('bridge g22')) {
+        if (feed && !feed.textContent.includes('bridge g23')) {
             feedRow({ worker: 'EcoLens Bridge', phase: 'Ready',
-                message: 'bridge g22 · evidence feeder + boundary + satellite/fire-record join active · engine: ' + base() });
+                message: 'bridge g23 · evidence feeder + boundary + satellite/fire-record join active · engine: ' + base() });
         }
         // Give the first hotspot computation a moment, then peer-review it.
         setTimeout(verifyHotspots, 12000);
