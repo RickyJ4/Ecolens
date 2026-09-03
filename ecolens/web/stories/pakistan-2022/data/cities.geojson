@@ -1,0 +1,165 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Karachi",
+        "province": "Sindh",
+        "metro_pop_2024": 17649000,
+        "role": "Pakistan's largest city + financial capital + main port (Port Qasim)."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.0011,
+          24.8607
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Lahore",
+        "province": "Punjab",
+        "metro_pop_2024": 14407000,
+        "role": "Cultural capital, second-largest economy. Surpassed Karachi in metro population in 2023."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.3436,
+          31.5497
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Islamabad",
+        "province": "Capital",
+        "metro_pop_2024": 1267000,
+        "role": "Federal capital, seat of government and federal agencies (NDMA, climate ministry)."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.0479,
+          33.6844
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Peshawar",
+        "province": "KP",
+        "metro_pop_2024": 2300000,
+        "role": "Khyber-Pakhtunkhwa capital, gateway to Afghanistan. Hosts ~210k Afghan refugees."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          71.5249,
+          34.0151
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Quetta",
+        "province": "Balochistan",
+        "metro_pop_2024": 1140000,
+        "role": "Balochistan capital, smallest provincial economy, hosts ~170k Afghan refugees."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          66.975,
+          30.1798
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Faisalabad",
+        "province": "Punjab",
+        "metro_pop_2024": 3700000,
+        "role": "Textile manufacturing hub, third-largest economy by output."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.135,
+          31.4504
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hyderabad",
+        "province": "Sindh",
+        "metro_pop_2024": 2000000,
+        "role": "Sindh's second city, agricultural trading centre \u2014 flooded 2022."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.3578,
+          25.396
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Multan",
+        "province": "Punjab",
+        "metro_pop_2024": 2100000,
+        "role": "Southern Punjab agricultural hub, ancient Sufi city \u2014 partially flooded 2022."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          71.5249,
+          30.1575
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sukkur",
+        "province": "Sindh",
+        "metro_pop_2024": 500000,
+        "role": "Sukkur Barrage city \u2014 Indus flow regulated here. Central to the 2022 disaster."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.843,
+          27.6936
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hunza",
+        "province": "Gilgit-Baltistan",
+        "metro_pop_2024": 50000,
+        "role": "High-altitude Karakoram valley. Shisper Glacier GLOF destroyed Hassanabad Bridge here in May 2022."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.6489,
+          36.3203
+        ]
+      }
+    }
+  ]
+}

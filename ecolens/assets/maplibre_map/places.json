@@ -1,0 +1,83 @@
+{
+  "comment": "EcoLens Places spine — every entry is a geography EcoLens has reported on or is actively developing. The map, stories, insights and community tabs are three lenses on these places. Statuses: published | coming_soon | in_development.",
+  "places": [
+    {
+      "id": "daylighting-vancouver",
+      "name": "Vancouver's Buried Streams",
+      "kicker": "INVESTIGATION · JUL 2026",
+      "dek": "A hundred years ago there were more than fifty salmon streams running through Vancouver. Most were buried. A handful are now coming back.",
+      "lon": -123.06,
+      "lat": 49.255,
+      "zoom": 11.5,
+      "status": "published",
+      "storyUrl": "/stories/daylighting-vancouver-2026/",
+      "storyLabel": "Read the investigation",
+      "insightsRoute": "/#/insights?place=daylighting-vancouver",
+      "communityReady": false,
+      "facts": [
+        "120 km of salmon streams buried under the City of Vancouver",
+        "Chum salmon returned to Still Creek in 2012 after ~80 years",
+        "13 daylighting projects mapped across BC"
+      ],
+      "country": "Canada"
+    },
+    {
+      "id": "pakistan-2022",
+      "name": "Pakistan 2022 Floods",
+      "kicker": "CLIMATE EVENT · UPDATED JUN 2026",
+      "dek": "One third of a country underwater. A research-led reconstruction of the 2022 floods from satellite evidence, and what has and hasn't recovered since.",
+      "lon": 68.36,
+      "lat": 26.5,
+      "zoom": 6.0,
+      "status": "published",
+      "storyUrl": "/stories/pakistan-2022/",
+      "storyLabel": "Read the event brief",
+      "insightsRoute": "/#/insights?place=pakistan-2022",
+      "communityReady": false,
+      "facts": [
+        "~33 million people affected (NDMA / UN OCHA)",
+        "Reconstructed from UNOSAT + NASA Landsat evidence",
+        "19 chapters, updated as recovery data lands"
+      ],
+      "country": "Pakistan"
+    },
+    {
+      "id": "bc-watersheds",
+      "name": "BC's Drying Watersheds",
+      "kicker": "COMING SOON",
+      "dek": "Three years of shrinking snowpacks, decades of clearcut logging, and a water-pricing system stuck in the 20th century. How BC's watersheds came apart in 2026.",
+      "lon": -124.5,
+      "lat": 51.5,
+      "zoom": 5.2,
+      "status": "coming_soon",
+      "storyUrl": null,
+      "storyLabel": null,
+      "insightsRoute": "/#/insights?place=bc-watersheds",
+      "communityReady": false,
+      "facts": [
+        "Provincial snowpack at 48% of normal by June 2026",
+        "Snow Basin Index hit 0% on Vancouver Island + South Coast"
+      ],
+      "country": "Canada"
+    },
+    {
+      "id": "new-west-streams",
+      "name": "Buried Streams of New Westminster",
+      "kicker": "IN DEVELOPMENT · WITH HOMEGROWN PIGEON SOCIETY",
+      "dek": "Tracing the surface streams that ran through what is now New Westminster, what got piped underground, and the daylighting work that could bring some back. EcoLens's first community partnership.",
+      "lon": -122.911,
+      "lat": 49.207,
+      "zoom": 12.5,
+      "status": "in_development",
+      "storyUrl": null,
+      "storyLabel": null,
+      "insightsRoute": null,
+      "communityReady": false,
+      "facts": [
+        "Launch target Aug 2026",
+        "Built with Homegrown Pigeon Society"
+      ],
+      "country": "Canada"
+    }
+  ]
+}

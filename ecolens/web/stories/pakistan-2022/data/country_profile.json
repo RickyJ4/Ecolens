@@ -1,0 +1,26 @@
+{
+  "population_2024": 251300000,
+  "median_age": 20.8,
+  "gdp_usd_2024": 346000000000,
+  "agriculture_pct_gdp": 22.9,
+  "agriculture_pct_workforce": 37.4,
+  "co2_share_global_pct": 0.96,
+  "climate_risk_index_rank": 8,
+  "land_area_km2": 881913,
+  "provinces": 4,
+  "provinces_list": [
+    "Punjab",
+    "Sindh",
+    "Khyber-Pakhtunkhwa",
+    "Balochistan"
+  ],
+  "literacy_rate_pct": 58,
+  "rural_population_pct": 62,
+  "key_crops": [
+    "wheat",
+    "rice",
+    "cotton",
+    "sugarcane"
+  ],
+  "indus_basin_pct_water_supply": 80
+}

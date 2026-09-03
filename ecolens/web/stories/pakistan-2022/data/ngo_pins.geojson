@@ -1,0 +1,101 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Edhi Foundation",
+        "city": "Karachi",
+        "what": "~300 emergency relief camps across Sindh + Balochistan; food rations to ~400k families.",
+        "url": "https://edhi.org/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.0011,
+          24.8607
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Saylani Welfare Trust",
+        "city": "Karachi",
+        "what": "Daily hot-meal program: ~250,000 meals/day at peak from mobile kitchens in Dadu, Larkana, Sehwan.",
+        "url": "https://saylaniwelfare.com/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.0822,
+          24.9056
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "JDC Foundation",
+        "city": "Karachi",
+        "what": "First-wave rescue operations in Khairpur + Dadu using volunteer boats.",
+        "url": "https://jdc.org.pk/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.0299,
+          24.8693
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Al-Khidmat Foundation",
+        "city": "Lahore",
+        "what": "~3,000 temporary shelters in Sindh, ~50 medical camps, ~200 schools rebuilt by mid-2024.",
+        "url": "https://alkhidmat.org/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.3436,
+          31.5497
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Akhuwat Foundation",
+        "city": "Lahore",
+        "what": "Interest-free loans for affected small businesses (~PKR 1.2 B in first 6 months).",
+        "url": "https://akhuwat.org.pk/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.3587,
+          31.5204
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pakistan Red Crescent",
+        "city": "Islamabad",
+        "what": "~150 health camps, ~50,000 family kits distributed nationwide.",
+        "url": "https://prcs.org.pk/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.0479,
+          33.6844
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>EcoLens Carbon Boundary Map</title>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<style>
+  html, body, #map { margin: 0; padding: 0; height: 100%; width: 100%; background: #0a0e14; }
+  .crosshair-cursor-enabled .maplibregl-canvas { cursor: crosshair; }
+  .hint {
+    position: absolute; top: 12px; left: 12px; right: 12px;
+    background: rgba(10, 14, 20, 0.85);
+    color: #ffffffd0; font: 12px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 8px 12px; border-radius: 8px; border: 1px solid #ffffff20;
+    pointer-events: none;
+    backdrop-filter: blur(8px);
+  }
+  .point-counter {
+    position: absolute; bottom: 12px; right: 12px;
+    background: rgba(58, 230, 154, 0.18);
+    color: #3AE69A; font: 600 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: 1px; padding: 8px 12px; border-radius: 6px;
+    border: 1px solid #3AE69A60; text-transform: uppercase;
+  }
+</style>
+</head>
+<body class="crosshair-cursor-enabled">
+<div id="map"></div>
+<div class="hint">Tap on the map to drop boundary points. Add ≥3 to close the polygon.</div>
+<div class="point-counter" id="counter">0 points</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+(function() {
+  // ESRI World Imagery — free satellite raster tiles, no API key.
+  const STYLE = {
+    version: 8,
+    sources: {
+      'satellite': {
+        type: 'raster',
+        tiles: [
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        ],
+        tileSize: 256,
+        attribution:
+          'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, ' +
+          'Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+      },
+      'labels': {
+        type: 'raster',
+        tiles: [
+          'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_only_labels/{z}/{x}/{y}{r}.png'
+            .replace('{s}', 'a')
+        ],
+        tileSize: 256,
+      }
+    },
+    layers: [
+      { id: 'sat', type: 'raster', source: 'satellite' },
+      { id: 'lbl', type: 'raster', source: 'labels', paint: { 'raster-opacity': 0.6 } }
+    ]
+  };
+
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: STYLE,
+    center: [-122.95, 49.27], // Vancouver-ish default
+    zoom: 14,
+    attributionControl: false,
+  });
+
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
+  map.addControl(new maplibregl.GeolocateControl({
+    positionOptions: { enableHighAccuracy: true },
+    trackUserLocation: false,
+    showUserHeading: false,
+  }), 'top-right');
+
+  // Local polygon state (mirror of Flutter side).
+  // [[lng, lat], ...]
+  let points = [];
+
+  function sendToFlutter(eventName, data) {
+    const payload = JSON.stringify({ event: eventName, data: data });
+    // Flutter InAppWebView postMessage bridge
+    if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+      window.flutter_inappwebview.callHandler('onCarbonMapEvent', payload);
+    }
+    // Fallback: window.parent.postMessage (works for web iframe)
+    try { window.parent.postMessage(payload, '*'); } catch (_) {}
+  }
+
+  function refreshSources() {
+    const pointFeatures = points.map((p, i) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: p },
+      properties: { index: i + 1 }
+    }));
+    const polyFeature = points.length >= 3
+      ? {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[...points, points[0]]]
+          },
+          properties: {}
+        }
+      : null;
+
+    map.getSource('boundary-points').setData({
+      type: 'FeatureCollection', features: pointFeatures
+    });
+    map.getSource('boundary-polygon').setData(
+      polyFeature
+        ? { type: 'FeatureCollection', features: [polyFeature] }
+        : { type: 'FeatureCollection', features: [] }
+    );
+
+    document.getElementById('counter').textContent =
+      points.length + (points.length === 1 ? ' point' : ' points');
+  }
+
+  map.on('load', function() {
+    map.addSource('boundary-polygon', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }});
+    map.addSource('boundary-points', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }});
+
+    map.addLayer({
+      id: 'boundary-poly-fill',
+      type: 'fill',
+      source: 'boundary-polygon',
+      paint: { 'fill-color': '#3AE69A', 'fill-opacity': 0.18 }
+    });
+    map.addLayer({
+      id: 'boundary-poly-outline',
+      type: 'line',
+      source: 'boundary-polygon',
+      paint: { 'line-color': '#3AE69A', 'line-width': 2.5 }
+    });
+    map.addLayer({
+      id: 'boundary-pt-halo',
+      type: 'circle',
+      source: 'boundary-points',
+      paint: {
+        'circle-radius': 9,
+        'circle-color': '#3AE69A',
+        'circle-opacity': 0.25
+      }
+    });
+    map.addLayer({
+      id: 'boundary-pt-core',
+      type: 'circle',
+      source: 'boundary-points',
+      paint: {
+        'circle-radius': 5,
+        'circle-color': '#3AE69A',
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 1.5
+      }
+    });
+
+    sendToFlutter('mapReady', {});
+  });
+
+  map.on('click', function(e) {
+    const lng = e.lngLat.lng;
+    const lat = e.lngLat.lat;
+    points.push([lng, lat]);
+    refreshSources();
+    sendToFlutter('pointAdded', { lat: lat, lng: lng, count: points.length });
+  });
+
+  // Flutter → Map commands
+  window.carbonMap = {
+    setPoints: function(arr) {
+      // arr: [{lat, lng}, ...]
+      points = (arr || []).map(p => [p.lng, p.lat]);
+      refreshSources();
+    },
+    removeLastPoint: function() {
+      points.pop();
+      refreshSources();
+    },
+    clearPoints: function() {
+      points = [];
+      refreshSources();
+    },
+    flyTo: function(lat, lng, zoom) {
+      map.flyTo({ center: [lng, lat], zoom: zoom || 16, essential: true });
+    }
+  };
+
+  // Receive messages from Flutter on web (window.postMessage path)
+  window.addEventListener('message', function(e) {
+    try {
+      const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+      if (!msg || !msg.cmd) return;
+      switch (msg.cmd) {
+        case 'setPoints': window.carbonMap.setPoints(msg.points); break;
+        case 'removeLastPoint': window.carbonMap.removeLastPoint(); break;
+        case 'clearPoints': window.carbonMap.clearPoints(); break;
+        case 'flyTo': window.carbonMap.flyTo(msg.lat, msg.lng, msg.zoom); break;
+      }
+    } catch (err) { /* ignore */ }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:," />
+  <title>Pakistan 2022 Floods — Documentary · EcoLens</title>
+  <meta name="description" content="A short documentary on the 2022 Pakistan floods. One-third under water · 33 million affected · recovery unfinished." />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: #050609;
+      color: #e6edf3;
+      min-height: 100vh;
+    }
+
+    /* Soft atmospheric backdrop so vertical video doesn't sit on a flat
+       black void on wide displays. Layers a blurred satellite-tone wash
+       under everything. */
+    body {
+      position: relative;
+      padding: 90px 0 80px;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 80% at 25% 30%, rgba(59, 130, 246, 0.12), transparent 60%),
+        radial-gradient(ellipse 50% 70% at 75% 75%, rgba(180, 80, 60, 0.10), transparent 60%),
+        radial-gradient(ellipse 80% 100% at 50% 50%, rgba(8, 12, 20, 0.4), transparent 70%);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* ─── TOP CHROME ───────────────────────────────────────────── */
+
+    /* Back button — its own floating chip, top-left, with text label
+       so users can't miss it. Replaces the tiny arrow that was buried
+       inside the format toggle. */
+    .nav-back {
+      position: fixed;
+      top: 16px;
+      left: 20px;
+      z-index: 9999;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px 9px 12px;
+      background: rgba(15, 18, 26, 0.92);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      color: rgba(255, 255, 255, 0.85);
+      text-decoration: none;
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.1px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      transition: background 0.15s, border-color 0.15s, transform 0.15s;
+    }
+    .nav-back:hover {
+      background: rgba(20, 24, 35, 0.96);
+      border-color: rgba(255, 255, 255, 0.22);
+      transform: translateX(-2px);
+    }
+    .nav-back svg {
+      flex-shrink: 0;
+      color: rgba(255, 255, 255, 0.75);
+    }
+
+    /* Format toggle — top-center, story-map ↔ documentary only. */
+    .format-toggle {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      background: rgba(15, 18, 26, 0.92);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 999px;
+      padding: 4px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+    .format-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.55);
+      text-decoration: none;
+      transition: color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+    .format-option:hover { color: #fff; }
+    .format-option.active {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+    .format-option svg { flex-shrink: 0; }
+
+    /* ─── CONTENT SHELL ───────────────────────────────────────── */
+
+    .doc-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 28px;
+    }
+
+    /* Two-column layout on desktop: video left, editorial right.
+       Stacks on mobile with video first. */
+    .doc-grid {
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) 1fr;
+      gap: 56px;
+      align-items: start;
+    }
+
+    /* ─── PLAYER COLUMN ───────────────────────────────────────── */
+
+    .player-wrap {
+      position: relative;
+      width: 100%;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow:
+        0 24px 72px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.06),
+        0 0 80px rgba(88, 166, 255, 0.06);
+      aspect-ratio: 9 / 16;
+    }
+    .player-wrap video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #000;
+      object-fit: contain;
+    }
+
+    .player-attribution {
+      margin-top: 12px;
+      font-size: 10.5px;
+      color: rgba(255, 255, 255, 0.4);
+      letter-spacing: 0.4px;
+      text-align: center;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+    }
+
+    /* ─── EDITORIAL COLUMN ─────────────────────────────────────── */
+
+    .doc-editorial {
+      padding-top: 8px;
+    }
+
+    .doc-eyebrow {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: #58a6ff;
+      margin-bottom: 12px;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .doc-eyebrow::before {
+      content: "";
+      width: 18px;
+      height: 1px;
+      background: #58a6ff;
+    }
+
+    .doc-title {
+      font-size: clamp(28px, 3.6vw, 42px);
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      line-height: 1.05;
+      margin-bottom: 14px;
+      color: #fff;
+    }
+    .doc-title em {
+      font-style: italic;
+      color: #58a6ff;
+      font-weight: 700;
+    }
+
+    .doc-dek {
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.78);
+      line-height: 1.6;
+      margin-bottom: 28px;
+      max-width: 580px;
+    }
+
+    /* Meta cells — clean grid of key facts */
+    .doc-meta {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+    .doc-meta-cell {
+      padding: 14px 16px;
+      background: rgba(15, 18, 26, 0.75);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .doc-meta-label {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.42);
+      font-family: ui-monospace, SFMono-Regular, monospace;
+    }
+    .doc-meta-value {
+      font-size: 13px;
+      color: #fff;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    /* Companion-storymap CTA — green accent, prominent button */
+    .doc-storymap-cta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 20px;
+      background: linear-gradient(135deg,
+        rgba(34, 197, 94, 0.10),
+        rgba(34, 197, 94, 0.04));
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      border-radius: 12px;
+    }
+    .doc-storymap-cta-icon {
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(34, 197, 94, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #4ade80;
+    }
+    .doc-storymap-cta-text {
+      flex: 1;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.82);
+    }
+    .doc-storymap-cta-text b {
+      color: #fff;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 2px;
+      font-size: 13px;
+    }
+    .doc-storymap-cta-button {
+      flex-shrink: 0;
+      padding: 9px 16px;
+      background: rgba(34, 197, 94, 0.18);
+      color: #4ade80;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 12px;
+      border-radius: 7px;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .doc-storymap-cta-button:hover {
+      background: rgba(34, 197, 94, 0.3);
+      color: #fff;
+    }
+
+    /* ─── RESPONSIVE ────────────────────────────────────────── */
+
+    @media (max-width: 880px) {
+      body { padding-top: 80px; }
+      .doc-shell { padding: 0 18px; }
+      .doc-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+      .player-wrap {
+        max-width: 420px;
+        margin: 0 auto;
+      }
+      .doc-title { text-align: center; }
+      .doc-eyebrow { justify-content: center; }
+      .doc-eyebrow::before { display: none; }
+      .doc-dek {
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .doc-meta {
+        grid-template-columns: 1fr;
+      }
+      .doc-storymap-cta {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .nav-back {
+        top: 12px;
+        left: 12px;
+        padding: 8px 13px 8px 10px;
+        font-size: 12px;
+      }
+      .nav-back span:not(.nav-back-short) {
+        display: none;
+      }
+      .nav-back-short { display: inline; }
+      .format-toggle { top: 12px; }
+      .format-option {
+        padding: 6px 12px;
+        font-size: 11.5px;
+      }
+    }
+    .nav-back-short { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Visible back button as its own floating chip -->
+  <a class="nav-back" href="/community">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <span>Back to EcoLens</span>
+    <span class="nav-back-short">Back</span>
+  </a>
+
+  <!-- Story-map ↔ Documentary toggle -->
+  <div class="format-toggle">
+    <a class="format-option" href="../" data-format="storymap">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      <span>Story-map</span>
+    </a>
+    <a class="format-option active" href="./" data-format="documentary">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      <span>Documentary</span>
+    </a>
+  </div>
+
+  <div class="doc-shell">
+    <div class="doc-grid">
+
+      <!-- Video column -->
+      <div>
+        <div class="player-wrap">
+          <video
+            controls
+            playsinline
+            preload="metadata"
+            poster="../assets/hero_during.jpg"
+            crossorigin="anonymous">
+            <source src="Pakistan-1.mp4" type="video/mp4" />
+            Your browser does not support HTML5 video. <a href="Pakistan-1.mp4">Download the documentary directly</a>.
+          </video>
+        </div>
+        <div class="player-attribution">
+          Short film · ~7 min · vertical · MP4 H.264
+        </div>
+      </div>
+
+      <!-- Editorial column -->
+      <div class="doc-editorial">
+        <div class="doc-eyebrow">EcoLens Climate Events · Documentary</div>
+        <h1 class="doc-title">Pakistan 2022 — <em>One-Third Under Water</em></h1>
+        <p class="doc-dek">
+          A short film on the 2022 Pakistan floods — the disaster that submerged a third of the country, displaced 7.9 million people at peak, and remains unfinished today. For the full chapter-by-chapter walkthrough with sources, switch to the interactive story-map.
+        </p>
+
+        <div class="doc-meta">
+          <div class="doc-meta-cell">
+            <span class="doc-meta-label">Format</span>
+            <span class="doc-meta-value">Short film · vertical</span>
+          </div>
+          <div class="doc-meta-cell">
+            <span class="doc-meta-label">Runtime</span>
+            <span class="doc-meta-value">~7 minutes</span>
+          </div>
+          <div class="doc-meta-cell">
+            <span class="doc-meta-label">Subject</span>
+            <span class="doc-meta-value">Pakistan 2022 floods<br>recovery gap</span>
+          </div>
+          <div class="doc-meta-cell">
+            <span class="doc-meta-label">Sources behind the story</span>
+            <span class="doc-meta-value">UNOSAT · WorldPop · World Bank PDNA · IOM</span>
+          </div>
+        </div>
+
+        <div class="doc-storymap-cta">
+          <div class="doc-storymap-cta-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          </div>
+          <div class="doc-storymap-cta-text">
+            <b>Want more depth?</b>
+            Walk the flood footprint chapter by chapter, with peer-reviewed sources at every claim.
+          </div>
+          <a href="../" class="doc-storymap-cta-button">Open story-map →</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

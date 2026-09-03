@@ -1,0 +1,107 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sindh People's Housing \u2014 Dadu cluster",
+        "kind": "homes_built",
+        "story": "Of the 350,000-home World Bank-backed target, ~32,000 delivered by May 2026 (~9%).",
+        "value": 32000,
+        "value_label": "homes delivered (out of 350k target)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.7771,
+          26.7319
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Al-Khidmat school rebuilds",
+        "kind": "schools_built",
+        "story": "~200 schools rebuilt by mid-2024 across Sindh, KP, Punjab. UNICEF + govt added ~4,300 more by 2026.",
+        "value": 4500,
+        "value_label": "schools rebuilt (out of 26k damaged)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.2,
+          27.5
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "UNDP FRP \u2014 climate-resilient homes",
+        "kind": "homes_built",
+        "story": "Only ~800 truly climate-resilient homes built nationwide under the 4RF framework by May 2026.",
+        "value": 800,
+        "value_label": "climate-resilient homes (out of 2.1M destroyed)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.5,
+          27.0
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mental-health response \u2014 WHO Pakistan",
+        "kind": "health",
+        "story": "0.19 psychiatrists per 100k population. WHO documents ~38% of women in displaced camps with PTSD/major depression.",
+        "value": 38,
+        "value_label": "% women with PTSD or major depression"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.4,
+          26.5
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Loss & Damage Fund \u2014 to Pakistan",
+        "kind": "finance_gap",
+        "story": "COP27 established the Loss & Damage Fund in part because of Pakistan's case. Disbursed to Pakistani households by May 2026: $0.",
+        "value": 0,
+        "value_label": "USD disbursed to Pakistani households"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.5,
+          26.0
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Funding gap \u2014 overall",
+        "kind": "finance_gap",
+        "story": "PDNA need: $16.3 B. Pledged Geneva 2023: $10.9 B. Disbursed by May 2026: $2.8 B. Gap: $13.5 B.",
+        "value": 13500000000,
+        "value_label": "USD funding gap"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          70.0,
+          29.0
+        ]
+      }
+    }
+  ]
+}

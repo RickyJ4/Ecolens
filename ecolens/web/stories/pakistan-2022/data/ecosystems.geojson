@@ -1,0 +1,238 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Indus River dolphin habitat",
+        "kind": "freshwater_species",
+        "story": "Endangered Platanista minor \u2014 ~1,800 individuals. Sukkur to Guddu reach is the core population zone.",
+        "centroid_lat": 27.5,
+        "centroid_lng": 68.4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              68.0,
+              28.5
+            ],
+            [
+              69.2,
+              28.0
+            ],
+            [
+              69.0,
+              27.0
+            ],
+            [
+              68.4,
+              26.2
+            ],
+            [
+              67.7,
+              25.7
+            ],
+            [
+              67.3,
+              25.5
+            ],
+            [
+              67.2,
+              26.0
+            ],
+            [
+              67.7,
+              27.0
+            ],
+            [
+              67.6,
+              28.2
+            ],
+            [
+              68.0,
+              28.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Manchar Lake",
+        "kind": "wetland",
+        "story": "Asia's largest freshwater lake \u2014 normally 250 km\u00b2, swelled to 520 km\u00b2 in 2022. Embankment deliberately breached Sep 5 to save Sehwan, flooding 150,000 people.",
+        "centroid_lat": 26.42,
+        "centroid_lng": 67.66
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              67.55,
+              26.55
+            ],
+            [
+              67.78,
+              26.55
+            ],
+            [
+              67.85,
+              26.42
+            ],
+            [
+              67.78,
+              26.28
+            ],
+            [
+              67.55,
+              26.28
+            ],
+            [
+              67.48,
+              26.42
+            ],
+            [
+              67.55,
+              26.55
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Indus delta mangroves",
+        "kind": "coastal_forest",
+        "story": "Pakistan's largest mangrove forest (~600,000 ha Avicennia marina). 2022 floods delivered a rare freshwater pulse to the dam-starved delta \u2014 some regeneration recorded.",
+        "centroid_lat": 24.3,
+        "centroid_lng": 67.6
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              67.2,
+              24.5
+            ],
+            [
+              68.1,
+              24.5
+            ],
+            [
+              68.3,
+              24.2
+            ],
+            [
+              68.1,
+              23.9
+            ],
+            [
+              67.5,
+              23.8
+            ],
+            [
+              67.0,
+              24.0
+            ],
+            [
+              67.0,
+              24.4
+            ],
+            [
+              67.2,
+              24.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sindh riverine forests",
+        "kind": "forest",
+        "story": "Acacia nilotica + Populus euphratica + Tamarix aphylla along both banks of the lower Indus. Down from 600,000 ha historically to <100,000 ha intact. Adapted to flooding \u2014 threats are sediment burial of seedlings and post-flood logging.",
+        "centroid_lat": 26.5,
+        "centroid_lng": 68.3
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              67.9,
+              27.5
+            ],
+            [
+              68.6,
+              27.5
+            ],
+            [
+              68.7,
+              26.0
+            ],
+            [
+              67.9,
+              25.5
+            ],
+            [
+              67.5,
+              25.7
+            ],
+            [
+              67.6,
+              26.5
+            ],
+            [
+              67.9,
+              27.5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Karakoram glacier zone",
+        "kind": "cryosphere",
+        "story": "~7,253 glaciers across Karakoram + Hindu Kush + Western Himalaya \u2014 the largest concentration outside the poles. Source of ~80% of Indus water. Now losing ~6 Gt/yr (NASA GRACE-FO, Wiese et al. 2024).",
+        "centroid_lat": 36.0,
+        "centroid_lng": 75.0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              73.5,
+              37.0
+            ],
+            [
+              77.5,
+              37.0
+            ],
+            [
+              77.5,
+              35.5
+            ],
+            [
+              73.5,
+              35.5
+            ],
+            [
+              73.5,
+              37.0
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

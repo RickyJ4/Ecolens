@@ -1,0 +1,29 @@
+# Local development: run QGIS cartographic renderer
+#
+# Usage:
+#   cd cartographic
+#   docker compose up --build
+#
+# Then test:
+#   curl -X POST http://localhost:8080/generate_cartographic_map \
+#     -H "Content-Type: application/json" \
+#     -d '{"bbox": [95, -11, 141, 21], "map_type": "proportional_symbol", "theme": "earthquake"}'
+
+services:
+  cartographic:
+    build:
+      context: ..
+      dockerfile: cartographic/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - QT_QPA_PLATFORM=offscreen
+      - QGIS_PREFIX_PATH=/usr
+    volumes:
+      # Mount source code for live reload during development
+      - ../cartographic:/app/cartographic:ro
+      - ../ecolens/functions/services:/app/services:ro
+      - ../ecolens/functions/agents:/app/agents:ro
+    tmpfs:
+      - /tmp:size=512M

@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "description": "Metadata extracted from award-winning maps. Used by the Cartographic Intelligence Engine to cross-reference generated output against known-good examples.",
+  "sources": [
+    "ICA International Cartographic Association (2010-2024)",
+    "NACIS Atlas of Design volumes 1-5",
+    "ESRI Map Gallery",
+    "National Geographic",
+    "swisstopo (Swiss Federal Office of Topography)",
+    "Ordnance Survey UK",
+    "USGS The National Map",
+    "Kenneth Field, Cartography."
+  ],
+  "exemplars": []
+}

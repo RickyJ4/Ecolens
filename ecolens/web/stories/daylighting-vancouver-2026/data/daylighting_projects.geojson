@@ -1,0 +1,223 @@
+{
+  "type": "FeatureCollection",
+  "name": "BC Daylighting Projects — Hand-crafted from research",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "still_creek",
+        "name": "Still Creek",
+        "watershed": "Brunette",
+        "cities": ["Vancouver", "Burnaby"],
+        "status": "active_restoration",
+        "restoration_started": 2002,
+        "salmon_returned": 2012,
+        "salmon_absent_years": 80,
+        "length_km": 17,
+        "notes": "The flagship BC daylighting case. City of Vancouver + Burnaby + Metro Van + Still Moon Arts Society coordination since 2002. Chum salmon returned 2012 (first in 80 years), consecutive 2012-2016 in Vancouver portion; 2017-2018 only Burnaby portion. Abundant return fall 2024.",
+        "partners": ["City of Vancouver", "City of Burnaby", "Metro Vancouver", "Still Moon Arts Society"],
+        "developer_requirements": "15-30 m streamside corridors required at major redevelopment (2820 Bentall, Costco sites)",
+        "sources": [
+          "https://vancouver.ca/home-property-development/still-creek.aspx",
+          "https://stillmoonarts.ca/salmon/",
+          "https://blogs.ubc.ca/stillcreek/"
+        ]
+      },
+      "geometry": { "type": "Point", "coordinates": [-123.031, 49.271] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "tatlow_creek",
+        "name": "Tatlow Creek",
+        "watershed": "English Bay",
+        "cities": ["Vancouver"],
+        "status": "completed",
+        "restoration_completed": "2024-07",
+        "notes": "Daylighting connected the stream in Tatlow and Volunteer parks to English Bay. Part of Rain City Strategy. Kitsilano/Point Grey neighbourhood.",
+        "partners": ["City of Vancouver Parks Board"],
+        "sources": [
+          "https://vancouver.ca/home-property-development/restoring-streams.aspx"
+        ]
+      },
+      "geometry": { "type": "Point", "coordinates": [-123.1815, 49.276] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "canyon_creek",
+        "name": "Canyon Creek",
+        "watershed": "English Bay",
+        "cities": ["Vancouver"],
+        "status": "completed",
+        "restoration_completed": "2025-summer",
+        "habitat_created_ha": 0.4,
+        "notes": "Daylighted through Spanish Banks West Extension Park. Design mirrors the stream's historic pre-development state. Created 0.4 hectares of new habitat for bird, aquatic, and pollinator species. Follows Spanish Bank Creek (1999) and Salish Creek (2012).",
+        "partners": ["City of Vancouver Parks Board"],
+        "sources": [
+          "https://vancouver.ca/parks-recreation-culture/canyon-creek.aspx"
+        ]
+      },
+      "geometry": { "type": "Point", "coordinates": [-123.196, 49.278] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "spanish_bank_creek",
+        "name": "Spanish Bank Creek",
+        "watershed": "English Bay",
+        "cities": ["Vancouver"],
+        "status": "completed",
+        "restoration_completed": 1999,
+        "notes": "Precedent project. Established the pattern for daylighting on Vancouver's beach-adjacent watersheds. Referenced in Canyon Creek design.",
+        "partners": ["City of Vancouver Parks Board"],
+        "sources": [
+          "https://greenbuildingaudiotours.com/infrastructure/spanish_bank_creek_daylighting"
+        ]
+      },
+      "geometry": { "type": "Point", "coordinates": [-123.207, 49.278] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "salish_creek",
+        "name": "Salish Creek",
+        "watershed": "English Bay",
+        "cities": ["Vancouver"],
+        "status": "completed",
+        "restoration_completed": 2012,
+        "notes": "Precedent project. Referenced in Canyon Creek design.",
+        "partners": ["City of Vancouver Parks Board"]
+      },
+      "geometry": { "type": "Point", "coordinates": [-123.191, 49.234] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "guichon_creek",
+        "name": "Guichon Creek",
+        "watershed": "Brunette",
+        "cities": ["Burnaby"],
+        "status": "completed",
+        "notes": "Daylighted through BCIT campus. ACEC-BC award-winning project. Educational + urban restoration.",
+        "partners": ["BCIT", "City of Burnaby"],
+        "sources": [
+          "https://acecbcawards.com/guichon-creek-daylighting/"
+        ]
+      },
+      "geometry": { "type": "Point", "coordinates": [-123.001, 49.250] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "hoy_creek",
+        "name": "Hoy Creek",
+        "watershed": "Coquitlam River",
+        "cities": ["Coquitlam"],
+        "status": "active_restoration",
+        "restoration_started_decade": "1990s",
+        "notes": "Sub-watershed of Coquitlam River. Coquitlam residents began volunteering to restore watershed and operate salmon hatchery in Town Centre's Hoy Creek Linear Park in the 1990s (100 years after Coquitlam River was dammed). 2M+ salmonids released into Coquitlam + Hoy + Scott over 20 years.",
+        "partners": ["Hoy-Scott Watershed Society", "City of Coquitlam", "DFO"],
+        "sources": [
+          "https://www.hoyscottcreeks.org/",
+          "https://www.coquitlam.ca/991/Salmon-Come-Home"
+        ]
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.799, 49.283] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "scott_creek",
+        "name": "Scott Creek",
+        "watershed": "Coquitlam River",
+        "cities": ["Coquitlam"],
+        "status": "active_restoration",
+        "notes": "Twin sub-watershed with Hoy Creek. Both are salmon spawning + nursery grounds.",
+        "partners": ["Hoy-Scott Watershed Society"]
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.788, 49.288] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "brunette_river",
+        "name": "Brunette River basin",
+        "watershed": "Brunette",
+        "cities": ["Vancouver", "Burnaby", "Port Moody", "Coquitlam", "New Westminster"],
+        "status": "active_restoration",
+        "basin_area_km2": 73.3,
+        "notes": "73.3 km² urban watershed across 5 cities. Fish passage + habitat improvements have brought small numbers of Chinook, Coho, and Sockeye. Salmon return through Brunette River into Stoney Creek. Additional sightings in Deer Lake Creek, Eagle Creek, Beecher Creek.",
+        "salmon_species_documented": ["Chinook", "Coho", "Sockeye", "Chum"]
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.899, 49.223] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "bowker_creek",
+        "name": "Bowker Creek",
+        "watershed": "Salish Sea coastal",
+        "cities": ["Saanich", "Victoria", "Oak Bay"],
+        "status": "century_plan",
+        "plan_horizon_years": 100,
+        "length_km": 8,
+        "impervious_pct": 56,
+        "buried_pct": 66,
+        "notes": "8 km stream through 3 municipalities. Watershed 56% impervious. Two-thirds of creek buried in pipes. 100-year Blueprint co-developed by CRD, Victoria, Saanich, Oak Bay. First 120 m daylighted at Oak Bay High School (KWL engineering). Updated Blueprint due Spring 2026.",
+        "partners": ["Capital Regional District", "City of Victoria", "District of Saanich", "District of Oak Bay", "Friends of Bowker Creek", "KWL"],
+        "sources": [
+          "https://www.crd.ca/environment/stormwater-watersheds-harbours/local-stewardship-groups/bowker-creek-initiative",
+          "https://www.kwl.ca/project/bowker-creek-daylighting/"
+        ]
+      },
+      "geometry": { "type": "Point", "coordinates": [-123.310, 48.457] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "renfrew_ravine",
+        "name": "Renfrew Ravine",
+        "watershed": "Still Creek",
+        "cities": ["Vancouver"],
+        "status": "active_planning",
+        "notes": "Active development-requirement work under Rupert and Renfrew Station Area Plan. Requirements for new housing developments around the Ravine to support ecological health.",
+        "partners": ["City of Vancouver Planning", "Still Moon Arts Society"],
+        "sources": [
+          "https://vancouver.ca/home-property-development/rupert-and-renfrew-station-area-plan.aspx"
+        ]
+      },
+      "geometry": { "type": "Point", "coordinates": [-123.043, 49.246] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "sweltzer_creek",
+        "name": "Sweltzer Creek",
+        "watershed": "Chilliwack / Cultus Lake",
+        "cities": ["Soowahlie Nation"],
+        "status": "funded_restoration",
+        "wsf_grant_2026": 150000,
+        "notes": "$150,000 Watershed Security Fund Spring 2026 grant. Replacing ineffective and obsolete flood control infrastructure to restore aquatic connectivity. Fish passage remediation. Indigenous-led project.",
+        "partners": ["Soowahlie First Nation"],
+        "sources": [
+          "https://watershedsecurityfund.ca/2026/04/13/watershed-security-fund-spring-2026-grant-recipients/"
+        ]
+      },
+      "geometry": { "type": "Point", "coordinates": [-121.998, 49.058] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "musqueam_creek",
+        "name": "Musqueam Creek",
+        "watershed": "Fraser River",
+        "cities": ["Vancouver"],
+        "status": "surviving_stream",
+        "notes": "One of only a handful of visible salmon-bearing streams remaining in the City of Vancouver. Culturally + ecologically significant. NOTE: coordinates approximate — Musqueam territory context.",
+        "sources": []
+      },
+      "geometry": { "type": "Point", "coordinates": [-123.184, 49.226] }
+    }
+  ]
+}

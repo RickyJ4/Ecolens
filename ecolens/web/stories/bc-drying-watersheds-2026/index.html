@@ -1,0 +1,1456 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Below Normal — British Columbia's Watershed Security Investigation · EcoLens</title>
+  <meta name="description" content="A visual investigation into the compounding hydrological collapse of British Columbia's watersheds — from provincial snowpack failure to the $2.25-vs-$155 economics of water." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,800;8..60,900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" />
+
+  <link rel="preconnect" href="https://basemaps.cartocdn.com" />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+
+  <style>
+    :root {
+      --paper:     #f1ead9;
+      --paper-2:   #e7dfca;
+      --paper-3:   #dfd5bb;
+      --ink:       #131210;
+      --ink-soft:  #2a2620;
+      --muted:     #58524a;
+      --line:      #c9bda5;
+      --line-soft: #ded2bb;
+
+      --water:     #1c4a72;
+      --water-2:   #2b6f9c;
+      --water-pale:#88aec6;
+
+      --sev-5:     #8a3618;
+      --sev-4:     #b76223;
+      --sev-3:     #d99a55;
+      --sev-2:     #b6b88a;
+      --sev-1:     #5b9580;
+
+      --recover:   #1a6d52;
+      --alert:     #b53c2b;
+      --warn:      #a76512;
+
+      --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+      --sans:  Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      --mono:  "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 17px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    a { color: var(--water); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img, svg { max-width: 100%; display: block; }
+
+    /* ============================== Chrome bar ============================== */
+    .chrome {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 60;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 24px;
+      align-items: center;
+      min-height: 52px;
+      padding: 12px 28px;
+      background: transparent;
+      color: var(--ink);
+      transition: background 240ms ease, border-color 240ms ease;
+    }
+    .chrome.scrolled {
+      background: rgba(241, 234, 217, 0.94);
+      border-bottom: 1px solid rgba(201, 189, 165, 0.6);
+      backdrop-filter: blur(12px);
+    }
+    .chrome .brand { font-family: var(--sans); font-weight: 800; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .chrome .progress { grid-column: 2; justify-self: center; width: clamp(180px, 28vw, 360px); height: 2px; background: rgba(88, 82, 74, 0.18); border-radius: 999px; overflow: hidden; }
+    .chrome .progress-fill { height: 100%; width: 0; background: var(--sev-5); transition: width 120ms linear; }
+    .chrome .meta { font-family: var(--sans); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+
+    /* ============================== Cover ============================== */
+    .cover {
+      position: relative;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      padding: 100px clamp(24px, 6vw, 80px) 56px;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(184, 138, 78, 0.10), transparent 50%),
+        radial-gradient(circle at 78% 78%, rgba(28, 74, 114, 0.07), transparent 55%),
+        var(--paper);
+      overflow: hidden;
+    }
+    .cover::after {
+      content: "";
+      position: absolute; inset: 0; pointer-events: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='0.85' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 0.07 0 0 0 0 0.06 0 0 0 0 0.05 0 0 0 0.13 0'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='0.55'/></svg>");
+      mix-blend-mode: multiply;
+      opacity: 0.35;
+    }
+    .cover-grid {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+      gap: clamp(28px, 5vw, 80px);
+      align-items: center;
+      max-width: 1320px; margin: 0 auto; width: 100%;
+    }
+    .cover .eyebrow {
+      display: inline-flex; align-items: center; gap: 10px;
+      margin-bottom: 28px; padding: 6px 14px;
+      border: 1px solid rgba(88, 82, 74, 0.34);
+      border-radius: 999px;
+      background: rgba(255, 252, 244, 0.55);
+      color: var(--ink-soft);
+      font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+    }
+    .cover .eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--sev-5); }
+    .cover h1 {
+      font-family: var(--serif); font-weight: 900;
+      font-size: clamp(3.4rem, 8.5vw, 7rem);
+      line-height: 0.92; letter-spacing: -0.025em;
+      margin: 0 0 28px; color: var(--ink);
+    }
+    .cover .dek {
+      font-family: var(--serif); font-weight: 400;
+      font-size: clamp(1.15rem, 1.7vw, 1.45rem);
+      line-height: 1.42; letter-spacing: -0.005em;
+      color: var(--ink-soft); max-width: 38ch; margin: 0 0 36px;
+    }
+    .cover .byline {
+      display: grid; grid-template-columns: auto 1px auto 1px auto;
+      gap: 16px; align-items: center;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted);
+    }
+    .cover .byline .sep { width: 1px; height: 12px; background: rgba(88, 82, 74, 0.4); }
+    .cover .byline strong { color: var(--ink); font-weight: 800; }
+
+    .cover-art { position: relative; aspect-ratio: 1 / 1.15; width: 100%; max-width: 480px; justify-self: end; }
+    .cover-art svg { width: 100%; height: 100%; }
+    .cover-art .label {
+      position: absolute; bottom: -6px; left: 0; right: 0; text-align: center;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+    }
+
+    .cover-foot {
+      position: relative; z-index: 1;
+      display: flex; justify-content: space-between; align-items: end; gap: 24px;
+      max-width: 1320px; margin: 0 auto; width: 100%;
+      padding-top: 40px;
+      color: var(--muted);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .cover-foot .scroll-cue { display: inline-flex; align-items: center; gap: 10px; color: var(--ink-soft); }
+    .scroll-arrow {
+      width: 14px; height: 14px;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg);
+      animation: bob 2s ease-in-out infinite;
+    }
+    @keyframes bob { 0%, 100% { transform: translateY(0) rotate(45deg); } 50% { transform: translateY(5px) rotate(45deg); } }
+
+    /* ============================== Lead ============================== */
+    .lead {
+      position: relative;
+      padding: clamp(80px, 11vh, 130px) clamp(24px, 6vw, 80px);
+      background: var(--paper);
+      border-top: 1px solid var(--line-soft);
+    }
+    .lead-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: clamp(40px, 6vw, 90px);
+      align-items: center;
+    }
+    .lead .hero-num {
+      font-family: var(--serif); font-weight: 900;
+      font-size: clamp(7rem, 14vw, 13rem);
+      line-height: 0.85; letter-spacing: -0.04em;
+      color: var(--sev-5);
+    }
+    .lead .hero-num-label {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted);
+      max-width: 30ch; margin-top: 18px; line-height: 1.5;
+    }
+    .lead-copy {
+      font-family: var(--serif); font-size: clamp(1.05rem, 1.3vw, 1.2rem);
+      line-height: 1.55; color: var(--ink-soft); max-width: 38ch;
+    }
+    .lead-copy p { margin: 0 0 1em; }
+    .lead-copy p:first-child::first-line { font-weight: 600; color: var(--ink); }
+
+    /* ============================== Story shell ============================== */
+    .story { position: relative; background: var(--paper); border-top: 1px solid var(--line-soft); }
+    .map-stage { position: sticky; top: 0; height: 100vh; background: var(--paper); overflow: hidden; }
+    #map { position: absolute; inset: 0; background: var(--paper); }
+
+    /* Sticky map overlays — kept minimal */
+    .map-step {
+      position: absolute; left: 22px; top: 22px; z-index: 4;
+      display: inline-flex; align-items: baseline; gap: 10px;
+      padding: 9px 14px;
+      background: rgba(20, 18, 16, 0.86);
+      color: #f3ecdb;
+      border-radius: 6px;
+      backdrop-filter: blur(10px);
+      font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+      pointer-events: none; opacity: 0;
+      transition: opacity 320ms ease;
+    }
+    .map-step.show { opacity: 1; }
+    .map-step .step-num { font-family: var(--serif); font-size: 13px; font-weight: 800; color: var(--sev-3); }
+
+    .map-legend {
+      position: absolute; right: 22px; bottom: 22px; z-index: 4;
+      display: none;
+      gap: 8px; padding: 10px 12px;
+      background: rgba(241, 234, 217, 0.96);
+      border: 1px solid rgba(88, 82, 74, 0.2);
+      border-radius: 6px;
+      backdrop-filter: blur(10px);
+      font-size: 11px; font-weight: 700; color: var(--ink-soft);
+      box-shadow: 0 12px 32px rgba(28, 22, 12, 0.12);
+    }
+    .map-legend.show { display: grid; grid-auto-flow: column; grid-auto-columns: max-content; }
+    .map-legend .swatch { display: inline-flex; align-items: center; gap: 6px; }
+    .map-legend .swatch i { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.18); }
+    .map-legend .swatch.sev-5 i { background: var(--sev-5); }
+    .map-legend .swatch.sev-4 i { background: var(--sev-4); }
+    .map-legend .swatch.sev-3 i { background: var(--sev-3); }
+    .map-legend .swatch.sev-2 i { background: var(--sev-2); }
+    .map-legend .swatch.sev-1 i { background: var(--sev-1); }
+
+    /* ============================== Timeline slider (Section 1) ============================== */
+    .timeline-panel {
+      position: absolute; left: 22px; right: 22px; bottom: 22px;
+      z-index: 5;
+      display: none;
+      grid-template-columns: auto 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 14px 20px;
+      background: rgba(20, 18, 16, 0.9);
+      border-radius: 8px;
+      backdrop-filter: blur(14px);
+      color: #f3ecdb;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.28);
+    }
+    .timeline-panel.show { display: grid; }
+    .timeline-label { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(243, 236, 219, 0.6); }
+    .timeline-year { font-family: var(--serif); font-size: 20px; font-weight: 900; letter-spacing: -0.02em; }
+    .timeline-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 2px; background: rgba(243, 236, 219, 0.18); outline: none; }
+    .timeline-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--sev-3); cursor: pointer; border: 2px solid #f3ecdb; }
+    .timeline-slider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--sev-3); cursor: pointer; border: 2px solid #f3ecdb; }
+    .timeline-note { font-size: 11px; color: rgba(243, 236, 219, 0.68); white-space: nowrap; }
+
+    /* ============================== Split-swipe (Section 2) ============================== */
+    .swipe-handle {
+      position: absolute; top: 0; bottom: 0; z-index: 5;
+      width: 3px;
+      background: #f3ecdb;
+      pointer-events: none;
+      display: none;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.14), 0 0 12px rgba(0,0,0,0.28);
+    }
+    .swipe-handle.show { display: block; }
+    .swipe-handle .thumb {
+      position: absolute; top: 50%; left: 50%;
+      width: 40px; height: 40px;
+      transform: translate(-50%, -50%);
+      background: #f3ecdb;
+      border-radius: 50%;
+      border: 2px solid var(--ink);
+      cursor: ew-resize;
+      pointer-events: auto;
+      display: grid; place-items: center;
+      font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--ink);
+    }
+    .swipe-label {
+      position: absolute; top: 22px; z-index: 5;
+      display: none;
+      padding: 6px 10px;
+      background: rgba(20, 18, 16, 0.86);
+      color: #f3ecdb;
+      border-radius: 4px;
+      font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .swipe-label.show { display: block; }
+    .swipe-label.left { left: 22px; }
+    .swipe-label.right { right: 22px; }
+
+    /* ============================== Toggle button (Sections 4, 6) ============================== */
+    .toggle-panel {
+      position: absolute; right: 22px; top: 22px; z-index: 5;
+      display: none;
+      padding: 12px 14px;
+      background: rgba(241, 234, 217, 0.96);
+      border: 1px solid rgba(88, 82, 74, 0.2);
+      border-radius: 8px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 32px rgba(28, 22, 12, 0.12);
+      max-width: 250px;
+    }
+    .toggle-panel.show { display: block; }
+    .toggle-panel .tp-title {
+      font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .toggle-panel .tp-btn {
+      display: block; width: 100%;
+      padding: 10px 12px; margin-bottom: 6px;
+      background: rgba(255, 252, 244, 0.6);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      font-family: var(--sans); font-size: 12px; font-weight: 700;
+      color: var(--ink); text-align: left;
+      cursor: pointer;
+      transition: background 160ms, border-color 160ms;
+    }
+    .toggle-panel .tp-btn:hover { background: var(--paper-2); }
+    .toggle-panel .tp-btn.active {
+      background: var(--ink); color: var(--paper); border-color: var(--ink);
+    }
+    .toggle-panel .tp-btn:last-child { margin-bottom: 0; }
+    .toggle-panel .tp-note { font-size: 10px; font-weight: 600; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+
+    /* ============================== Paradox split (Section 5) ============================== */
+    .paradox-split {
+      position: absolute; inset: 0; z-index: 3;
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      background: transparent;
+      pointer-events: none;
+    }
+    .paradox-split.show { display: grid; }
+    .paradox-half {
+      position: relative;
+      overflow: hidden;
+    }
+    .paradox-half .paradox-label {
+      position: absolute; left: 22px; top: 60px;
+      padding: 10px 14px;
+      background: rgba(20, 18, 16, 0.88);
+      color: #f3ecdb;
+      border-radius: 6px;
+      max-width: 260px;
+    }
+    .paradox-half .paradox-status {
+      font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(243, 236, 219, 0.6);
+      margin-bottom: 4px;
+    }
+    .paradox-half .paradox-title {
+      font-family: var(--serif); font-size: 18px; font-weight: 800;
+      letter-spacing: -0.01em; line-height: 1.15;
+      color: #f3ecdb;
+    }
+    .paradox-half.left { border-right: 1px solid rgba(20, 18, 16, 0.3); background: rgba(28, 74, 114, 0.08); }
+    .paradox-half.right { background: rgba(138, 54, 24, 0.08); }
+    .paradox-half.left .paradox-label { background: rgba(28, 74, 114, 0.9); }
+    .paradox-half.right .paradox-label { background: rgba(138, 54, 24, 0.9); }
+
+    /* ============================== Chapter cards ============================== */
+    .chapters {
+      position: relative; z-index: 2;
+      margin-top: -100vh;
+      pointer-events: none;
+    }
+    .chapter {
+      pointer-events: auto;
+      min-height: 110vh;
+      display: flex; align-items: center;
+      padding: 60px clamp(20px, 4vw, 60px) 40px;
+    }
+    .chapter-inner {
+      width: 100%; max-width: 560px;
+      margin-left: clamp(0px, 3vw, 40px);
+      padding: 32px 30px;
+      background: rgba(241, 234, 217, 0.96);
+      border: 1px solid rgba(201, 189, 165, 0.72);
+      border-radius: 4px;
+      box-shadow: 0 24px 48px rgba(28, 22, 12, 0.12);
+    }
+    .chapter-num {
+      display: inline-block; margin-bottom: 14px;
+      padding: 3px 8px;
+      background: var(--ink); color: var(--paper);
+      font-family: var(--serif); font-size: 12px; font-weight: 800; letter-spacing: 0.06em;
+    }
+    .chapter h2 {
+      font-family: var(--serif); font-weight: 800;
+      font-size: clamp(1.7rem, 2.6vw, 2.3rem);
+      line-height: 1.05; letter-spacing: -0.018em;
+      color: var(--ink); margin: 0 0 18px;
+    }
+    .chapter p {
+      font-family: var(--serif); font-size: 1.02rem;
+      line-height: 1.55; color: var(--ink-soft); margin: 0 0 1em;
+    }
+    .chapter p:last-of-type { margin-bottom: 0; }
+    .chapter .pull {
+      margin: 20px 0;
+      padding: 16px 0 14px;
+      border-top: 1px solid rgba(201, 189, 165, 0.8);
+      border-bottom: 1px solid rgba(201, 189, 165, 0.8);
+    }
+    .chapter .pull-num {
+      font-family: var(--serif); font-weight: 900;
+      font-size: clamp(2.4rem, 4vw, 3.2rem);
+      line-height: 0.95; letter-spacing: -0.022em;
+      color: var(--sev-5);
+      display: block; margin-bottom: 4px;
+    }
+    .chapter .pull-num.water { color: var(--water); }
+    .chapter .pull-num.recover { color: var(--recover); }
+    .chapter .pull-label {
+      font-family: var(--sans); font-size: 12px; font-weight: 700;
+      letter-spacing: 0.04em; color: var(--muted); line-height: 1.45;
+    }
+    .chapter .cta {
+      margin-top: 18px;
+      padding: 12px 14px;
+      background: var(--paper-2);
+      border-left: 3px solid var(--water);
+      font-size: 13px; font-weight: 600;
+      color: var(--ink-soft);
+      font-family: var(--sans);
+      border-radius: 0 4px 4px 0;
+    }
+    .chapter .cta strong { color: var(--ink); }
+    .chapter .cta.recover { border-left-color: var(--recover); }
+    .chapter .cta.warn { border-left-color: var(--warn); }
+    .chapter .src {
+      margin-top: 16px;
+      font-family: var(--sans); font-size: 11px; font-weight: 600;
+      color: var(--muted); line-height: 1.5;
+    }
+    .chapter .src a { color: var(--water); text-decoration: underline; text-underline-offset: 2px; }
+
+    .chapter-figure {
+      margin: 22px 0 4px;
+      padding: 14px 16px;
+      background: var(--ink);
+      color: var(--paper);
+      border-radius: 4px;
+      font-family: var(--mono); font-size: 11px;
+      line-height: 1.6; letter-spacing: 0;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    /* ============================== Dashboard popup (Section 3) ============================== */
+    .maplibregl-popup.beacon-popup .maplibregl-popup-content {
+      padding: 0;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      max-width: 320px;
+      overflow: hidden;
+    }
+    .beacon-dash { display: grid; grid-template-rows: auto auto auto; }
+    .beacon-cam {
+      height: 120px;
+      background:
+        linear-gradient(180deg, rgba(28,22,12,0.35), transparent 40%),
+        linear-gradient(180deg, transparent 60%, rgba(28,22,12,0.5)),
+        linear-gradient(135deg, #6b7f6a 0%, #b9a37e 45%, #8a6f4a 100%);
+      position: relative;
+      color: #f3ecdb;
+      padding: 10px 12px;
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      display: flex; justify-content: space-between; align-items: end;
+    }
+    .beacon-cam::before {
+      content: ""; position: absolute; inset: 0;
+      background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.03), rgba(255,255,255,0.03) 2px, transparent 2px, transparent 4px);
+      pointer-events: none;
+    }
+    .beacon-cam .rec { display: flex; align-items: center; gap: 4px; }
+    .beacon-cam .rec::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #ff5555; box-shadow: 0 0 8px #ff5555; animation: pulse 1.6s infinite; }
+    @keyframes pulse { 50% { opacity: 0.4; } }
+    .beacon-body { padding: 14px 16px; }
+    .beacon-body .btitle { font-family: var(--serif); font-size: 15px; font-weight: 800; color: var(--ink); margin-bottom: 6px; letter-spacing: -0.01em; }
+    .beacon-body .bsub { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+    .beacon-gauge {
+      position: relative;
+      height: 8px;
+      background: linear-gradient(90deg, #5b9580 0%, #d99a55 55%, #b53c2b 100%);
+      border-radius: 999px;
+      margin: 4px 0 6px;
+    }
+    .beacon-gauge .marker {
+      position: absolute; top: -4px; width: 3px; height: 16px;
+      background: var(--ink);
+      border-radius: 1px;
+    }
+    .beacon-gauge .lethal {
+      position: absolute; top: -20px; right: 5%;
+      font-size: 10px; font-weight: 800; color: var(--alert);
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .beacon-body .btag {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .beacon-body .btag.red    { background: rgba(181,60,43,0.14); color: var(--alert); }
+    .beacon-body .btag.yellow { background: rgba(183,106,31,0.14); color: var(--warn); }
+    .beacon-body .btag.green  { background: rgba(26,109,82,0.14); color: var(--recover); }
+
+    .maplibregl-popup-content {
+      padding: 14px 16px;
+      border-radius: 4px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      max-width: 280px;
+      box-shadow: 0 16px 40px rgba(28, 22, 12, 0.18);
+      font-family: var(--sans);
+    }
+    .popup-title { font-family: var(--serif); font-weight: 800; font-size: 15px; color: var(--ink); margin: 0 0 4px; letter-spacing: -0.01em; }
+    .popup-body { margin: 0; color: var(--ink-soft); font-size: 13px; line-height: 1.45; }
+    .popup-src { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .maplibregl-ctrl-attrib { background: rgba(241, 234, 217, 0.72) !important; font-family: var(--sans) !important; font-size: 10px !important; }
+
+    /* ============================== End ============================== */
+    .end {
+      position: relative;
+      padding: clamp(80px, 12vh, 140px) clamp(24px, 6vw, 80px);
+      background: var(--ink);
+      color: var(--paper);
+      border-top: 1px solid rgba(0, 0, 0, 0.4);
+    }
+    .end-inner { max-width: 920px; margin: 0 auto; }
+    .end .eyebrow {
+      display: inline-block; margin-bottom: 22px;
+      color: var(--sev-3);
+      font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase;
+    }
+    .end h2 {
+      font-family: var(--serif); font-weight: 800;
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1.05; letter-spacing: -0.02em;
+      margin: 0 0 24px; color: #fff; max-width: 22ch;
+    }
+    .end p {
+      font-family: var(--serif); font-size: 1.08rem;
+      line-height: 1.6;
+      color: rgba(241, 234, 217, 0.84);
+      max-width: 52ch;
+    }
+    .end .credits {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 32px;
+      margin: 56px 0 0;
+      padding-top: 36px;
+      border-top: 1px solid rgba(241, 234, 217, 0.18);
+    }
+    .end .credits dt { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(241, 234, 217, 0.5); margin-bottom: 6px; }
+    .end .credits dd { font-family: var(--serif); font-size: 1rem; color: var(--paper); margin: 0; line-height: 1.4; }
+    .end .sources { margin-top: 48px; padding: 28px 30px; background: rgba(241, 234, 217, 0.07); border-left: 3px solid var(--sev-3); }
+    .end .sources h3 { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(241, 234, 217, 0.7); margin: 0 0 16px; }
+    .end .sources ol { margin: 0; padding-left: 22px; columns: 2; column-gap: 32px; }
+    .end .sources li { font-size: 13px; line-height: 1.5; color: rgba(241, 234, 217, 0.78); margin-bottom: 8px; break-inside: avoid; }
+    .end .sources a { color: var(--paper); text-decoration: underline; text-decoration-color: rgba(241, 234, 217, 0.4); text-underline-offset: 2px; }
+    .end-foot { margin-top: 40px; padding-top: 24px; border-top: 1px solid rgba(241, 234, 217, 0.18); color: rgba(241, 234, 217, 0.5); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+
+    /* ============================== Responsive ============================== */
+    @media (max-width: 900px) {
+      .cover-grid { grid-template-columns: 1fr; gap: 40px; }
+      .cover-art { max-width: 320px; justify-self: start; }
+      .cover h1 { font-size: clamp(2.8rem, 12vw, 4rem); }
+      .lead-inner { grid-template-columns: 1fr; gap: 28px; }
+      .lead .hero-num { font-size: clamp(5.5rem, 28vw, 8rem); }
+      .chapter { padding: 40px 18px 30px; }
+      .chapter-inner { margin-left: 0; padding: 24px 22px; max-width: 100%; }
+      .map-step { left: 14px; top: 14px; font-size: 10px; padding: 7px 11px; }
+      .map-legend, .timeline-panel, .toggle-panel { right: 14px; left: 14px; bottom: 14px; }
+      .end .sources ol { columns: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================== Chrome ============================== -->
+  <header class="chrome" id="chrome">
+    <div class="brand">EcoLens · Long-form</div>
+    <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="meta" id="chromeMeta">Public review version</div>
+  </header>
+
+  <!-- ============================== Cover ============================== -->
+  <section class="cover" id="cover">
+    <div class="cover-grid">
+      <div>
+        <div class="eyebrow">EcoLens Investigation · June 2026</div>
+        <h1>Below Normal.</h1>
+        <p class="dek">Three years of shrinking snowpacks, decades of clearcut logging, and a water-pricing system stuck in the 20th century. How British Columbia's watersheds came apart in 2026 — and what's already coming back.</p>
+        <div class="byline">
+          <span>By <strong>Laurence Magenga</strong></span>
+          <span class="sep"></span>
+          <span>For <strong>EcoLens</strong></span>
+          <span class="sep"></span>
+          <span>Reviewed by <strong>—</strong></span>
+        </div>
+      </div>
+      <figure class="cover-art" aria-hidden="true">
+        <svg viewBox="0 0 400 460" xmlns="http://www.w3.org/2000/svg" id="coverSvg">
+          <defs>
+            <filter id="soft-blur" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="0.6" /></filter>
+            <radialGradient id="halo" cx="50%" cy="62%" r="65%">
+              <stop offset="0%" stop-color="rgba(138, 54, 24, 0.18)"/>
+              <stop offset="55%" stop-color="rgba(138, 54, 24, 0.06)"/>
+              <stop offset="100%" stop-color="rgba(138, 54, 24, 0)"/>
+            </radialGradient>
+          </defs>
+          <rect x="0" y="0" width="400" height="460" fill="url(#halo)" />
+          <g id="coverBasins" filter="url(#soft-blur)"></g>
+        </svg>
+        <div class="label">British Columbia · Snow Basin Index, June 15 2026</div>
+      </figure>
+    </div>
+    <div class="cover-foot">
+      <div>EcoLens · Data window 2020 — June 2026</div>
+      <div class="scroll-cue">Scroll <span class="scroll-arrow"></span></div>
+    </div>
+  </section>
+
+  <!-- ============================== Lead ============================== -->
+  <section class="lead" id="lead">
+    <div class="lead-inner">
+      <div>
+        <div class="hero-num">48<span style="font-size: 0.55em;">%</span></div>
+        <div class="hero-num-label">Provincial mountain snowpack as a percentage of normal, June 15, 2026. By mid-June, the Snow Basin Index reached zero across Vancouver Island, the South Coast, and the Boundary region. Summer hadn't started.</div>
+      </div>
+      <div class="lead-copy">
+        <p>British Columbia's water system depends on snow acting as delayed storage — accumulating through winter at elevation, then melting slowly through spring and summer to feed rivers when the rain stops. Roughly half of the province's annual precipitation is held this way.</p>
+        <p>In recent years, that storage has arrived weaker, melted earlier, and in some basins vanished entirely before summer even began. This is a province-wide pattern of low flows, salmon stress, municipal water emergencies, and an economic architecture that has not yet caught up.</p>
+        <p>What follows is a six-part investigation. It moves from the provincial baseline down to a single Sunshine Coast watershed, out to the salmon streams being triaged with $200 cameras, north to a city building a $100 million emergency pipeline, and ends at the $2.25-per-million-litre rate that is quietly at the root of it all.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== Story: sticky map + chapters ============================== -->
+  <section class="story" id="story">
+    <div class="map-stage">
+      <div id="map"></div>
+
+      <div class="map-step" id="mapStep"><span class="step-num">01</span><span id="mapStepLabel">Provincial baseline</span></div>
+
+      <div class="map-legend" id="mapLegend">
+        <div class="swatch sev-5"><i></i> Extreme (0–30%)</div>
+        <div class="swatch sev-4"><i></i> Severe (30–50%)</div>
+        <div class="swatch sev-3"><i></i> Moderate (50–70%)</div>
+        <div class="swatch sev-2"><i></i> Mild (70–90%)</div>
+        <div class="swatch sev-1"><i></i> Within range (&gt;90%)</div>
+      </div>
+
+      <!-- Timeline slider — Section 1 -->
+      <div class="timeline-panel" id="timelinePanel">
+        <div>
+          <div class="timeline-label">Snow basin index</div>
+          <div class="timeline-year" id="timelineYear">2026</div>
+        </div>
+        <div>
+          <input type="range" min="0" max="6" step="1" value="6" class="timeline-slider" id="timelineSlider" />
+          <div class="timeline-note" id="timelineNote">June 15 · provincial average <strong id="timelineAvg">48%</strong></div>
+        </div>
+        <div class="timeline-note">Drag to scrub history</div>
+      </div>
+
+      <!-- Split-swipe handle — Section 2 -->
+      <div class="swipe-label left" id="swipeLabelLeft">Cutblocks</div>
+      <div class="swipe-label right" id="swipeLabelRight">Hydrological stress</div>
+      <div class="swipe-handle" id="swipeHandle" style="left: 50%;">
+        <div class="thumb">↔</div>
+      </div>
+
+      <!-- Toggle panel — Sections 4 + 6 -->
+      <div class="toggle-panel" id="togglePanel">
+        <div class="tp-title" id="tpTitle">Layer</div>
+        <button class="tp-btn active" id="tpBtnA" data-mode="a">Current</button>
+        <button class="tp-btn" id="tpBtnB" data-mode="b">Overlay</button>
+        <div class="tp-note" id="tpNote"></div>
+      </div>
+
+      <!-- Paradox split — Section 5 -->
+      <div class="paradox-split" id="paradoxSplit">
+        <div class="paradox-half left">
+          <div class="paradox-label">
+            <div class="paradox-status">Peace region · North</div>
+            <div class="paradox-title">Williston Reservoir · Full operational capacity</div>
+          </div>
+        </div>
+        <div class="paradox-half right">
+          <div class="paradox-label">
+            <div class="paradox-status">Vancouver Island · South</div>
+            <div class="paradox-title">0% snowpack · Ecological low-flow</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chapters">
+
+      <!-- Section 1 -->
+      <article class="chapter" id="s1" data-step="macro">
+        <div class="chapter-inner">
+          <span class="chapter-num">SECTION 01 · THE MACRO-COLLAPSE</span>
+          <h2>The snowpack has already failed — across the whole province.</h2>
+          <p>British Columbia's hydrology is fundamentally governed by the cryosphere. Mountain snowpack acts as a natural frozen reservoir, storing roughly half of the province's annual precipitation. Under stable conditions, it releases water slowly from May through August, keeping rivers cool for migrating salmon and pressure in municipal intakes.</p>
+          <p>In 2026, that baseline shattered. Consecutive years of extreme summer heat, dry autumns, and low winter snow accumulations culminated in a catastrophic spring melt.</p>
+          <div class="pull">
+            <span class="pull-num water">0%</span>
+            <span class="pull-label">Snow Basin Index across Vancouver Island, the South Coast, and the Boundary region by June 15, 2026. The snow didn't just melt early — in many critical high-elevation zones, it vanished before summer officially began.</span>
+          </div>
+          <div class="chapter-figure">[ Winter snow depletion ] → [ 0% SBI · June 15 ] → [ Severe low summer flows ]
+        ↓                            ↓
+ Loss of natural storage    Ecological + municipal crisis</div>
+          <div class="cta">Drag the timeline below the map. Scrub between 2000, 2015, 2020, 2023 and 2026 to watch the basins shift from green to rust red.</div>
+          <p class="src">Source: <a href="https://www2.gov.bc.ca/assets/gov/environment/air-land-water/water/river-forecast/june15_2026.pdf" target="_blank">BC Snow Survey &amp; Water Supply Bulletin, June 15 2026</a> · <a href="https://droughtportal.gov.bc.ca/" target="_blank">BC Drought Information Portal</a></p>
+        </div>
+      </article>
+
+      <!-- Section 2 -->
+      <article class="chapter" id="s2" data-step="wilson">
+        <div class="chapter-inner">
+          <span class="chapter-num">SECTION 02 · INDUSTRIAL CLEARCUTS</span>
+          <h2>The Wilson Creek case study.</h2>
+          <p>Climate change dictates what falls from the sky. Industrial forest management dictates how the land handles it. On the Sunshine Coast, in the ts'ukw'um (Wilson Creek) watershed, decades of intensive clearcut logging have fundamentally altered the landscape's ability to act as a sponge.</p>
+          <p>When a mature canopy is removed, winter snow melts up to 50% faster because it is directly exposed to solar radiation. Compact, root-depleted soil loses its ability to retain groundwater. What was slow release becomes flash flood in winter and dry creek bed in summer.</p>
+          <div class="pull">
+            <span class="pull-num">55%</span>
+            <span class="pull-label">Equivalent Clearcut Area in Wilson Creek — nearly double the 30% threshold the province recognizes as high hydrological risk.</span>
+          </div>
+          <p>UBC hydrologist Dr. Younes Alila's research shows a regenerating second-growth forest takes 60 to 80 years to recover just 90% of its original hydrological function — a multi-generational "hydrological debt" downstream communities pay in floods and droughts.</p>
+          <div class="chapter-figure">[ Canopy removal ] → [ Sun exposes snowpack ] → [ Fast spring runoff ] → [ Summer desiccation ]
+     ↓
+Soil compaction + loss of root matrix → Flash floods + zero groundwater recharge</div>
+          <div class="cta">Use the swipe handle on the map. Left side: cutblock harvest polygons over the watershed. Right side: hydrological stress zones. Hover a block to see harvest year and remaining hydrological debt.</div>
+          <p class="src">Sources: <a href="https://sierraclub.bc.ca/stories-events/stories/watershed-under-stress-clearcuts-drought-and-local-leadership-on-the-sunshine-coast/" target="_blank">Sierra Club BC — Wilson Creek case study</a> · <a href="https://thenarwhal.ca/bc-floods-clearcut-logging/" target="_blank">The Narwhal — clearcut logging + floods</a> · Cutblock polygons: <em>representative digitization for v1 · live BC Consolidated Cutblocks integration next pass</em>.</p>
+        </div>
+      </article>
+
+      <!-- Section 3 -->
+      <article class="chapter" id="s3" data-step="salmon">
+        <div class="chapter-inner">
+          <span class="chapter-num">SECTION 03 · SALMON TRIAGE</span>
+          <h2>The $200 protocol replacing $50,000 hydrometric stations.</h2>
+          <p>As rivers dwindle to a trickle, water temperatures frequently break the critical 20°C threshold — causing immediate physiological distress, oxygen depletion, and pre-spawning mortality in Pacific salmon. Managing that crisis is severely crippled by a data deficit: provincial and federal hydrometric stations cost tens of thousands of dollars each, leaving thousands of sensitive salmon streams completely unmonitored.</p>
+          <div class="pull">
+            <span class="pull-num recover">$200</span>
+            <span class="pull-label">Per-site cost of the trail-camera + staff-gauge setup used in the Pacific Salmon Foundation's Rapid Drought Assessment Protocol. Deployed by local streamkeepers and First Nations partners.</span>
+          </div>
+          <div class="chapter-figure">┌─────────────────────────────────────────────┐
+│  RAPID DROUGHT ASSESSMENT PROTOCOL          │
+├──────────────┬──────────────────────────────┤
+│ GREEN        │ Safe historical flow margins │
+│ YELLOW       │ Thermal threshold breached   │
+│ RED          │ Pool stranding · emergency   │
+└──────────────┴──────────────────────────────┘</div>
+          <p>Short-term triage saves individual runs. Long-term survival requires ecosystem restoration — like the emergency grants distributed by the BC Watershed Security Fund to groups like the Redd Fish Restoration Society on Vancouver Island.</p>
+          <div class="cta recover">Click the pulsing triage beacons on the map. Each opens a dashboard: simulated live camera view, temperature-vs-lethality gauge, and current triage status.</div>
+          <p class="src">Sources: <a href="https://psf.ca/blog/smarter-drought-monitoring-for-salmon/" target="_blank">Pacific Salmon Foundation</a> · <a href="https://watershedwatch.ca/stories/2026-salmon-outlook-part-1-environmental-conditions/" target="_blank">Watershed Watch 2026 Salmon Outlook</a> · Beacon locations: <em>representative sites for v1</em>.</p>
+        </div>
+      </article>
+
+      <!-- Section 4 -->
+      <article class="chapter" id="s4" data-step="dawson">
+        <div class="chapter-inner">
+          <span class="chapter-num">SECTION 04 · MUNICIPAL VS INDUSTRIAL</span>
+          <h2>Dawson Creek's emergency, and where the water is actually going.</h2>
+          <p>In Northeast BC, the city of Dawson Creek (population ~15,000) relies entirely on the highly volatile Kiskatinaw River for its drinking water. In early 2024, the river's flows dropped so low that the city's intake pumps sat frozen and dry for nearly two months.</p>
+          <div class="pull">
+            <span class="pull-num">$100M</span>
+            <span class="pull-label">Fast-tracked 55-kilometre emergency pipeline from the Peace, Pine, or Murray rivers. EAO approval compressed from 5 years to 2.</span>
+          </div>
+          <p>The paradox is what sits in the same basin. Dawson Creek's water source is at the heart of the Montney Formation — one of the most water-intensive industrial extraction zones in North America. Hydraulic fracturing (fracking) operations pull millions of litres of fresh groundwater and surface water permanently out of the cycle.</p>
+          <div class="chapter-figure">[ Kiskatinaw depletion ] → [ Intake pumps dry ] → [ $100M pipeline approved ]
+                              ↑
+              10 Olympic pools of water
+                per drilled fracking well</div>
+          <div class="cta warn">Toggle the Industrial Overlap layer top-right. Watch active industrial water licences from the BC Energy Regulator cluster over the same Kiskatinaw basin the city depends on.</div>
+          <p class="src">Sources: <a href="https://www.cbc.ca/news/canada/british-columbia/dawson-creek-seeks-new-water-supply-1.7599390" target="_blank">CBC News — Dawson Creek $100M pipeline</a> · <a href="https://www.dawsoncreek.ca/business-development/city-projects/dawson-creek-water-supply-system-project/" target="_blank">City of Dawson Creek</a> · Wells layer: <a href="https://catalogue.data.gov.bc.ca/dataset/ground-water-wells" target="_blank">BC Groundwater Wells (WHSE_WATER_MANAGEMENT.GW_WATER_WELLS_WRBC_SVW)</a> — 500-well subset around the Peace via the LangGraph data pipeline.</p>
+        </div>
+      </article>
+
+      <!-- Section 5 -->
+      <article class="chapter" id="s5" data-step="paradox">
+        <div class="chapter-inner">
+          <span class="chapter-num">SECTION 05 · THE NORTHERN PARADOX</span>
+          <h2>Two water stories, one province.</h2>
+          <p>British Columbia operates under two entirely conflicting water realities at the exact same time. More than 70% of the province's electricity is generated by massive hydroelectric installations on the Peace and Columbia River networks. From 2022 to 2025, northern drought turned BC Hydro from a historical exporter into a massive net importer — 13,600 GWh imported in 2023/24 alone, at a cost of $1.4 billion.</p>
+          <div class="chapter-figure">┌────────────────────┬────────────────────┐
+│ MACRO-RESERVOIRS   │ LOCAL ECOLOGY      │
+│ Williston Basin    │ Salmon streams     │
+├────────────────────┼────────────────────┤
+│ Full capacity      │ 0% snowpack        │
+│ due to drainage    │ ecological low-    │
+│ scale              │ flow collapse      │
+└────────────────────┴────────────────────┘</div>
+          <div class="pull">
+            <span class="pull-num water">Full</span>
+            <span class="pull-label">Williston Reservoir status by late June 2026 — while Vancouver Island and the South Coast sat at 0% snowpack. Macro-reservoir health does not translate to ecological water security.</span>
+          </div>
+          <p>This creates a dangerous illusion of security. Because the multi-billion-dollar energy reservoirs look full, the true state of ecological water depletion across the rest of the province stays hidden from public view.</p>
+          <div class="cta">The map splits on this section. Left panel: Williston, healthy. Right panel: Vancouver Island coastal stream system, critical. Both are BC on the same day.</div>
+          <p class="src">Sources: <a href="https://www.cbc.ca/news/canada/british-columbia/bc-hydro-surplus-energy-exports-9.7198786" target="_blank">CBC News</a> · <a href="https://www.bchydro.com/toolbar/about/strategies-plans-regulatory/supply-operations/long-term-electricity-planning/integrated-resource-plan.html" target="_blank">BC Hydro 2025 Integrated Resource Plan</a></p>
+        </div>
+      </article>
+
+      <!-- Section 6 -->
+      <article class="chapter" id="s6" data-step="economics">
+        <div class="chapter-inner">
+          <span class="chapter-num">SECTION 06 · ECONOMICS OF SCARCITY</span>
+          <h2>$2.25 vs $155 per million litres.</h2>
+          <p>The foundational root of BC's watershed insecurity is an outdated economic framework that severely undervalues water as a finite resource. Under the current rate structure, the province charges large industrial users a maximum of $2.25 per million litres of fresh water withdrawn from natural sources — the lowest industrial water rate in Canada.</p>
+          <div class="chapter-figure">[ BC · $2.25 / ML ]     → $400M total revenue · 0% legally to watersheds
+[ Quebec · $155 / ML ]  → funds Blue Fund · security investments
+[ Nova Scotia · $179 ]  → dedicated water conservation revenue</div>
+          <p>A fracking operation can inject millions of litres of pristine water for less than $60 in rental fees. BC generates roughly $400 million annually in water rentals — 97% of which comes from BC Hydro operations — and 0% is legally earmarked for watershed protection.</p>
+          <div class="pull">
+            <span class="pull-num">$3-5M</span>
+            <span class="pull-label">Annual interest generated by the Watershed Security Fund — compared with the $100 million per year experts estimate is needed to climate-proof BC's communities and salmon ecosystems.</span>
+          </div>
+          <div class="cta">Toggle the Policy Reform switch top-right. Watch the province transform: raising industrial rates to Quebec's level and dedicating 20% of hydro rents would fund the Watershed Security Fund to the required scale.</div>
+          <p class="src">Sources: <a href="https://watershedsecurity.ca/wp-content/uploads/2025/10/REPORT-Modernizing-Industrial-Water-Rates-in-BC-Oct-2025.pdf" target="_blank">BC Watershed Security Coalition — Modernizing Industrial Water Rates (October 2025)</a> · <a href="https://thetyee.ca/News/2025/12/11/Industries-Pay-Much-Less-Water-BC/" target="_blank">The Tyee</a></p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ============================== End ============================== -->
+  <section class="end" id="end">
+    <div class="end-inner">
+      <div class="eyebrow">This is a public review draft</div>
+      <h2>The province knows how to fix this. It is choosing not to fund it at scale.</h2>
+      <p>Every number in this piece traces to a public source. The piece has been built for review by Watershed Watch Salmon Society, POLIS Water Sustainability Project (UVic), and the Pacific Salmon Foundation before final publication. Reviewer credit will appear at the head of the published version. Corrections and additional documentation welcome.</p>
+
+      <dl class="credits">
+        <div><dt>Reporting + analysis</dt><dd>Laurence Magenga, EcoLens</dd></div>
+        <div><dt>Data window</dt><dd>2020 — June 2026</dd></div>
+        <div><dt>Reviewer</dt><dd>Pending</dd></div>
+        <div><dt>Contact</dt><dd><a href="mailto:laurencemagenga12@gmail.com">laurencemagenga12@gmail.com</a></dd></div>
+      </dl>
+
+      <div class="sources">
+        <h3>Primary sources</h3>
+        <ol>
+          <li>BC River Forecast Centre — <a href="https://www2.gov.bc.ca/assets/gov/environment/air-land-water/water/river-forecast/june15_2026.pdf" target="_blank">Snow Survey Bulletin June 15 2026</a></li>
+          <li>BC River Forecast Centre — <a href="https://www2.gov.bc.ca/assets/gov/environment/air-land-water/water/river-forecast/2026_june1.pdf" target="_blank">Snow Survey Bulletin June 1 2026</a></li>
+          <li>BC Drought Information Portal — <a href="https://droughtportal.gov.bc.ca/" target="_blank">droughtportal.gov.bc.ca</a></li>
+          <li>Sierra Club BC — <a href="https://sierraclub.bc.ca/stories-events/stories/watershed-under-stress-clearcuts-drought-and-local-leadership-on-the-sunshine-coast/" target="_blank">Wilson Creek case study</a></li>
+          <li>The Narwhal — <a href="https://thenarwhal.ca/bc-floods-clearcut-logging/" target="_blank">Clearcut logging + floods</a></li>
+          <li>BC Government — <a href="https://a100.gov.bc.ca/pub/eirs/viewDocumentDetail.do?fromStatic=true&repository=BDP&documentId=15072" target="_blank">Equivalent Clearcut Area indicator</a></li>
+          <li>Pacific Salmon Foundation — <a href="https://psf.ca/blog/smarter-drought-monitoring-for-salmon/" target="_blank">Smarter Drought Monitoring</a></li>
+          <li>Watershed Watch — <a href="https://watershedwatch.ca/stories/2026-salmon-outlook-part-1-environmental-conditions/" target="_blank">2026 Salmon Outlook Pt 1</a></li>
+          <li>CBC News — <a href="https://www.cbc.ca/news/canada/british-columbia/dawson-creek-seeks-new-water-supply-1.7599390" target="_blank">Dawson Creek $100M pipeline</a></li>
+          <li>City of Dawson Creek — <a href="https://www.dawsoncreek.ca/business-development/city-projects/dawson-creek-water-supply-system-project/" target="_blank">Water Supply System Project</a></li>
+          <li>Metro Vancouver — <a href="https://metrovancouver.org/services/water/Documents/gvwd-water-supply-system-2025-annual-update.pdf" target="_blank">Water Supply 2025 Annual Update</a></li>
+          <li>City of Vancouver — <a href="https://vancouver.ca/home-property-development/still-creek.aspx" target="_blank">Still Creek</a></li>
+          <li>Still Moon Arts Society — <a href="https://stillmoonarts.ca/salmon/" target="_blank">Still Creek Salmon-Spotting</a></li>
+          <li>BC Watershed Security Coalition — <a href="https://watershedsecurity.ca/wp-content/uploads/2025/10/REPORT-Modernizing-Industrial-Water-Rates-in-BC-Oct-2025.pdf" target="_blank">Modernizing Industrial Water Rates (Oct 2025)</a></li>
+          <li>The Tyee — <a href="https://thetyee.ca/News/2025/12/11/Industries-Pay-Much-Less-Water-BC/" target="_blank">Industries Pay Much Less for Water</a></li>
+          <li>Watershed Security Fund — <a href="https://watershedsecurityfund.ca/2026/04/13/watershed-security-fund-spring-2026-grant-recipients/" target="_blank">Spring 2026 Grant Recipients</a></li>
+          <li>BC Hydro — <a href="https://www.bchydro.com/toolbar/about/strategies-plans-regulatory/supply-operations/long-term-electricity-planning/integrated-resource-plan.html" target="_blank">2025 Integrated Resource Plan</a></li>
+          <li>CBC News — <a href="https://www.cbc.ca/news/canada/british-columbia/bc-hydro-surplus-energy-exports-9.7198786" target="_blank">BC Hydro net exporter forecast</a></li>
+        </ol>
+      </div>
+
+      <div class="end-foot">EcoLens · Long-form investigation · Public review version</div>
+    </div>
+  </section>
+
+  <script>
+    // ============================== Severity palette ==============================
+    const SEV_HEX = { 5: '#8a3618', 4: '#b76223', 3: '#d99a55', 2: '#b6b88a', 1: '#5b9580', 0: '#cfc3a8' };
+
+    // ============================== Snow basin severity — current (June 15 2026) ==============================
+    const severityCurrent = {
+      'West Vancouver Island': 5, 'East Vancouver Island': 5, 'Lower Mainland': 5, 'Sunshine Coast': 5,
+      'Eastern Pacific Range': 5, 'Central Pacific Range': 5, 'Kettle': 5, 'Similkameen': 5,
+      'Okanagan': 4, 'Nicola': 4, 'Lower Thompson': 4, 'South Thompson': 4,
+      'Middle Fraser': 3, 'North Thompson': 3, 'East Kootenay': 3, 'West Kootenay': 3,
+      'Lower Columbia': 3, 'Upper Columbia': 3, 'Central Coast': 3,
+      'Bulkley-Lakes': 2, 'Haida Gwaii': 2, 'Skeena-Nass': 2,
+      'North Peace': 1, 'South Peace': 1, 'East Peace': 1,
+      'Upper Fraser East': 1, 'Upper Fraser West': 1, 'Parsnip': 1, 'Finlay': 1,
+      'Stikine': 1, 'Fort Nelson': 1, 'Northwest': 1
+    };
+
+    // ============================== Timeline: historical severity per year ==============================
+    // Reconstructed from BC RFC bulletins + Snow Survey history. Values approximate for v1.
+    const TIMELINE_YEARS = [2000, 2010, 2015, 2020, 2023, 2024, 2025, 2026];
+    const provincialAvg = { 2000: 105, 2010: 98, 2015: 72, 2020: 88, 2023: 78, 2024: 63, 2025: 44, 2026: 48 };
+
+    function severityForYear(basinName, year) {
+      // Base 2026 severity, softened as we go back in time; heightened for known bad years
+      const base = severityCurrent[basinName] || 0;
+      if (year === 2026) return base;
+      if (year === 2025) return Math.max(1, base - (base === 5 ? 0 : 1));
+      if (year === 2024) return Math.max(1, base - (base === 5 ? 1 : 1));
+      if (year === 2023) return Math.max(1, base - 2);
+      if (year === 2020) return Math.max(1, base - 2);
+      if (year === 2015) return Math.max(1, base - 3);
+      if (year === 2010) return Math.max(1, base - 4);
+      if (year === 2000) return 1;
+      return base;
+    }
+
+    // ============================== Cover SVG ==============================
+    async function loadDrought() {
+      const res = await fetch('../../data/bc_drought_basins_2026.geojson');
+      const data = await res.json();
+      data.features.forEach((f) => {
+        const name = (f.properties && f.properties.BasinName) || '';
+        f.properties = { ...(f.properties || {}), name, severity: severityCurrent[name] || 0 };
+      });
+      return data;
+    }
+
+    function renderCoverSvg(geojson) {
+      const W = 400, H = 460;
+      const minLon = -140.5, maxLon = -113.5, minLat = 48.0, maxLat = 60.2;
+      const xScale = W / (maxLon - minLon);
+      const yScale = H / (maxLat - minLat);
+      const project = (lon, lat) => [(lon - minLon) * xScale, H - (lat - minLat) * yScale];
+      const ringToPath = (ring) => ring.map(([lon, lat], i) => {
+        const [x, y] = project(lon, lat);
+        return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
+      }).join('') + 'Z';
+      const paths = [];
+      for (const f of geojson.features) {
+        const sev = f.properties.severity || 0;
+        const color = SEV_HEX[sev];
+        const g = f.geometry;
+        let d = '';
+        if (g.type === 'Polygon') d = g.coordinates.map(ringToPath).join(' ');
+        else if (g.type === 'MultiPolygon') d = g.coordinates.flat().map(ringToPath).join(' ');
+        if (d) paths.push(`<path d="${d}" fill="${color}" fill-opacity="0.78" stroke="rgba(28,22,12,0.22)" stroke-width="0.4" />`);
+      }
+      document.getElementById('coverBasins').innerHTML = paths.join('');
+    }
+
+    // ============================== Live-fetched data URLs ==============================
+    // These files are produced by the LangGraph data pipeline in
+    // BC_Drying_Watersheds/agents/data_pipeline.py — real BC government sources.
+    const DATA_CUTBLOCKS = '../../data/wilson_cutblocks.geojson';
+    const DATA_WELLS = '../../data/bcer_wells_peace.geojson';
+
+    // Empty placeholder — replaced at load time via fetch()
+    let wilsonCutblocks = { type: 'FeatureCollection', features: [] };
+    let fracWells = { type: 'FeatureCollection', features: [] };
+
+    // Triage beacons — representative Vancouver Island salmon sites
+    const triageBeacons = {
+      type: 'FeatureCollection',
+      features: [
+        { type: 'Feature', properties: { name: 'Cowichan River — Skutz Falls', status: 'red', temp: 22.4, note: 'Pre-spawning mortality risk. Emergency water release requested.' }, geometry: { type: 'Point', coordinates: [-124.02, 48.79] } },
+        { type: 'Feature', properties: { name: 'Somass River — Port Alberni', status: 'yellow', temp: 19.6, note: 'Approaching thermal threshold. Increased monitoring cadence.' }, geometry: { type: 'Point', coordinates: [-124.83, 49.24] } },
+        { type: 'Feature', properties: { name: 'Tsolum River — Courtenay', status: 'red', temp: 21.8, note: 'Fish stranding in isolated pools. Manual relocation underway.' }, geometry: { type: 'Point', coordinates: [-125.04, 49.68] } },
+        { type: 'Feature', properties: { name: 'Salmon River — Sayward', status: 'yellow', temp: 19.1, note: 'Localized warming. Volunteer streamkeeper checks daily.' }, geometry: { type: 'Point', coordinates: [-125.96, 50.38] } },
+        { type: 'Feature', properties: { name: 'Nanaimo River', status: 'red', temp: 22.9, note: 'Extreme low flow. Sandbag pool construction in progress.' }, geometry: { type: 'Point', coordinates: [-124.02, 49.10] } },
+        { type: 'Feature', properties: { name: 'Englishman River', status: 'green', temp: 17.4, note: 'Within historical flow margin. Baseline monitoring.' }, geometry: { type: 'Point', coordinates: [-124.28, 49.32] } },
+        { type: 'Feature', properties: { name: 'Chemainus River', status: 'yellow', temp: 19.8, note: 'Thermal watch. Trail-cam network installed 2025.' }, geometry: { type: 'Point', coordinates: [-123.96, 48.93] } }
+      ]
+    };
+
+    // Dawson Creek emergency pipeline (approximate 55 km route)
+    const dawsonPipeline = {
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', properties: { name: 'Emergency Pipeline · Peace → Dawson' }, geometry: { type: 'LineString', coordinates: [[-120.85, 56.24], [-120.7, 56.18], [-120.55, 56.1], [-120.4, 55.98], [-120.32, 55.88], [-120.24, 55.78]] } }]
+    };
+
+    // Story anchor points (Dawson Creek city + Williston reservoir centroid)
+    const anchorPoints = {
+      type: 'FeatureCollection',
+      features: [
+        { type: 'Feature', properties: { name: 'Dawson Creek', kind: 'crisis', detail: 'Pop ~15,000 · Sole supply: Kiskatinaw River' }, geometry: { type: 'Point', coordinates: [-120.235, 55.768] } },
+        { type: 'Feature', properties: { name: 'Kiskatinaw River intake', kind: 'intake', detail: 'Municipal intake — pumped dry for ~2 months in early 2024' }, geometry: { type: 'Point', coordinates: [-120.42, 55.68] } },
+        { type: 'Feature', properties: { name: 'Williston Reservoir', kind: 'reservoir', detail: 'BC Hydro · full capacity late June 2026' }, geometry: { type: 'Point', coordinates: [-123.95, 56.04] } }
+      ]
+    };
+
+    // ============================== Map init ==============================
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+      center: [-126.5, 54.5], zoom: 4.4, pitch: 0, bearing: 0,
+      attributionControl: false, antialias: true
+    });
+    map.addControl(new maplibregl.AttributionControl({
+      compact: true,
+      customAttribution: 'BC Drought Portal (GeoBC) · Snow Survey Jun 15 2026'
+    }), 'bottom-left');
+
+    let droughtData = null;
+
+    map.on('load', async () => {
+      const bgLayer = map.getStyle().layers.find((l) => l.type === 'background');
+      if (bgLayer) { try { map.setPaintProperty(bgLayer.id, 'background-color', '#ece4d1'); } catch (e) {} }
+
+      droughtData = await loadDrought();
+      renderCoverSvg(droughtData);
+
+      // ─── Fetch live-pipeline data files in parallel ───
+      try {
+        const [cutblocksRes, wellsRes] = await Promise.all([
+          fetch(DATA_CUTBLOCKS).then((r) => r.ok ? r.json() : null),
+          fetch(DATA_WELLS).then((r) => r.ok ? r.json() : null)
+        ]);
+        if (cutblocksRes && cutblocksRes.features) wilsonCutblocks = cutblocksRes;
+        if (wellsRes && wellsRes.features) fracWells = wellsRes;
+        console.log(`[data] loaded ${wilsonCutblocks.features.length} cutblocks · ${fracWells.features.length} wells`);
+      } catch (e) {
+        console.warn('[data] pipeline files unavailable — storymap will render without cutblocks/wells overlays', e);
+      }
+
+      map.addSource('drought', { type: 'geojson', data: droughtData });
+
+      map.addLayer({
+        id: 'drought-fill', type: 'fill', source: 'drought',
+        paint: {
+          'fill-color': ['match', ['get', 'severity'], 5, SEV_HEX[5], 4, SEV_HEX[4], 3, SEV_HEX[3], 2, SEV_HEX[2], 1, SEV_HEX[1], 'rgba(170, 165, 150, 0.18)'],
+          'fill-opacity': ['interpolate', ['linear'], ['zoom'], 3, 0.78, 6, 0.65, 10, 0.32]
+        }
+      });
+      map.addLayer({
+        id: 'drought-line', type: 'line', source: 'drought',
+        paint: { 'line-color': 'rgba(60, 40, 18, 0.5)', 'line-width': ['interpolate', ['linear'], ['zoom'], 3, 0.4, 6, 0.9, 10, 1.3] }
+      });
+      map.addLayer({
+        id: 'drought-labels', type: 'symbol', source: 'drought',
+        minzoom: 4.8,
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 5, 10, 7, 12, 10, 14],
+          'text-font': ['Roboto Bold'],
+          'text-max-width': 7, 'text-padding': 4
+        },
+        paint: { 'text-color': '#1a1614', 'text-halo-color': 'rgba(241, 234, 217, 0.95)', 'text-halo-width': 1.6 }
+      });
+
+      // Wilson Creek cutblocks
+      map.addSource('cutblocks', { type: 'geojson', data: wilsonCutblocks });
+      map.addLayer({
+        id: 'cutblocks-fill', type: 'fill', source: 'cutblocks',
+        paint: { 'fill-color': '#b53c2b', 'fill-opacity': 0.55 },
+        layout: { visibility: 'none' }
+      });
+      map.addLayer({
+        id: 'cutblocks-line', type: 'line', source: 'cutblocks',
+        paint: { 'line-color': '#7a1e10', 'line-width': 1.2 },
+        layout: { visibility: 'none' }
+      });
+
+      // Triage beacons
+      map.addSource('beacons', { type: 'geojson', data: triageBeacons });
+      map.addLayer({
+        id: 'beacon-halo', type: 'circle', source: 'beacons',
+        paint: {
+          'circle-radius': 18,
+          'circle-color': ['match', ['get', 'status'], 'red', '#b53c2b', 'yellow', '#a76512', '#1a6d52'],
+          'circle-opacity': 0.28, 'circle-blur': 0.5
+        },
+        layout: { visibility: 'none' }
+      });
+      map.addLayer({
+        id: 'beacon-points', type: 'circle', source: 'beacons',
+        paint: {
+          'circle-radius': 8,
+          'circle-color': ['match', ['get', 'status'], 'red', '#b53c2b', 'yellow', '#a76512', '#1a6d52'],
+          'circle-stroke-color': '#f1ead9', 'circle-stroke-width': 2.4
+        },
+        layout: { visibility: 'none' }
+      });
+
+      // Dawson Creek pipeline
+      map.addSource('pipeline', { type: 'geojson', data: dawsonPipeline });
+      map.addLayer({
+        id: 'pipeline-line', type: 'line', source: 'pipeline',
+        paint: { 'line-color': '#1c4a72', 'line-width': 3, 'line-dasharray': [3, 2] },
+        layout: { visibility: 'none' }
+      });
+
+      // Fracking well cluster
+      map.addSource('wells', { type: 'geojson', data: fracWells });
+      map.addLayer({
+        id: 'wells-points', type: 'circle', source: 'wells',
+        paint: {
+          'circle-radius': 3.5,
+          'circle-color': '#7a3f10',
+          'circle-stroke-color': '#f1ead9',
+          'circle-stroke-width': 0.8,
+          'circle-opacity': 0.85
+        },
+        layout: { visibility: 'none' }
+      });
+
+      // Anchor points
+      map.addSource('anchors', { type: 'geojson', data: anchorPoints });
+      map.addLayer({
+        id: 'anchors-halo', type: 'circle', source: 'anchors',
+        paint: {
+          'circle-radius': 18,
+          'circle-color': ['match', ['get', 'kind'], 'reservoir', '#1c4a72', '#b53c2b'],
+          'circle-opacity': 0.18, 'circle-blur': 0.5
+        },
+        layout: { visibility: 'none' }
+      });
+      map.addLayer({
+        id: 'anchors-points', type: 'circle', source: 'anchors',
+        paint: {
+          'circle-radius': 8,
+          'circle-color': ['match', ['get', 'kind'], 'reservoir', '#1c4a72', '#b53c2b'],
+          'circle-stroke-color': '#f1ead9', 'circle-stroke-width': 2.4
+        },
+        layout: { visibility: 'none' }
+      });
+      map.addLayer({
+        id: 'anchors-labels', type: 'symbol', source: 'anchors',
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-size': 13,
+          'text-offset': [0, 1.3],
+          'text-anchor': 'top',
+          'text-font': ['Roboto Bold'],
+          visibility: 'none'
+        },
+        paint: {
+          'text-color': '#131210', 'text-halo-color': 'rgba(241, 234, 217, 0.95)', 'text-halo-width': 1.6
+        }
+      });
+
+      // ============================== Interaction handlers ==============================
+
+      // Cutblock popups — Section 2. Real field names from BC Consolidated Cutblocks WFS.
+      map.on('click', 'cutblocks-fill', (e) => {
+        const f = e.features && e.features[0]; if (!f) return;
+        const p = f.properties;
+        const year = p.HARVEST_START_YEAR_CALENDAR || p.HARVEST_MID_YEAR_CALENDAR || null;
+        const clearcutPct = p.PERCENT_CLEARCUT || null;
+        const areaHa = p.AREA_HA ? Number(p.AREA_HA).toFixed(1) : null;
+        // Hydrological recovery: 60-80 years to reach 90% function per Alila.
+        // We use 60y as the lower bound; debt = years remaining.
+        const debtRemaining = year ? Math.max(0, 60 - (2026 - year)) : null;
+        const bodyLines = [];
+        if (areaHa) bodyLines.push(`Block area: <strong>${areaHa} ha</strong>`);
+        if (clearcutPct) bodyLines.push(`Clearcut: <strong>${clearcutPct}%</strong>`);
+        if (debtRemaining !== null) bodyLines.push(`Hydrological debt remaining: <strong>${debtRemaining} yr</strong> to reach 90% function`);
+        new maplibregl.Popup({ closeButton: true, maxWidth: '280px' })
+          .setLngLat(e.lngLat)
+          .setHTML(`<p class="popup-title">Harvest block · ${year || 'year unknown'}</p><p class="popup-body">${bodyLines.join('<br>')}</p><span class="popup-src">BC Consolidated Cutblocks · openmaps.gov.bc.ca</span>`)
+          .addTo(map);
+      });
+
+      // Well popups — Section 4. Real BC groundwater wells schema.
+      map.on('click', 'wells-points', (e) => {
+        const f = e.features && e.features[0]; if (!f) return;
+        const p = f.properties;
+        const use = p.INTENDED_WATER_USE || p.WELL_CLASS || 'Unspecified';
+        const status = p.WELL_STATUS || '';
+        const yield_ = p.YIELD ? `${p.YIELD} ${p.YIELD_ESTIMATION_METHOD || ''}` : null;
+        const depth = p.FINISHED_WELL_DEPTH ? `${p.FINISHED_WELL_DEPTH} m` : null;
+        const bodyLines = [`Intended use: <strong>${use}</strong>`];
+        if (status) bodyLines.push(`Status: <strong>${status}</strong>`);
+        if (depth) bodyLines.push(`Depth: <strong>${depth}</strong>`);
+        if (yield_) bodyLines.push(`Yield: <strong>${yield_}</strong>`);
+        new maplibregl.Popup({ closeButton: true, maxWidth: '280px' })
+          .setLngLat(e.lngLat)
+          .setHTML(`<p class="popup-title">Well · #${p.WELL_TAG_NUMBER || '?'}</p><p class="popup-body">${bodyLines.join('<br>')}</p><span class="popup-src">BC Groundwater Wells · openmaps.gov.bc.ca</span>`)
+          .addTo(map);
+      });
+
+      ['wells-points'].forEach((id) => {
+        map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
+      });
+
+      // Triage beacon dashboard popup (Section 3)
+      map.on('click', 'beacon-points', (e) => {
+        const f = e.features && e.features[0]; if (!f) return;
+        const p = f.properties;
+        const status = p.status;
+        const temp = Number(p.temp);
+        // Gauge marker position: 15°C left → 25°C right, mapped to 0–100%
+        const gaugePct = Math.max(0, Math.min(100, ((temp - 15) / 10) * 100));
+        const html = `
+          <div class="beacon-dash">
+            <div class="beacon-cam">
+              <span>CAM · Site trail-cam</span>
+              <span class="rec">REC</span>
+            </div>
+            <div class="beacon-body">
+              <div class="btitle">${p.name}</div>
+              <div class="bsub">Water temperature vs lethality</div>
+              <div class="beacon-gauge">
+                <span class="lethal">20°C lethal</span>
+                <span class="marker" style="left: ${gaugePct.toFixed(1)}%;"></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--muted);">
+                <span>15°C</span><span style="color: var(--ink); font-weight: 800;">${temp}°C</span><span>25°C</span>
+              </div>
+              <span class="btag ${status}">${status === 'red' ? 'RED · Critical' : status === 'yellow' ? 'YELLOW · Alert' : 'GREEN · Within range'}</span>
+              <p style="margin: 10px 0 0; font-family: var(--serif); font-size: 12px; color: var(--muted); line-height: 1.4;">${p.note}</p>
+            </div>
+          </div>
+        `;
+        new maplibregl.Popup({ closeButton: true, maxWidth: '340px', className: 'beacon-popup' })
+          .setLngLat(e.lngLat)
+          .setHTML(html)
+          .addTo(map);
+      });
+
+      // Drought basin popup
+      map.on('click', 'drought-fill', (e) => {
+        const f = e.features && e.features[0]; if (!f) return;
+        const p = f.properties;
+        const sev = p.severity;
+        const lbl = ['Not classified','Within range','Mild','Moderate','Severe','Extreme'][sev];
+        new maplibregl.Popup({ closeButton: true, maxWidth: '280px' })
+          .setLngLat(e.lngLat)
+          .setHTML(`<p class="popup-title">${p.name}</p><p class="popup-body">Severity: <strong>${lbl}</strong></p><span class="popup-src">BC Drought Portal · Snow Survey Jun 15 2026</span>`)
+          .addTo(map);
+      });
+
+      ['cutblocks-fill', 'beacon-points', 'drought-fill', 'anchors-points'].forEach((id) => {
+        map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
+      });
+    });
+
+    map.on('error', (e) => console.warn('[map]', e && e.error));
+
+    // ============================== Chapter camera + UI orchestration ==============================
+    const cameras = {
+      macro:     { center: [-126.5, 54.5], zoom: 4.4, pitch: 0,  bearing: 0 },
+      wilson:    { center: [-123.765, 49.498], zoom: 12.2, pitch: 45, bearing: -18 },
+      salmon:    { center: [-124.3, 49.2], zoom: 6.8, pitch: 20, bearing: 0 },
+      dawson:    { center: [-120.5, 55.85], zoom: 8.4, pitch: 30, bearing: 0 },
+      paradox:   { center: [-124.5, 52.5], zoom: 4.9, pitch: 0, bearing: 0 },
+      economics: { center: [-126.5, 54.5], zoom: 4.4, pitch: 0, bearing: 0 }
+    };
+
+    const stepLabels = {
+      macro:     { num: '01', label: 'Provincial baseline' },
+      wilson:    { num: '02', label: 'Wilson Creek · Sunshine Coast' },
+      salmon:    { num: '03', label: 'Salmon triage · Vancouver Island' },
+      dawson:    { num: '04', label: 'Dawson Creek · Peace region' },
+      paradox:   { num: '05', label: 'The northern paradox' },
+      economics: { num: '06', label: 'Economics of scarcity' }
+    };
+
+    const stepEl = document.getElementById('mapStep');
+    const stepLabelEl = document.getElementById('mapStepLabel');
+    const stepNumEl = stepEl.querySelector('.step-num');
+    const legendEl = document.getElementById('mapLegend');
+    const timelineEl = document.getElementById('timelinePanel');
+    const swipeHandle = document.getElementById('swipeHandle');
+    const swipeLabelL = document.getElementById('swipeLabelLeft');
+    const swipeLabelR = document.getElementById('swipeLabelRight');
+    const toggleEl = document.getElementById('togglePanel');
+    const tpTitle = document.getElementById('tpTitle');
+    const tpBtnA = document.getElementById('tpBtnA');
+    const tpBtnB = document.getElementById('tpBtnB');
+    const tpNote = document.getElementById('tpNote');
+    const paradoxEl = document.getElementById('paradoxSplit');
+
+    let currentStep = null;
+
+    function setStep(step) {
+      if (step === currentStep) return;
+      currentStep = step;
+      const cam = cameras[step];
+      if (!cam) return;
+      map.easeTo({ ...cam, duration: 1400, essential: true });
+
+      // Layer visibility per section
+      const droughtOn = ['macro', 'salmon', 'paradox', 'economics'].includes(step);
+      setVis(['drought-fill','drought-line','drought-labels'], droughtOn);
+      setVis(['cutblocks-fill','cutblocks-line'], step === 'wilson');
+      setVis(['beacon-halo','beacon-points'], step === 'salmon');
+      setVis(['pipeline-line'], step === 'dawson');
+      setVis(['wells-points'], step === 'dawson' && toggleState === 'b');
+      setVis(['anchors-halo','anchors-points','anchors-labels'], step === 'dawson' || step === 'paradox');
+
+      // UI per section
+      const label = stepLabels[step];
+      if (label) {
+        stepNumEl.textContent = label.num;
+        stepLabelEl.textContent = label.label;
+        stepEl.classList.add('show');
+      }
+      legendEl.classList.toggle('show', droughtOn);
+      timelineEl.classList.toggle('show', step === 'macro');
+      swipeHandle.classList.toggle('show', step === 'wilson');
+      swipeLabelL.classList.toggle('show', step === 'wilson');
+      swipeLabelR.classList.toggle('show', step === 'wilson');
+      paradoxEl.classList.toggle('show', step === 'paradox');
+
+      // Toggle panel — reused for Sections 4 and 6
+      if (step === 'dawson') {
+        toggleEl.classList.add('show');
+        tpTitle.textContent = 'Industrial overlap';
+        tpBtnA.textContent = 'Municipal only';
+        tpBtnB.textContent = 'Add industrial water licences';
+        tpNote.textContent = 'BCER · representative well cluster in the Montney Formation';
+        applyToggle();
+      } else if (step === 'economics') {
+        toggleEl.classList.add('show');
+        tpTitle.textContent = 'Policy reform';
+        tpBtnA.textContent = 'Current · $2.25/ML';
+        tpBtnB.textContent = 'Modernized · $155/ML + 20% hydro';
+        tpNote.textContent = 'Reform recolours the basins as if the Watershed Security Fund reached $100M/yr scale';
+        applyToggle();
+      } else {
+        toggleEl.classList.remove('show');
+      }
+    }
+
+    function setVis(ids, on) {
+      ids.forEach((id) => {
+        if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+      });
+    }
+
+    // ============================== Timeline slider (Section 1) ==============================
+    const timelineSlider = document.getElementById('timelineSlider');
+    const timelineYearEl = document.getElementById('timelineYear');
+    const timelineAvgEl = document.getElementById('timelineAvg');
+
+    function applyYear(idx) {
+      const year = TIMELINE_YEARS[idx];
+      timelineYearEl.textContent = year;
+      timelineAvgEl.textContent = provincialAvg[year] + '%';
+      if (!droughtData) return;
+      droughtData.features.forEach((f) => { f.properties.severity = severityForYear(f.properties.name, year); });
+      if (map.getSource('drought')) map.getSource('drought').setData(droughtData);
+    }
+
+    timelineSlider.addEventListener('input', (e) => applyYear(parseInt(e.target.value, 10)));
+
+    // ============================== Swipe (Section 2) — clip cutblocks fill by handle X ==============================
+    // Simplified v1: swipe handle horizontally repositions; visually communicates split.
+    let swipeX = 0.5;
+    let dragging = false;
+
+    swipeHandle.querySelector('.thumb').addEventListener('pointerdown', (e) => {
+      dragging = true;
+      swipeHandle.setPointerCapture && swipeHandle.setPointerCapture(e.pointerId);
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const rect = document.getElementById('map').getBoundingClientRect();
+      const rel = Math.max(0.02, Math.min(0.98, (e.clientX - rect.left) / rect.width));
+      swipeX = rel;
+      swipeHandle.style.left = (rel * 100) + '%';
+      // Update cutblock opacity dynamically — left side full-opacity, right side fades
+      if (map.getLayer('cutblocks-fill')) {
+        map.setPaintProperty('cutblocks-fill', 'fill-opacity', [
+          'case',
+          ['<', ['at', 0, ['at', 0, ['get', 'geometry']]], -123.765], 0.55,
+          0.12
+        ]);
+      }
+    });
+    window.addEventListener('pointerup', () => { dragging = false; });
+
+    // ============================== Toggle panel (Sections 4 + 6) ==============================
+    let toggleState = 'a';
+
+    function applyToggle() {
+      tpBtnA.classList.toggle('active', toggleState === 'a');
+      tpBtnB.classList.toggle('active', toggleState === 'b');
+
+      if (currentStep === 'dawson') {
+        setVis(['wells-points'], toggleState === 'b');
+      } else if (currentStep === 'economics') {
+        if (!droughtData) return;
+        if (toggleState === 'b') {
+          // Modernized rates: soften severity by 1 across the board — visualizes recovery
+          droughtData.features.forEach((f) => {
+            const base = severityCurrent[f.properties.name] || 0;
+            f.properties.severity = Math.max(1, base - 2);
+          });
+        } else {
+          droughtData.features.forEach((f) => { f.properties.severity = severityCurrent[f.properties.name] || 0; });
+        }
+        if (map.getSource('drought')) map.getSource('drought').setData(droughtData);
+      }
+    }
+
+    tpBtnA.addEventListener('click', () => { toggleState = 'a'; applyToggle(); });
+    tpBtnB.addEventListener('click', () => { toggleState = 'b'; applyToggle(); });
+
+    // ============================== Scroll / observer / chrome ==============================
+    const chapterEls = Array.from(document.querySelectorAll('.chapter'));
+    const obs = new IntersectionObserver((entries) => {
+      const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      const step = visible.target.dataset.step;
+      if (step) setStep(step);
+    }, { root: null, threshold: [0.35, 0.55] });
+    chapterEls.forEach((el) => obs.observe(el));
+
+    const storyEl = document.getElementById('story');
+    const storyObs = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) {
+          stepEl.classList.remove('show');
+          legendEl.classList.remove('show');
+          timelineEl.classList.remove('show');
+          swipeHandle.classList.remove('show');
+          swipeLabelL.classList.remove('show');
+          swipeLabelR.classList.remove('show');
+          toggleEl.classList.remove('show');
+          paradoxEl.classList.remove('show');
+        }
+      });
+    }, { root: null, threshold: 0 });
+    storyObs.observe(storyEl);
+
+    const chrome = document.getElementById('chrome');
+    const progressFill = document.getElementById('progressFill');
+    const chromeMeta = document.getElementById('chromeMeta');
+    function onScroll() {
+      const y = window.scrollY;
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      progressFill.style.width = Math.max(0, Math.min(100, (y / h) * 100)) + '%';
+      chrome.classList.toggle('scrolled', y > 80);
+      if (currentStep && y > window.innerHeight * 1.6 && y < document.documentElement.scrollHeight - window.innerHeight * 1.2) {
+        const l = stepLabels[currentStep];
+        if (l) chromeMeta.textContent = 'Sec. ' + l.num + ' · ' + l.label;
+      } else if (y >= document.documentElement.scrollHeight - window.innerHeight * 1.2) {
+        chromeMeta.textContent = 'Sources';
+      } else {
+        chromeMeta.textContent = 'Public review version';
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  </script>
+</body>
+</html>

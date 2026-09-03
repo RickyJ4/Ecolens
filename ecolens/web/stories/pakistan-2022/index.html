@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="ecolens-build" content="atlas-map-quality-v20" />
+  <link rel="icon" href="data:," />
+  <title>Pakistan 2022 Floods · An Interactive Story</title>
+  <meta name="description" content="An interactive story map of the 2022 Pakistan floods — country context, the disaster, demographics, response, and recovery." />
+
+  <link href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/scrollama@3.2.0/build/scrollama.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <link rel="stylesheet" href="style.css?v=atlas-map-quality-v20" />
+</head>
+
+<body>
+
+  <!-- ── FORMAT TOGGLE (Story-map | Documentary) ────────────────── -->
+  <div class="format-toggle" id="format-toggle">
+    <a class="format-back" href="/community" title="Back to EcoLens">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <div class="format-toggle-track">
+      <a class="format-option active" href="./" data-format="storymap">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        <span>Story-map</span>
+      </a>
+      <a class="format-option" href="documentary/" data-format="documentary">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        <span>Documentary</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ── HERO ────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <p class="kicker">EcoLens · Map the hazard, map the response</p>
+      <h1>One-Third <em>Under Water</em></h1>
+      <p class="dek">In summer 2022, monsoon rains and accelerated glacial melt put a third of Pakistan beneath floodwater. <strong>33 million people</strong> were affected. <strong>16 million were children.</strong> This map tracks the hazard, then follows the Pakistani NGOs, local networks, fishers, volunteers, and advocates who responded.</p>
+      <p class="byline">An EcoLens interactive story · live hazard intelligence prototype · grassroots response layer · UNOSAT · WorldPop · World Bank PDNA · IOM · UNFPA</p>
+      <div class="hero-scroll-prompt">↓ scroll to begin</div>
+    </div>
+  </section>
+
+  <!-- ── HEADLINE STATS STRIP ──────────────────────────────────── -->
+  <section class="stat-strip">
+    <div class="stat"><span class="stat-num">33M</span><span class="stat-label">people affected</span></div>
+    <div class="stat"><span class="stat-num">16M</span><span class="stat-label">children affected</span></div>
+    <div class="stat"><span class="stat-num">7.9M</span><span class="stat-label">displaced at peak</span></div>
+    <div class="stat"><span class="stat-num">2.1M</span><span class="stat-label">homes destroyed</span></div>
+    <div class="stat"><span class="stat-num">$40B</span><span class="stat-label">in damages</span></div>
+    <div class="stat"><span class="stat-num">800</span><span class="stat-label">climate-resilient homes rebuilt by 2026</span></div>
+  </section>
+  <!-- ── SCROLLYTELLING ────────────────────────────────────────── -->
+  <section class="scrolly">
+
+    <div class="map-col">
+      <div id="map"></div>
+
+      <div class="map-toolbar" id="map-toolbar">
+        <button class="tool-btn" id="btn-toggle-imagery" title="Toggle satellite imagery">Imagery</button>
+        <button class="tool-btn" id="btn-toggle-3d" title="Toggle 3D terrain">3D</button>
+        <button class="tool-btn" id="btn-toggle-extrude" title="Extrude districts by population in flood zone">▲ Pop</button>
+        <button class="tool-btn" id="btn-reset" title="Reset camera">⤺ Reset</button>
+      </div>
+
+      <div class="map-progress" id="map-progress">
+        <div class="progress-top">
+          <span id="progress-kicker">Chapter 1 of 6</span>
+          <span id="progress-step">1/21</span>
+        </div>
+        <div class="progress-title" id="progress-title">Region</div>
+        <div class="progress-bar"><span id="progress-fill"></span></div>
+      </div>
+
+      <div class="build-badge" id="build-badge">EcoLens build atlas-map-quality-v20</div>
+
+      <div class="map-jumps" id="map-jumps" aria-label="Story shortcuts">
+        <span class="jump-label">Jump to</span>
+        <button type="button" data-jump-hash="#micro-sim">Flood Sim</button>
+        <button type="button" data-jump-hash="#human-scenes">Human Scenes</button>
+        <button type="button" data-jump-hash="#closing-map">Closing Map</button>
+      </div>
+
+      <div class="map-legend" id="map-legend"></div>
+
+      <div class="map-scrubber hidden" id="scrubber">
+        <div class="scrubber-label">3D flood simulation — auto-playing (or drag to scrub)</div>
+        <input type="range" id="scrubber-range" min="0" max="5" value="0" step="1" />
+        <div class="scrubber-readout" id="scrubber-readout">Jul 12 – 21</div>
+      </div>
+
+      <div class="map-layers hidden" id="layer-panel">
+        <div class="layer-title" id="layer-title">Layers</div>
+        <div id="layer-list"></div>
+      </div>
+
+      <div class="map-callout hidden" id="micro-callout">
+        <div class="callout-kicker">Close-up simulation</div>
+        <div class="callout-title" id="micro-title">Dadu-Manchar floodplain</div>
+        <div class="callout-body" id="micro-body">Water approaches farms, roads, and homes.</div>
+      </div>
+
+      <div class="map-spotlight hidden" id="spotlight-panel">
+        <img id="spotlight-img" src="assets/hero_during.jpg" alt="" />
+        <div class="spotlight-body">
+          <div class="spotlight-counter" id="spotlight-counter">Scene 1 of 6</div>
+          <div class="spotlight-kicker" id="spotlight-kicker">Affected place</div>
+          <h3 id="spotlight-title">Dadu</h3>
+          <div class="spotlight-scene" id="spotlight-scene">A place becomes a crisis when homes, roads, fields, and clinics fail at the same time.</div>
+          <div class="spotlight-losses" id="spotlight-losses"></div>
+          <p id="spotlight-copy">City-level context appears here.</p>
+          <div class="spotlight-facts" id="spotlight-facts"></div>
+          <div class="spotlight-credit" id="spotlight-credit"></div>
+        </div>
+      </div>
+
+      <div class="map-attribution">
+        Base © <a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> · OSM contributors ·
+        Imagery © Esri/Maxar · Flood polygons © UNOSAT (CERN) · Terrain © AWS Terrarium
+      </div>
+    </div>
+
+    <div class="story-col">
+
+      <!-- ══════════ SECTION 1 ══════════ -->
+      <article class="section-intro">
+        <div class="section-tag">Section 1 of 5</div>
+        <h2 class="section-title">Pakistan, briefly</h2>
+        <p class="section-dek">Before the flood, the place. The South Asian country of 251 million, fifth-largest population on Earth, fed by the Indus and bordered by the Himalayas, the Hindu Kush, the Arabian Sea, and four neighbours.</p>
+        <div class="story-anchor">
+          <span class="anchor-label">Story thread</span>
+          <strong>Follow the water:</strong> from glaciers in Hunza, down the Indus, into the Dadu-Manchar floodplain, then into the relief camps and recovery sites.
+        </div>
+      </article>
+
+      <article class="step" data-step="1">
+        <h3>Where in the world</h3>
+        <p>Pakistan sits at the crossroads of South Asia, Central Asia, and the Middle East — bordering <strong>India, Afghanistan, Iran, and China</strong>, with a coastline on the Arabian Sea. Total area: <strong>881,913 km²</strong>, divided into four provinces — <strong>Punjab, Sindh, Khyber-Pakhtunkhwa, and Balochistan</strong> — plus the federal capital territory of Islamabad and the autonomous regions of Gilgit-Baltistan and Azad Kashmir.</p>
+        <p>Click any city pin on the map to see what each place does.</p>
+        <p class="hint">Map controls: <kbd>drag</kbd> to pan · <kbd>scroll</kbd> to zoom · <kbd>ctrl/⌘ + drag</kbd> to tilt the 3D view · or click <kbd>3D</kbd> in the toolbar.</p>
+      </article>
+
+      <article class="step" data-step="2">
+        <h3>251 million people</h3>
+        <p>Pakistan is the <strong>fifth most populous country on Earth</strong> (251.3 million as of 2024) — and one of the youngest, <strong>median age 20.8</strong>, with more than half under 25.</p>
+        <p>Population concentrates in three spines: the <strong>Indus plain in Punjab</strong> (Lahore, Faisalabad, Multan), the <strong>lower Indus in Sindh</strong> (Karachi, Hyderabad, Sukkur), and a smaller corridor through KP (Peshawar). Balochistan, the largest province by area, is the least densely populated.</p>
+        <div class="data-card-row">
+          <div class="data-card"><span class="big">251M</span><span class="cap">population (2024)</span></div>
+          <div class="data-card"><span class="big">20.8</span><span class="cap">median age</span></div>
+          <div class="data-card"><span class="big">62%</span><span class="cap">rural</span></div>
+          <div class="data-card"><span class="big">4</span><span class="cap">provinces</span></div>
+        </div>
+        <p class="citation">Sources: Worldometer 2024 · Pakistan Bureau of Statistics 2023 census · CIA World Factbook.</p>
+      </article>
+
+      <article class="step" data-step="3">
+        <h3>What people do</h3>
+        <p>Agriculture is the spine: <strong>22.9% of GDP, 37.4% of the workforce</strong>. Pakistan is the world's <strong>4th-largest cotton producer</strong>, the <strong>7th-largest wheat producer</strong>, and a major rice + sugarcane exporter. Almost all of it is irrigated by the Indus basin, which provides <strong>~80% of the country's water</strong>.</p>
+        <p>Industry concentrates in Karachi (port, finance, textiles), Faisalabad (textile manufacturing), Lahore (cultural + second-largest economy). 2024 GDP: <strong>$346 billion</strong>.</p>
+        <div class="data-card-row">
+          <div class="data-card"><span class="big">22.9%</span><span class="cap">agriculture share of GDP</span></div>
+          <div class="data-card"><span class="big">80%</span><span class="cap">water from Indus basin</span></div>
+          <div class="data-card"><span class="big">$346B</span><span class="cap">GDP (2024)</span></div>
+          <div class="data-card"><span class="big">&lt;1%</span><span class="cap">share of global CO₂</span></div>
+        </div>
+        <p class="citation">Sources: World Bank Pakistan Overview · Pakistan Economic Survey 2023 · IMF · Germanwatch Climate Risk Index.</p>
+      </article>
+
+      <article class="step" data-step="4">
+        <h3>The geography that matters for what comes next</h3>
+        <p>Three terrain facts will become important: <strong>the Indus drains from the world's third-largest concentration of glaciers</strong> in the Karakoram and Hindu Kush; the <strong>lower Indus flows through a flat, irrigated plain</strong> across Punjab and Sindh; and the <strong>Indus delta is dam-starved</strong> — so the river barely reaches the sea in normal years.</p>
+        <p>The map has auto-tilted into 3D. Pan around — the high country is the north, the Indus is the green line down the middle, and the floodplain widens dramatically as it enters Sindh.</p>
+      </article>
+
+      <!-- ══════════ SECTION 2 ══════════ -->
+      <article class="section-intro">
+        <div class="section-tag">Section 2 of 5</div>
+        <h2 class="section-title">The disaster</h2>
+        <p class="section-dek">A pre-monsoon heatwave melted glaciers. The monsoon brought 190% of normal rainfall. Centuries-old water infrastructure failed. From mid-June to October 2022, one-third of Pakistan was under water.</p>
+      </article>
+
+      <article class="step" data-step="5">
+        <h3>Before the rain — the stage was already set</h3>
+        <p>The 2022 disaster did not begin in mid-June. By the time the first heavy rains arrived, both the <strong>climate dial</strong> and the <strong>structural baseline</strong> were already loaded against Pakistan. Climate-system stress had been building for months; structural fragility for decades.</p>
+        <p>The map is auto-touring through the pre-flood events. Each pin is a discrete contributing factor — click any for the citation.</p>
+
+        <div class="timeline">
+          <div class="t-section">
+            <div class="t-section-label structural">Structural / governance (pre-existing fragility)</div>
+            <div class="t-event">
+              <span class="t-date">ongoing</span>
+              <span class="t-body"><strong>Tarbela + Mangla dams silted to ~25–40% of original storage</strong> — buffer capacity against monsoon spikes already eroded.</span>
+            </div>
+            <div class="t-event">
+              <span class="t-date">2000–2022</span>
+              <span class="t-body"><strong>KP + Gilgit-Baltistan lost ~27% of forest cover</strong> (Hansen GFC v1.11). National forest cover ~4.8% — among Asia's lowest. Less canopy = faster runoff.</span>
+            </div>
+            <div class="t-event">
+              <span class="t-date">2010–2022</span>
+              <span class="t-body"><strong>2010 floods reconstruction never completed</strong> — many embankments and homes destroyed then were never rebuilt to higher resilience standards. Same villages hit again in 2022.</span>
+            </div>
+            <div class="t-event">
+              <span class="t-date">FY18–22</span>
+              <span class="t-body"><strong>Climate Change Authority budget &lt; $5M/year</strong> — Pakistan has no FEMA-equivalent disaster reconstruction fund.</span>
+            </div>
+            <div class="t-event">
+              <span class="t-date">Q1–Q2 2022</span>
+              <span class="t-body"><strong>IMF Extended Fund Facility stalled</strong> — federal liquidity already strained, no spare capacity for pre-emptive monsoon spending.</span>
+            </div>
+            <div class="t-event">
+              <span class="t-date">9 April 2022</span>
+              <span class="t-body"><strong>PM Imran Khan ousted by no-confidence vote</strong> — cabinet transition + IMF re-negotiations distracted federal government from monsoon preparedness during the critical pre-monsoon window.</span>
+            </div>
+          </div>
+
+          <div class="t-section">
+            <div class="t-section-label climate">Climate triggers (2022-specific)</div>
+            <div class="t-event">
+              <span class="t-date">2020–2022</span>
+              <span class="t-body"><strong>Triple-dip La Niña</strong> — rare third consecutive year. Caused anomalous easterly winds across the subcontinent. Nanditha et al. (2023) link this directly to the 2022 monsoon intensity via a Rossby wave pattern.</span>
+            </div>
+            <div class="t-event">
+              <span class="t-date">~2018 ongoing</span>
+              <span class="t-body"><strong>Karakoram anomaly reversal</strong> — historically advancing glaciers now losing ~6 Gt/yr (NASA GRACE-FO, Wiese et al. 2024). The frozen reservoir is shrinking.</span>
+            </div>
+            <div class="t-event">
+              <span class="t-date">Mar – Jun 2022</span>
+              <span class="t-body"><strong>Arabian Sea SST anomaly</strong> — surface temperatures ran 1.5–2 °C above the 1981–2010 average. Warmer sea = more evaporation = stronger southerly moisture flow into Sindh and Balochistan.</span>
+            </div>
+            <div class="t-event">
+              <span class="t-date">Mar – May 2022</span>
+              <span class="t-body"><strong>Pakistan + NW India hottest March in 122 years</strong>. Jacobabad hit 51 °C in June. Pre-monsoon heat dried out topsoil (less infiltration) and accelerated upstream glacial melt.</span>
+            </div>
+            <div class="t-event">
+              <span class="t-date">7 May 2022</span>
+              <span class="t-body"><strong>Shisper Glacier outburst (GLOF)</strong> in Hunza destroyed the historic Hassanabad Bridge — three months before the Sindh floods downstream. Same crisis, opposite ends of the country.</span>
+            </div>
+            <div class="t-event">
+              <span class="t-date">Mar – Aug 2022</span>
+              <span class="t-body"><strong>16 documented GLOFs</strong> across Gilgit-Baltistan and KP, pre-saturating Indus tributaries before the monsoon arrived.</span>
+            </div>
+            <div class="t-event">
+              <span class="t-date">Mid-June 2022</span>
+              <span class="t-body"><strong>Early monsoon onset</strong> — ~2 weeks earlier than the long-term average, overlapping with the tail of the pre-monsoon heatwave and the GLOF surge.</span>
+            </div>
+          </div>
+        </div>
+
+        <p>Then on June 14, the rain started.</p>
+        <p class="citation">Sources: PMD · UNDP GLOF-II · ICIMOD HIMAP · Hansen GFC v1.11 · NASA GRACE-FO (Wiese et al. 2024) · IMF Pakistan country report Apr 2022 · <a href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2022EF003230" target="_blank">Nanditha et al. 2023, Earth's Future</a>.</p>
+      </article>
+
+      <article class="step" data-step="6">
+        <h3>The heat came first — and the glaciers</h3>
+        <p>Before the rain there was the heat. In <strong>Jacobabad, Sindh</strong>, the thermometer hit <strong>51 °C</strong> in June 2022 — one of the highest temperatures ever recorded on Earth. The same heatwave was melting glaciers <strong>1,500 km to the north</strong>, in the high Karakoram and Hindu Kush.</p>
+        <p>Pakistan holds the largest concentration of glaciers outside the polar regions — about <strong>7,253</strong>. The 2022 heat pre-saturated the Indus tributary system before the monsoon arrived, and triggered at least <strong>16 documented Glacial Lake Outburst Floods (GLOFs)</strong>, including the catastrophic <strong>Shisper Glacier outburst on 7 May 2022</strong>, which destroyed the historic Hassanabad Bridge in Hunza.</p>
+        <p class="hint">The map has flown to Hunza in the Karakoram — switch <kbd>3D</kbd> off and on to see the elevation around the Shisper Glacier site.</p>
+        <p class="citation">Sources: Pakistan Meteorological Department, June 2022 · UNDP GLOF-II report · ICIMOD HIMAP Assessment, 2019 · Hewitt 2005 (Karakoram Anomaly) · Wiese et al. 2024 (NASA GRACE-FO).</p>
+      </article>
+
+      <article class="step" data-step="7">
+        <h3>Then 190% of normal rain</h3>
+        <p>The 2022 monsoon delivered <strong>190% of normal rainfall</strong> across Pakistan. <strong>Sindh alone received 466% of its 30-year August average</strong>. Balochistan received 500% more than its August normal.</p>
+        <p>The peer-reviewed climate-attribution study — Otto et al. (2023) in <em>Environmental Research: Climate</em> — concluded that the 5-day maximum rainfall over Sindh and Balochistan was <strong>~75% more intense</strong> than it would have been without human-caused warming. Pakistan contributed <strong>less than 1%</strong> of the global emissions driving that warming.</p>
+
+        <div class="video-embed">
+          <div class="v-frame">
+            <iframe src="https://www.youtube-nocookie.com/embed/SLzkTmXT_rg?rel=0&modestbranding=1" title="Pakistan's 2022 floods were a climate catastrophe" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="v-meta"><span><strong>Watch:</strong> Pakistan's 2022 floods were a climate catastrophe</span><span>YouTube</span></div>
+        </div>
+
+        <p class="citation">Sources: PMD seasonal report · <a href="https://iopscience.iop.org/article/10.1088/2752-5295/acbfd5" target="_blank">Otto et al. 2023 (DOI: 10.1088/2752-5295/acbfd5)</a>.</p>
+      </article>
+
+      <article class="step" data-step="8">
+        <h3>The water spread — 3D flood simulation</h3>
+        <p>Through July and August the water spread south down the Indus floodplain. By the end of August, an area larger than the United Kingdom was under water. UNOSAT's weekly satellite snapshots show the suffocating geography of the disaster.</p>
+        <p>The map has switched to <strong>3D simulation mode</strong> — terrain is on, the camera is tilted, and the flood layer is auto-playing through each week from mid-July to late September as a rising volume of water. <strong>Drag the slider to scrub manually</strong> or just watch it loop.</p>
+        <p class="citation">Source: UNOSAT FL20220808PAK · VIIRS weekly flood extent, rendered with MapLibre fill-extrusion + AWS Terrarium DEM terrain.</p>
+      </article>
+
+      <article class="step" data-step="8.5" id="micro-sim">
+        <h3>Close-up: when water reaches a settlement</h3>
+        <p>Now the map drops from national scale to a conceptual close-up of the Dadu-Manchar floodplain. The houses, farms, road, and water front are simplified 3D objects, built to show the sequence that satellite maps cannot make personal.</p>
+        <p>Watch the water move from fields to road to homes. The point is not the exact depth at one address. The point is the lived order of impact: crops first, movement next, shelter last.</p>
+        <div class="impact-sequence">
+          <div><span>1</span>Farm plots saturate</div>
+          <div><span>2</span>Road access fails</div>
+          <div><span>3</span>Homes become unsafe</div>
+        </div>
+        <p class="hint">This is a conceptual micro-simulation using stylized 3D geometry over the real Dadu-Manchar floodplain, not a parcel-level hydrodynamic model.</p>
+      </article>
+
+      <article class="step" data-step="9">
+        <h3>Structural pressure — Sukkur Barrage + Manchar Lake</h3>
+        <p>The lower Indus was never only a river channel. It was barrages, canals, drains, embankments, roads, and an extremely flat floodplain. In 2022, extreme local rainfall and upstream flows filled that system faster than it could drain, turning protective infrastructure into a chain of hard choices.</p>
+        <p>The <strong>Manchar Lake protective embankment was deliberately breached on 5 September</strong> to save Sehwan town — flooding ~150,000 people in Bhan Saeedabad. A textbook "sacrifice zone" decision still controversial in 2026.</p>
+        <p>Forest cover across the upper Indus catchment is <strong>~4.8% of land area</strong>, among the lowest in Asia; KP and Gilgit-Baltistan lost <strong>~27% of their forest cover from 2000–2020</strong> per Hansen Global Forest Change. There was nothing to slow the water down.</p>
+
+        <div class="video-embed">
+          <div class="v-frame">
+            <iframe src="https://www.youtube-nocookie.com/embed/zgDIK_MwCv0?rel=0&modestbranding=1" title="Pakistan floods declared a national emergency — Al Jazeera English" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="v-meta"><span><strong>Watch:</strong> National emergency declared — Al Jazeera English</span><span>Aug 28 2022</span></div>
+        </div>
+
+        <p class="hint">The map auto-pans from Sukkur Barrage to the Manchar Lake breach — click the landmarks for the full story.</p>
+        <p class="citation">Sources: Sindh Irrigation Department debrief · <a href="https://www.reuters.com/world/asia-pacific/pakistan-breaches-large-lake-trying-save-major-town-2022-09-05/" target="_blank">Reuters investigation, Oct 2022</a> · Hansen GFC v1.11 · <a href="https://www.nature.com/articles/s44304-025-00109-z" target="_blank">Khan et al. 2025, npj Natural Hazards</a>.</p>
+      </article>
+
+      <!-- ══════════ SECTION 3 ══════════ -->
+      <article class="section-intro">
+        <div class="section-tag">Section 3 of 5</div>
+        <h2 class="section-title">Who and what was under the water</h2>
+        <p class="section-dek">33 million people affected. 16 million children. 8.2 million women. 650,000 pregnant. Plus the Indus dolphin habitat, Manchar Lake, the riverine forests, and the Indus delta. The flood was a population disaster and an ecological one.</p>
+      </article>
+
+      <article class="step" data-step="10">
+        <h3>The exposure map — population in the flood zone</h3>
+        <p>The headline "33 million affected" is correct but impersonal. When you intersect the cumulative flood extent with WorldPop's 100 m population raster — division by division — the picture sharpens. The top 10 divisions held an estimated <strong>25.9 million people</strong> inside the flooded zone. The single worst-hit was <strong>Larkana, Sindh</strong>: 5.78 million.</p>
+        <p>Hover any district on the map for its number. Or click the <kbd>▲ Pop</kbd> toolbar button to extrude the districts as 3D bars — the taller the bar, the more people inside the flood zone.</p>
+        <div class="chart-card">
+          <h3>Top 10 divisions by population in 2022 flood zone</h3>
+          <canvas id="chart-districts" height="260"></canvas>
+          <p class="chart-note">Caveat: GADM v4.1 only covers Pakistan at the division level (32 units), not contemporary districts (~150). For finer granularity, swap to OCHA's Pakistan COD dataset.</p>
+        </div>
+        <p class="citation">Source: WorldPop 2020 100 m constrained × UNOSAT VIIRS cumulative flood polygon · computed locally with geopandas / rasterio.</p>
+      </article>
+
+      <article class="step" data-step="10.5" id="human-scenes">
+        <h3>Six places, six scenes</h3>
+        <p>The map now stops behaving like a pin board. It becomes a sequence of scenes: an isolated town, a lake breach, a river-control corridor, an urban gateway, a heatwave city, and a mountain bridge destroyed before the monsoon peak.</p>
+        <p>Each scene highlights an affected landscape, not just a coordinate. Watch for the broad halo, the downstream story path, and the photo card. This is the section where the viewer should feel the disaster moving through homes, farms, roads, markets, and bridges.</p>
+        <div class="place-sequence">
+          <span>Dadu</span>
+          <span>Manchar Lake</span>
+          <span>Sukkur</span>
+          <span>Hyderabad</span>
+          <span>Jacobabad</span>
+          <span>Hunza</span>
+        </div>
+        <p class="hint">For the documentary cut, this is the moment to let visuals carry the story: short voice-over, close map movement, real imagery, then a hard transition into children, displacement, and relief.</p>
+      </article>
+
+      <article class="step" data-step="11">
+        <h3>16 million children</h3>
+        <p>Of the 33 million affected, <strong>16 million were children</strong> — more than the entire population of Sweden or Cambodia. <strong>One in three flood casualties was a child</strong> — 615 children killed and 4,006 injured between June and September 2022.</p>
+        <p><strong>8.2 million women</strong> were affected. <strong>650,000 were pregnant</strong>. Of those, <strong>~73,000 were full-term</strong> — expected to give birth within 30 days, often in flooded camps without clean water.</p>
+        <div class="demo-grid">
+          <div class="demo-card"><span class="big">16M</span><span class="cap">children affected</span></div>
+          <div class="demo-card"><span class="big">8.2M</span><span class="cap">women affected</span></div>
+          <div class="demo-card"><span class="big">650k</span><span class="cap">pregnant women in flood zone</span></div>
+          <div class="demo-card"><span class="big">73k</span><span class="cap">full-term in flooded camps</span></div>
+          <div class="demo-card"><span class="big">615</span><span class="cap">children killed</span></div>
+          <div class="demo-card"><span class="big">333</span><span class="cap">women killed</span></div>
+        </div>
+        <p>The flood didn't hit Pakistan evenly. It hit the parts already poorest — <strong>Dadu (57% household poverty), Dera Bugti (80% multi-dimensional poverty), Rajanpur (52%)</strong>. The people who contributed least to the warming were the ones standing in the water.</p>
+        <p class="citation">Sources: UNICEF Pakistan flood appeal, Nov 2022 · UNFPA Pakistan, Sep 2022 · NDMA SitReps compiled by OCHA · UNDP MPI, 2021 · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11001467/" target="_blank">Yousaf et al. 2024 (PMC11001467)</a>.</p>
+      </article>
+
+      <article class="step" data-step="12">
+        <h3>7.9 million displaced — but mostly invisible</h3>
+        <p>At peak, <strong>7.9 million people were displaced</strong> — the largest internal displacement in Pakistan's history. But only <strong>598,000 reached formal camps</strong>. The rest moved short distances — to higher ground, to relatives, to raised roads and railway embankments beside their flooded fields. Most of the displacement was invisible to satellites and to international media.</p>
+        <p>By end of 2023: <strong>240,000 still displaced in Sindh alone</strong>. The five worst-hit districts (Dadu, Khairpur, Larkana, Nasirabad, Jaffarabad) accounted for <strong>1,731,737 displaced</strong> by themselves per IOM's Displacement Tracking Matrix. As of May 2026: roughly <strong>480,000 people remain in tents, mud-rebuild huts, or makeshift housing</strong> — counted as "returned" but not, by any meaningful definition, recovered.</p>
+
+        <div class="video-embed">
+          <div class="v-frame">
+            <iframe src="https://www.youtube-nocookie.com/embed/gFNjq09pF0c?rel=0&modestbranding=1" title="Pakistan floods: UN issues urgent appeal — BBC News" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="v-meta"><span><strong>Watch:</strong> UN urgent appeal — public health emergency · BBC News</span><span>Oct 2022</span></div>
+        </div>
+
+        <div class="chart-card">
+          <h3>"Calamity-hit" districts over time</h3>
+          <canvas id="chart-districts-time" height="200"></canvas>
+        </div>
+        <p class="citation">Sources: <a href="https://dtm.iom.int/pakistan" target="_blank">IOM DTM Pakistan</a> · UNHCR Supplementary Appeal · NDMA + OCHA · Humanitarian Outcomes critique, 2022.</p>
+      </article>
+
+      <article class="step" data-step="13">
+        <h3>The ecosystems — auto-tour</h3>
+        <p>The map is now auto-touring through the four ecological zones that took the heaviest damage. Each one tells a different story:</p>
+        <ul class="tight-list">
+          <li><strong>Indus River dolphin habitat</strong> — <em>Platanista minor</em>, Endangered, ~1,800 left. The floods temporarily expanded their habitat then stranded six in irrigation canals when the water receded. WWF-Pakistan rescued them.</li>
+          <li><strong>Sindh riverine forests</strong> — already down from 600,000 ha historically to under 100,000 ha. Adapted to flooding, but seedlings buried under sediment; survivors logged for fuel by displaced communities.</li>
+          <li><strong>Manchar Lake</strong> (Asia's largest freshwater lake) — expanded from 250 km² to 520 km². The home of the <strong>Mohana fishing community</strong>, who live on houseboats; the breach drove them out and damaged the fishery.</li>
+          <li><strong>Indus delta mangroves</strong> — for once, a small win. The freshwater pulse reached the dam-starved delta for the first time in decades; some mangrove regeneration was recorded post-flood.</li>
+        </ul>
+        <p class="hint">The map auto-cycles every ~6 seconds. Click any species pin (gold) for IUCN status and the story. Click any ecosystem polygon for the longer story.</p>
+        <p class="citation">Sources: WWF-Pakistan · Sindh Forest Department · NASA Earth Observatory "Manchar Lake Strains Against Floodwaters" · Reuters investigation, Oct 2022 · IUCN Mangroves for the Future.</p>
+      </article>
+
+      <!-- ══════════ SECTION 4 ══════════ -->
+      <article class="section-intro">
+        <div class="section-tag">Section 4 of 5</div>
+        <h2 class="section-title">Who showed up — international and grassroots</h2>
+        <p class="section-dek">The international system pledged $10.9 billion at Geneva in January 2023 and disbursed $2.8 billion by 2026. On the ground, Pakistani NGOs, local mutual-aid networks, fishers, religious communities, and women-led advocates moved faster than formal money. Toggle the layer panel to compare institutions, headquarters, and field response sites.</p>
+      </article>
+
+      <article class="step" data-step="14">
+        <h3>The international system</h3>
+        <p>The UN issued a <strong>revised $816 million Flood Response Plan</strong> for Sep 2022 – May 2023. The largest single agency contribution was UNICEF's <strong>$173.5 million flash appeal</strong> for children. WHO put up $10 M for emergency health; IOM led shelter coordination reaching ~700k people; UNDP's Flood Recovery Programme has spent ~$65 M and built ~800 climate-resilient homes.</p>
+        <p>At the January 2023 Geneva conference, <strong>$10.9 billion was pledged</strong> — led by the <strong>Islamic Development Bank ($4.2 B)</strong>, the <strong>World Bank ($2 B)</strong>, <strong>ADB ($1.5 B)</strong>, and bilateral support including Saudi Arabia ($1 B State Bank deposit), USAID ($200 M), and China (~$100 M direct + in-kind).</p>
+        <p class="hint">Each pin on the map is an international responder with the amount they brought. Click any pin to see what they actually delivered.</p>
+        <div class="chart-card">
+          <h3>Pledged vs disbursed — Geneva 2023 reconstruction conference</h3>
+          <canvas id="chart-pledged" height="220"></canvas>
+        </div>
+        <p class="citation">Sources: <a href="https://fts.unocha.org/plans/1108/flows" target="_blank">UN OCHA Financial Tracking Service</a> · <a href="https://www.brookings.edu/articles/pakistan-floods/" target="_blank">Brookings analysis</a> · Geneva outcomes document, Jan 2023 · <a href="https://www.congress.gov/crs-product/IF12211" target="_blank">CRS report IF12211</a>.</p>
+      </article>
+
+      <article class="step" data-step="15">
+        <h3>The grassroots — who rescued, fed, sheltered, rebuilt, and stayed</h3>
+        <p>The international system was slow and concentrated in Karachi. The actual on-the-ground response came from a handful of Pakistani NGOs with verified accounting, plus thousands of mosque-, gurdwara-, and Hindu Panchayat-organised relief camps that never appeared in international donor reports.</p>
+        <p>The map now separates <strong>NGO headquarters</strong> from <strong>field response sites</strong>. Click the orange points to see what happened there, what still needs verification, and where a support pathway exists.</p>
+        <ul class="org-list">
+          <li><strong>Edhi Foundation</strong> (Karachi) — ~1,800 ambulances, ~300 emergency relief camps across Sindh and Balochistan, food rations to ~400,000 families.</li>
+          <li><strong>Saylani Welfare Trust</strong> (Karachi) — ~250,000 hot meals/day at peak from mobile kitchens in Dadu, Larkana, Sehwan.</li>
+          <li><strong>JDC Foundation</strong> (Karachi) — first-wave boat rescues in Khairpur and Dadu.</li>
+          <li><strong>Al-Khidmat Foundation</strong> (Lahore) — ~3,000 temporary shelters, ~50 medical camps, ~200 schools rebuilt by mid-2024.</li>
+          <li><strong>Akhuwat Foundation</strong> (Lahore) — interest-free loans for flood-hit small businesses, ~PKR 1.2 billion deployed in first 6 months.</li>
+          <li><strong>Pakistan Red Crescent</strong> (Islamabad) — ~150 health camps, ~50,000 family kits nationwide.</li>
+        </ul>
+        <div class="data-card-row">
+          <div class="data-card"><span class="big">400k</span><span class="cap">families Edhi fed</span></div>
+          <div class="data-card"><span class="big">250k</span><span class="cap">meals/day at peak</span></div>
+          <div class="data-card"><span class="big">3,000</span><span class="cap">temporary shelters</span></div>
+          <div class="data-card"><span class="big">PKR 1.2B</span><span class="cap">interest-free loans</span></div>
+        </div>
+        <div class="story-anchor response-anchor">
+          <span class="anchor-label">EcoLens response layer</span>
+          <strong>Map the Response</strong> is the repeatable model: every hazard story should identify who is responding locally, what they did, what evidence exists, what still needs field verification, and how people can support them without flattening the community into a statistic.
+        </div>
+        <p>Honest critique: early relief camps had no women-only toilets, no female medics, no menstrual hygiene kits. Religious-minority families were turned away from some camps. UN Women, the Aurat Foundation, and HRCP documented these failures — practices shifted by month two.</p>
+        <p class="hint">Use the layer panel (right side of map) to toggle <em>International</em>, <em>NGO headquarters</em>, and <em>Field response sites</em> on and off.</p>
+        <p class="citation">Sources: Edhi · Akhuwat · Saylani · Al-Khidmat · JDC · Pakistan Red Crescent · HRCP annual report 2022.</p>
+      </article>
+
+      <article class="step" data-step="16">
+        <h3>Pledged vs delivered — the asymmetry</h3>
+        <p>By any honest measure, the grassroots NGOs delivered <strong>more direct beneficiary impact per dollar</strong> than the international system. They were also the ones who stayed — most international agencies wound down their Pakistan flood-specific programmes in 2023, while Edhi, Saylani, and Al-Khidmat continue rebuilding work today.</p>
+        <p>The asymmetry of who-pledges-vs-who-delivers became part of the broader climate-justice argument: the country put under water by other countries' emissions is also the one that had to organise its own response.</p>
+        <p class="citation">Sources: <a href="https://humanitarianoutcomes.org/sites/default/files/publications/pakistan_floods_1122.pdf" target="_blank">Humanitarian Outcomes critique paper</a> · CDP 2022 Pakistan Floods overview.</p>
+      </article>
+
+      <!-- ══════════ SECTION 5 ══════════ -->
+      <article class="section-intro">
+        <div class="section-tag">Section 5 of 5</div>
+        <h2 class="section-title">Recovery — and present day</h2>
+        <p class="section-dek">PDNA need: $16.3 billion. Disbursed by May 2026: $2.8 billion. Homes destroyed: 2.1 million. Climate-resilient homes built under 4RF: about 800. The Loss & Damage Fund has disbursed nothing to Pakistani households.</p>
+      </article>
+
+      <article class="step" data-step="17">
+        <h3>The recovery that didn't happen</h3>
+        <p>The World Bank's Post-Disaster Needs Assessment put reconstruction at <strong>$16.3 billion</strong>. At the January 2023 Geneva conference, donors pledged <strong>$10.9 billion</strong>. By May 2026 — three and a half years on — <strong>$2.8 billion has been disbursed</strong>.</p>
+        <p>Of the <strong>2.1 million homes destroyed</strong>, only <strong>~800 climate-resilient replacements</strong> exist under the 4RF framework. That is <strong>less than 0.04%</strong> of the need.</p>
+        <div class="chart-card">
+          <h3>2,100,000 destroyed vs 800 climate-resilient rebuilt</h3>
+          <canvas id="chart-recovery" height="220"></canvas>
+        </div>
+        <div class="recovery-grid">
+          <div class="rec-card"><span class="big">$13.5B</span><span class="cap">funding gap (PDNA need minus disbursed)</span></div>
+          <div class="rec-card"><span class="big">700k</span><span class="cap">children still out of school (Jan 2026)</span></div>
+          <div class="rec-card"><span class="big">6M</span><span class="cap">people still without reliable potable water</span></div>
+          <div class="rec-card"><span class="big">$0</span><span class="cap">Loss & Damage Fund to Pakistani households</span></div>
+        </div>
+        <p class="citation">Sources: <a href="https://thedocs.worldbank.org/en/doc/4a0114eb7d1cecbbbf2f65c5ce0789db-0310012022/original/Pakistan-Floods-2022-PDNA-Main-Report.pdf" target="_blank">World Bank PDNA 2022</a> · <a href="https://www.undp.org/pakistan/frp" target="_blank">UNDP Flood Recovery Programme</a> · <a href="https://www.dawn.com/news/1950716/pdna-2022-vs-pdna-2025" target="_blank">Dawn "PDNA 2022 vs PDNA 2025"</a>.</p>
+      </article>
+
+      <article class="step" data-step="18">
+        <h3>Why the gap</h3>
+        <ol class="numbered-list">
+          <li><strong>Pledge-to-disbursement gap.</strong> Of $10.9 B pledged in Geneva, ~26% has actually been wired. Multilateral pledges are project-by-project loans that clear procurement and FX compliance in 12–18 months each.</li>
+          <li><strong>No national reconstruction budget.</strong> Pakistan's federal climate adaptation budget stayed under <strong>$8 M/year</strong> through FY24/25.</li>
+          <li><strong>The 2025 monsoon set the clock back.</strong> Floods in KP and Punjab damaged 38,000 additional houses and ~300,000 hectares of farmland.</li>
+          <li><strong>The flagship Sindh People's Housing programme stalled.</strong> 350,000 climate-resilient homes were to be delivered by end-2025. Actual delivery by May 2026: <strong>~32,000</strong>.</li>
+          <li><strong>COP27 Loss & Damage Fund</strong> was established largely because of Pakistan. As of May 2026 it has disbursed nothing to Pakistani households.</li>
+        </ol>
+
+        <div class="video-embed">
+          <div class="v-frame">
+            <iframe src="https://www.youtube-nocookie.com/embed/HT_1tvAgq9s?rel=0&modestbranding=1" title="Pakistan's lasting struggle to start over after the floods — DW Documentary" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="v-meta"><span><strong>Watch:</strong> Pakistan's lasting struggle — DW Documentary</span><span>Jan 2024</span></div>
+        </div>
+
+        <p>The 2025 monsoon, then likely a 2026 one — Pakistan is now in a permanent rolling-disaster posture. The question is no longer "can we recover from 2022" — it is "can we keep up with whatever comes next."</p>
+        <p class="citation">Sources: 4RF mid-term review, Dec 2024 · OCHA Pakistan 2025 Monsoon Floods Support Plan · <a href="https://annalsofglobalhealth.org/articles/10.5334/aogh.4955" target="_blank">Tariq et al. 2026, Annals of Global Health</a>.</p>
+      </article>
+
+      <article class="step" data-step="19" id="closing-map">
+        <h3>What this story is really about</h3>
+        <p>This is not only a story about a natural disaster. It is a story about a country that contributed less than 1% of the warming, that was put under water by it, and that is still — three and a half years later — waiting for the rest of the world to keep its promises.</p>
+        <p>It is also the first EcoLens proof of concept for mapping response alongside risk: the ambulance drivers, the boat-volunteers, the Mohana fishermen, the Hindu Panchayat camps in Tharparkar, the Aurat Foundation organisers who made the camps safer for women, and the local groups still rebuilding after the cameras left.</p>
+        <p>The 800 homes that have been rebuilt are real homes. The 2,099,200 that haven't are also a number worth carrying.</p>
+        <div class="story-anchor response-anchor">
+          <span class="anchor-label">What EcoLens adds</span>
+          Hazards show where the crisis is. Response layers show who is doing the work. The next version of this map should replace every under-documented orange point with field interviews, consented photos, current needs, and a direct support pathway.
+        </div>
+        <p class="cta">
+          <a href="../10_research/RESEARCH_BRIEF.md" target="_blank">Full research brief (10 sections, 859 lines, fully sourced)</a> ·
+          <a href="https://www.worldweatherattribution.org/climate-change-likely-increased-extreme-monsoon-rainfall-flooding-highly-vulnerable-communities-in-pakistan/" target="_blank">WWA climate attribution study</a> ·
+          <a href="https://thedocs.worldbank.org/en/doc/4a0114eb7d1cecbbbf2f65c5ce0789db-0310012022/original/Pakistan-Floods-2022-PDNA-Main-Report.pdf" target="_blank">World Bank PDNA</a>
+        </p>
+      </article>
+
+    </div>
+  </section>
+
+  <section class="map-atlas" id="static-atlas">
+    <div class="atlas-header">
+      <p class="section-kicker">Static map atlas</p>
+      <h2>Six plates in story order</h2>
+      <p>After the interactive journey, these still maps give you a cleaner fixed reference set: the rainfall trigger, how the flood spread, the final footprint with response sites, the Sindh response close-up, who was exposed, and how 2022 compares with 2010.</p>
+    </div>
+
+    <div class="atlas-grid">
+      <a class="atlas-card" href="assets/static_maps/06_precipitation_aug2022.png?v=atlas-map-quality-v20" target="_blank">
+        <img src="assets/static_maps/06_precipitation_aug2022.png?v=atlas-map-quality-v20" alt="August 2022 precipitation over Pakistan" loading="lazy" />
+        <span class="atlas-title">1. Rainfall Trigger</span>
+        <span class="atlas-copy">CHIRPS August 2022 rainfall shows the monsoon load before the water spread.</span>
+      </a>
+      <a class="atlas-card" href="assets/static_maps/02_flood_evolution_timeline.png?v=atlas-map-quality-v20" target="_blank">
+        <img src="assets/static_maps/02_flood_evolution_timeline.png?v=atlas-map-quality-v20" alt="Weekly flood evolution timeline" loading="lazy" />
+        <span class="atlas-title">2. Flood Evolution</span>
+        <span class="atlas-copy">Six weekly snapshots show the disaster becoming a moving geography from July into September.</span>
+      </a>
+      <a class="atlas-card" href="assets/static_maps/01_cumulative_flood_extent.png?v=atlas-map-quality-v20" target="_blank">
+        <img src="assets/static_maps/01_cumulative_flood_extent.png?v=atlas-map-quality-v20" alt="Cumulative 2022 flood extent with community response sites" loading="lazy" />
+        <span class="atlas-title">3. Cumulative Flood Extent</span>
+        <span class="atlas-copy">The national footprint: mapped floodwater plus documented response sites.</span>
+      </a>
+      <a class="atlas-card" href="assets/static_maps/03_sindh_high_res_S1.png?v=atlas-map-quality-v20" target="_blank">
+        <img src="assets/static_maps/03_sindh_high_res_S1.png?v=atlas-map-quality-v20" alt="Peak flood detail for Sindh with community response sites" loading="lazy" />
+        <span class="atlas-title">4. Sindh + Response Close-Up</span>
+        <span class="atlas-copy">Peak flood detail for the lower Indus and Manchar corridor, with response markers.</span>
+      </a>
+      <a class="atlas-card" href="assets/static_maps/05_pop_exposure_by_district.png?v=atlas-map-quality-v20" target="_blank">
+        <img src="assets/static_maps/05_pop_exposure_by_district.png?v=atlas-map-quality-v20" alt="Top districts and divisions by population exposed to the 2022 flood extent" loading="lazy" />
+        <span class="atlas-title">5. People In The Water</span>
+        <span class="atlas-copy">Top exposed divisions by WorldPop population intersecting the flood extent.</span>
+      </a>
+      <a class="atlas-card" href="assets/static_maps/04_2022_vs_2010_comparison.png?v=atlas-map-quality-v20" target="_blank">
+        <img src="assets/static_maps/04_2022_vs_2010_comparison.png?v=atlas-map-quality-v20" alt="Comparison of 2022 and 2010 Pakistan flood extents" loading="lazy" />
+        <span class="atlas-title">6. 2022 vs 2010</span>
+        <span class="atlas-copy">A historical comparison that shows 2022 was not a normal repeat event.</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ── VIDEO + FURTHER READING ───────────────────────────────── -->
+  <section class="videos">
+    <div class="videos-inner">
+      <h2>Watch &amp; read further</h2>
+      <p class="sub">Curated journalism and peer-reviewed sources beyond the embeds above.</p>
+      <div class="video-grid">
+        <a class="video-card" href="https://www.aljazeera.com/video/featured-documentaries/2022/10/8/the-full-report-pakistan-the-great-deluge" target="_blank"><h3>Pakistan — The Great Deluge</h3><p>Al Jazeera · 25-min documentary · features climate minister Sherry Rehman.</p></a>
+        <a class="video-card" href="https://svs.gsfc.nasa.gov/14080" target="_blank"><h3>Catastrophic Flooding from Space</h3><p>NASA Goddard · 3-min satellite animation.</p></a>
+        <a class="video-card" href="https://www.unicef.org/stories/children-pakistan-floods" target="_blank"><h3>Children of the Floods</h3><p>UNICEF · the demographic chapter, made human.</p></a>
+        <a class="video-card" href="https://www.theguardian.com/global-development/2022/oct/22/voices-from-the-pakistan-floods" target="_blank"><h3>Voices from the Flood</h3><p>The Guardian · photo + audio essay from displaced families.</p></a>
+        <a class="video-card" href="https://iopscience.iop.org/article/10.1088/2752-5295/acbfd5" target="_blank"><h3>Climate attribution — Otto et al. 2023</h3><p><em>Environmental Research: Climate</em> · the 75% attribution finding.</p></a>
+        <a class="video-card" href="https://www.nature.com/articles/s44304-025-00109-z" target="_blank"><h3>Anthropogenic + climatic drivers</h3><p>Khan et al. 2025 · <em>npj Natural Hazards</em>.</p></a>
+        <a class="video-card" href="https://annalsofglobalhealth.org/articles/10.5334/aogh.4955" target="_blank"><h3>2022 → 2025 escalating health crisis</h3><p>Tariq et al. 2026 · <em>Annals of Global Health</em>.</p></a>
+        <a class="video-card" href="https://dtm.iom.int/pakistan" target="_blank"><h3>IOM Displacement Tracking Matrix</h3><p>Live displacement assessments, Sindh + Balochistan.</p></a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p><a href="/#/map">Explore this event on the live EcoLens map →</a> Every EcoLens investigation lives as a pin on the map, alongside live hazard layers and analysis.</p>
+    <p>Built as an EcoLens story-map prototype · Map: MapLibre GL JS + OpenFreeMap (Positron light) + Esri World Imagery toggle · Terrain: AWS Terrarium · Flood polygons: UNOSAT (CERN) · Population: WorldPop 2020 100 m constrained · Admin boundaries: GADM v4.1 · Charts: Chart.js · Scrollytelling: Scrollama.</p>
+    <p>Author: Laurence Magenga · SFU GIS · all sources cited inline + in <a href="../10_research/RESEARCH_BRIEF.md">research brief</a>.</p>
+  </footer>
+
+  <script src="story.js?v=atlas-map-quality-v20"></script>
+</body>
+</html>

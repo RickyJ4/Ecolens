@@ -1,0 +1,243 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Tarbela + Mangla dams \u2014 silted",
+        "date": "ongoing through 2022",
+        "category": "structural",
+        "severity": "high",
+        "story": "Pakistan's two largest dams have lost ~25\u201340% of their original storage capacity to sediment build-up by 2022, severely reducing the buffer they provide against monsoon spikes."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          72.6883,
+          33.9947
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sukkur Barrage \u2014 1930s design limit",
+        "date": "designed 1932, used 2022",
+        "category": "structural",
+        "severity": "high",
+        "story": "Designed for a peak discharge of 1.5 M cusecs in the colonial era. Aug 27 2022 peak: 1.8 M cusecs \u2014 operators had to release water in uncontrolled bursts."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.843,
+          27.6936
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Climate Change Authority \u2014 chronically underfunded",
+        "date": "FY18\u201322",
+        "category": "structural",
+        "severity": "high",
+        "story": "Federal climate adaptation budget stayed under USD 5 M per year through FY2022 \u2014 Pakistan has no FEMA-equivalent disaster reconstruction fund."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.0479,
+          33.6844
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "KP + Gilgit-Baltistan deforestation",
+        "date": "2000\u20132022 cumulative",
+        "category": "structural",
+        "severity": "medium",
+        "story": "Hansen Global Forest Change v1.11: KP + Gilgit-Baltistan lost ~27% of forest cover from 2000 to 2020. National forest cover ~4.8% \u2014 among Asia's lowest. Less canopy = faster runoff to the Indus."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.0,
+          35.0
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "2010 floods reconstruction \u2014 never completed",
+        "date": "2010\u20132022 (12-year gap)",
+        "category": "structural",
+        "severity": "high",
+        "story": "Many of the embankments and homes destroyed in the 2010 floods (the previous record event) were never rebuilt to higher resilience standards \u2014 the same villages were hit again in 2022."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.5,
+          27.0
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Political crisis \u2014 Imran Khan ousted",
+        "date": "April 9 2022",
+        "category": "structural",
+        "severity": "medium",
+        "story": "Vote of no confidence removed PM Khan two months before the monsoon. Cabinet transition and IMF re-negotiations distracted federal government from pre-monsoon disaster preparation."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.0931,
+          33.7294
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "IMF programme + fiscal crisis",
+        "date": "Q1\u2013Q2 2022 ongoing",
+        "category": "structural",
+        "severity": "medium",
+        "story": "Pakistan was negotiating a stalled IMF Extended Fund Facility through early 2022. Federal liquidity was already strained \u2014 no spare capacity for pre-emptive monsoon spending."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.0931,
+          33.7294
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "La Ni\u00f1a \u2014 third consecutive year",
+        "date": "2020\u20132022 (peaked early 2022)",
+        "category": "climate",
+        "severity": "high",
+        "story": "Rare triple-dip La Ni\u00f1a caused anomalous easterly winds across the northern Indian subcontinent. Nanditha et al. (2023) link this directly to the 2022 monsoon intensity via a stationary Rossby wave pattern."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          160.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Arabian Sea SST anomaly",
+        "date": "March \u2013 June 2022",
+        "category": "climate",
+        "severity": "high",
+        "story": "Arabian Sea surface temperatures ran 1.5\u20132 \u00b0C above the 1981\u20132010 average. Warmer sea = more evaporation = more moisture feeding the southerly monsoon flow into Sindh and Balochistan."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          65.0,
+          20.0
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "March\u2013May 2022 heatwave",
+        "date": "March \u2013 May 2022",
+        "category": "climate",
+        "severity": "extreme",
+        "story": "Pakistan + northwest India recorded the hottest March in 122 years. Jacobabad hit 51 \u00b0C in June. Pre-monsoon heat dried out the topsoil (less infiltration) and accelerated upstream glacial melt."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.4514,
+          28.2769
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Karakoram anomaly reversal",
+        "date": "~2018 onward, ongoing 2022",
+        "category": "climate",
+        "severity": "high",
+        "story": "The Karakoram glaciers were historically advancing (Hewitt 2005 'Karakoram Anomaly'). NASA GRACE-FO mass balance now shows ~6 Gt/yr loss \u2014 the anomaly has flipped. The reservoir of frozen water is shrinking."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.0,
+          35.5
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Shisper Glacier outburst (GLOF)",
+        "date": "May 7 2022",
+        "category": "climate",
+        "severity": "extreme",
+        "story": "Glacial Lake Outburst Flood in Hunza destroyed the historic Hassanabad Bridge \u2014 three months before the Sindh floods downstream. Same crisis, opposite ends of the country."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.645,
+          36.3219
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GLOF cluster across Gilgit + KP",
+        "date": "March \u2013 August 2022",
+        "category": "climate",
+        "severity": "high",
+        "story": "At least 16 documented Glacial Lake Outburst Floods across Gilgit-Baltistan and Khyber-Pakhtunkhwa during 2022, pre-saturating Indus tributaries before the monsoon even arrived."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.5,
+          35.8
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Early monsoon onset",
+        "date": "Mid-June 2022 (2 weeks early)",
+        "category": "climate",
+        "severity": "medium",
+        "story": "The 2022 monsoon arrived ~2 weeks earlier than the long-term average \u2014 overlapping with the tail of the pre-monsoon heatwave and the GLOF discharge surge."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          70.0,
+          30.0
+        ]
+      }
+    }
+  ]
+}

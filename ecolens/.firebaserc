@@ -1,0 +1,13 @@
+{
+  "projects": {},
+  "targets": {
+    "ecolens-ad854": {
+      "hosting": {
+        "ecolenswebapp": [
+          "ecolenswebapp"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

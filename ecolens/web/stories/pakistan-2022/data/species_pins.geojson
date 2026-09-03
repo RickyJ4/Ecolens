@@ -1,0 +1,85 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Indus River dolphin",
+        "scientific": "Platanista minor",
+        "iucn": "Endangered",
+        "story": "~1,800 individuals in Sindh. 6 dolphins rescued from stranded irrigation canals after the flood."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.5,
+          26.2
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hog deer",
+        "scientific": "Axis porcinus",
+        "iucn": "Endangered",
+        "story": "Riverine-forest dweller in Sindh; habitat lost to sediment burial of seedlings."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.8,
+          27.5
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Smooth-coated otter",
+        "scientific": "Lutrogale perspicillata",
+        "iucn": "Vulnerable",
+        "story": "Indus wetlands dweller; sensitive to post-flood agro-chemical runoff."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.2,
+          27.0
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Marsh crocodile",
+        "scientific": "Crocodylus palustris",
+        "iucn": "Vulnerable",
+        "story": "Manchar Lake population displaced when the protective embankment was breached."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.1,
+          26.8
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "White-rumped vulture",
+        "scientific": "Gyps bengalensis",
+        "iucn": "Critically Endangered",
+        "story": "Riverine-forest nester; one of only a few hundred remaining in Pakistan."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.0,
+          28.0
+        ]
+      }
+    }
+  ]
+}

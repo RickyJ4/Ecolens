@@ -1,0 +1,110 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sukkur Barrage",
+        "kind": "infrastructure",
+        "story": "A lower-Indus control point where barrages, canals, drains, embankments, roads, and flat terrain turned extreme rainfall and upstream flow into a system-wide drainage crisis."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.843,
+          27.6936
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Manchar Lake",
+        "kind": "wetland",
+        "story": "Normally 250 km\u00b2; expanded to 520 km\u00b2 in Aug 2022. Embankment deliberately breached Sep 5."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.6573,
+          26.417
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Dadu, Sindh",
+        "kind": "settlement",
+        "story": "Entire towns submerged for over 60 days. Among the worst-hit districts."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.7771,
+          26.7319
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Shisper Glacier (GLOF site)",
+        "kind": "glacier",
+        "story": "Outburst flood May 7 2022 destroyed Hassanabad Bridge \u2014 climate damage hitting 3 months before the Sindh floods."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.494,
+          36.345
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Jacobabad, Sindh",
+        "kind": "heatwave",
+        "story": "Hit 51 \u00b0C in June 2022 \u2014 one of the hottest places on Earth. Pre-monsoon heat amplified glacial melt."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.4514,
+          28.2769
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hassanabad Bridge (collapsed)",
+        "kind": "infrastructure",
+        "story": "Historic Karakoram Highway bridge destroyed by Shisper GLOF \u2014 the iconic visual of climate-driven cryosphere risk."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.645,
+          36.3219
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Indus Delta",
+        "kind": "ecosystem",
+        "story": "Pakistan's largest mangrove forest (600,000 ha). 2022 floods delivered a rare freshwater pulse to the dam-starved delta."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.6,
+          24.3
+        ]
+      }
+    }
+  ]
+}

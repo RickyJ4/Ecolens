@@ -1,0 +1,2896 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EcoLens - 3D Environmental Monitoring</title>
+
+    <!-- MapLibre GL JS v5.x -->
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.css">
+    <script src="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.js"></script>
+
+    <!-- COG Protocol for raster/NDVI display -->
+    <script src="https://unpkg.com/maplibre-cog-protocol@1.1.0/dist/index.js"></script>
+
+    <!-- EcoLens Styles -->
+    <link rel="stylesheet" href="css/map-styles.css?v=g22">
+
+    <!-- Simulation / focus-area panels (unchanged) -->
+    <style>
+        .ctx-menu { position:fixed; background:rgba(10,10,20,0.95); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:6px 0; z-index:500; min-width:220px; box-shadow:0 8px 32px rgba(0,0,0,0.5); }
+        .ctx-menu-item { padding:10px 16px; color:#fff; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; }
+        .ctx-menu-item:hover { background:rgba(255,255,255,0.08); }
+
+        .sim-panel { position:fixed; top:70px; left:16px; width:320px; background:rgba(10,10,20,0.95); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,0.08); border-radius:14px; z-index:400; display:none; font-family:Inter,system-ui,sans-serif; color:#fff; overflow:hidden; box-shadow:0 12px 40px rgba(0,0,0,0.4); }
+        .sim-panel-header { padding:14px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.06); }
+        .sim-panel-title { font-size:14px; font-weight:700; }
+        .sim-panel-close { background:none; border:none; color:#fff; font-size:16px; cursor:pointer; opacity:0.5; }
+        .sim-panel-close:hover { opacity:1; }
+        .sim-panel-location { padding:8px 16px; font-size:11px; opacity:0.5; }
+        .sim-panel-progress { padding:8px 16px; display:flex; align-items:center; gap:10px; }
+        .sim-progress-bar { flex:1; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden; }
+        .sim-progress-fill { height:100%; border-radius:2px; transition:width 0.2s; }
+        .sim-panel-stats { padding:8px 16px; }
+        .sim-stat { display:flex; justify-content:space-between; padding:4px 0; font-size:12px; border-bottom:1px solid rgba(255,255,255,0.04); }
+        .sim-stat span:first-child { opacity:0.5; }
+        .sim-stat span:last-child { font-weight:600; }
+        .sim-panel-controls { padding:10px 16px; display:flex; gap:6px; }
+        .sim-btn { background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); color:#fff; padding:5px 12px; border-radius:6px; cursor:pointer; font-size:11px; }
+        .sim-btn:hover { background:rgba(255,255,255,0.14); }
+        .sim-btn-active { background:rgba(255,69,0,0.3); border-color:rgba(255,69,0,0.5); }
+        .sim-panel-impacts { padding:12px 16px; border-top:1px solid rgba(255,255,255,0.06); }
+        .sim-impact-title { font-size:12px; font-weight:700; margin-bottom:8px; opacity:0.7; }
+        .sim-cascade-item { margin-bottom:10px; padding:8px; background:rgba(255,255,255,0.03); border-radius:8px; }
+        .sim-cascade-header { display:flex; align-items:center; gap:6px; font-size:11px; }
+        .sim-cascade-badge { padding:2px 6px; border-radius:4px; font-size:9px; font-weight:700; }
+        .sim-sev-high { background:rgba(255,69,0,0.2); color:#FF6B35; }
+        .sim-sev-extreme { background:rgba(200,0,0,0.2); color:#FF3333; }
+        .sim-sev-moderate { background:rgba(255,180,0,0.2); color:#FFB703; }
+        .sim-cascade-name { flex:1; }
+        .sim-cascade-prob { opacity:0.6; }
+        .sim-cascade-meta { font-size:10px; opacity:0.4; margin-top:4px; display:flex; gap:12px; }
+        .sim-cascade-cite { color:#4CAF50; }
+
+        .focus-panel{position:fixed;top:70px;right:80px;width:360px;max-height:calc(100vh - 100px);overflow-y:auto;background:rgba(10,10,20,0.95);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:14px;z-index:400;display:none;font-family:Inter,system-ui,sans-serif;color:#fff;box-shadow:0 12px 40px rgba(0,0,0,0.4);}
+        .fa-header{padding:16px;border-bottom:1px solid rgba(255,255,255,0.06);}
+        .fa-title-row{display:flex;justify-content:space-between;align-items:center;}
+        .fa-title{margin:0;font-size:16px;font-weight:700;}
+        .fa-close{background:none;border:none;color:#fff;font-size:18px;cursor:pointer;opacity:0.5;}
+        .fa-close:hover{opacity:1;}
+        .fa-coords{font-size:11px;opacity:0.4;margin-top:4px;}
+        .fa-risk-score{margin:12px 16px;padding:16px;border:2px solid;border-radius:12px;text-align:center;background:rgba(0,0,0,0.3);}
+        .fa-risk-number{font-size:42px;font-weight:800;line-height:1;}
+        .fa-risk-label{font-size:11px;opacity:0.5;margin:4px 0 8px;}
+        .fa-risk-level{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;color:#fff;}
+        .fa-section{padding:12px 16px;border-top:1px solid rgba(255,255,255,0.04);}
+        .fa-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.5;margin-bottom:8px;}
+        .fa-weather{display:flex;align-items:center;gap:12px;}
+        .fa-weather-temp{font-size:28px;font-weight:700;}
+        .fa-weather-details{display:flex;flex-direction:column;gap:2px;font-size:11px;opacity:0.6;}
+        .fa-demo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+        .fa-demo-card{text-align:center;padding:10px;background:rgba(255,255,255,0.04);border-radius:8px;}
+        .fa-demo-value{font-size:20px;font-weight:700;}
+        .fa-demo-label{font-size:10px;opacity:0.4;margin-top:2px;}
+        .fa-infra-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;}
+        .fa-infra-item{font-size:12px;padding:6px 8px;background:rgba(255,255,255,0.03);border-radius:6px;}
+        .fa-hazard-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.03);}
+        .fa-hazard-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+        .fa-hazard-name{flex:1;}
+        .fa-hazard-level{font-size:10px;font-weight:700;min-width:65px;text-align:right;}
+        .fa-hazard-count{font-size:10px;opacity:0.3;min-width:80px;text-align:right;}
+        .fa-quake-count{font-size:12px;opacity:0.5;margin-bottom:6px;}
+        .fa-quake-item{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px;}
+        .fa-quake-mag{padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;color:#fff;min-width:32px;text-align:center;}
+        .fa-quake-place{opacity:0.6;flex:1;}
+        .fa-no-data{font-size:11px;opacity:0.3;padding:8px 0;}
+        .fa-actions{padding:12px 16px;display:flex;gap:8px;}
+        .fa-action-btn{flex:1;padding:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.2s;}
+        .fa-action-btn:hover{background:rgba(255,255,255,0.12);}
+        .fa-source{padding:8px 16px 12px;font-size:9px;opacity:0.2;}
+
+        /* ─── Right Rail (consolidated floating controls) ─── */
+        .map-rail {
+            position: fixed; top: 50%;
+            right: calc(var(--alerts-width, 320px) + 26px);
+            transform: translateY(-50%);
+            z-index: 200; display: flex; flex-direction: column; gap: 2px;
+            background: rgba(13,17,23,0.86); backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px; padding: 4px;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+        }
+        .map-rail button {
+            width: 40px; height: 40px; border: none; background: transparent;
+            color: #c9d1d9; cursor: pointer; border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.15s, color 0.15s; position: relative;
+        }
+        .map-rail button:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .map-rail button.active { background: rgba(0,180,216,0.18); color: #58d8ff; }
+        .map-rail-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 2px 4px; }
+        .map-rail button[data-tooltip]::after {
+            content: attr(data-tooltip);
+            position: absolute; right: 100%; margin-right: 10px;
+            background: rgba(10,15,25,0.96); color: #e6edf3;
+            padding: 6px 10px; border-radius: 6px; font-size: 12px;
+            white-space: nowrap; pointer-events: none; opacity: 0;
+            transition: opacity 0.15s; border: 1px solid rgba(255,255,255,0.08);
+        }
+        .map-rail button:hover[data-tooltip]::after { opacity: 1; }
+
+        /* Basemap popover */
+        .basemap-popover {
+            position: fixed;
+            right: calc(var(--alerts-width, 320px) + 80px);
+            z-index: 250;
+            background: rgba(13,17,23,0.95); backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+            padding: 12px; display: none; box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+        }
+        .basemap-popover.open { display: block; }
+        .basemap-popover-title { font-size: 11px; font-weight: 700; opacity: 0.5;
+            letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 10px; color:#fff; }
+
+        /* Section header row */
+        .section-header-row { display: flex; justify-content: space-between;
+            align-items: baseline; margin-bottom: 10px; }
+        .section-hint { font-size: 10px; color: #6e7681; letter-spacing: 0.3px; }
+
+        /* ─── Hazard Pill Row (reference design) ─── */
+        .layer-toggle-wrap {
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--pill-from), var(--pill-to));
+            position: relative;
+            transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+            filter: saturate(0.5) brightness(0.65);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        }
+        .layer-toggle-wrap.is-on {
+            filter: saturate(1) brightness(1);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06);
+        }
+        .layer-toggle-wrap:hover { transform: translateY(-1px); }
+
+        /* Override the existing .layer-toggle for pill style */
+        .layer-toggle {
+            display: grid;
+            grid-template-columns: 40px 1fr auto auto;
+            grid-template-rows: auto auto;
+            column-gap: 12px;
+            align-items: center;
+            padding: 10px 14px;
+            cursor: pointer;
+            user-select: none;
+            background: rgba(0,0,0,0.20);
+        }
+        .layer-toggle:hover { background: rgba(0,0,0,0.10); }
+        .layer-toggle input[type="checkbox"] { display: none; }
+
+        /* Round icon badge on the left */
+        .pill-icon {
+            grid-row: 1 / span 2;
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.18);
+            backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .pill-icon svg { width: 20px; height: 20px; }
+
+        /* Title + subtitle */
+        .pill-title {
+            grid-column: 2; grid-row: 1;
+            font-size: 14px; font-weight: 700;
+            color: #fff; letter-spacing: -0.1px;
+            line-height: 1.2;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        .pill-subtitle {
+            grid-column: 2; grid-row: 2;
+            font-size: 11px; font-weight: 500;
+            color: rgba(255,255,255,0.78);
+            letter-spacing: 0.1px;
+            line-height: 1.2;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+        }
+        .pill-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* iOS-style toggle switch */
+        .pill-switch {
+            grid-column: 3; grid-row: 1 / span 2;
+            width: 38px; height: 22px;
+            border-radius: 11px;
+            background: rgba(0,0,0,0.35);
+            position: relative;
+            transition: background 0.2s;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+        .pill-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+        .layer-toggle-wrap.is-on .pill-switch { background: rgba(255,255,255,0.92); }
+        .layer-toggle-wrap.is-on .pill-switch::after {
+            transform: translateX(16px);
+            background: var(--pill-from);
+        }
+
+        /* Chevron to expand legend */
+        .layer-expand {
+            grid-column: 4; grid-row: 1 / span 2;
+            width: 22px; height: 22px;
+            border: none; background: transparent;
+            color: rgba(255,255,255,0.6);
+            border-radius: 5px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: color 0.15s, background 0.15s, transform 0.2s;
+            margin-left: 2px;
+        }
+        .layer-expand:hover { background: rgba(255,255,255,0.12); color: #fff; }
+        .layer-toggle-wrap.expanded .layer-expand { transform: rotate(180deg); color: #fff; }
+        .layer-expand-placeholder { width: 22px; height: 22px; grid-column: 4; grid-row: 1 / span 2; }
+
+        /* Contextual legend */
+        .layer-legend {
+            padding: 10px 14px 12px 14px;
+            display: none;
+            background: rgba(0,0,0,0.35);
+            backdrop-filter: blur(4px);
+        }
+        .layer-toggle-wrap.expanded .layer-legend { display: block; }
+        .layer-legend-title { font-size: 10px; font-weight: 600;
+            color: rgba(255,255,255,0.8); letter-spacing: 0.4px; text-transform: uppercase;
+            margin-bottom: 6px; }
+        .layer-legend-gradient { height: 8px; border-radius: 4px; }
+        .layer-legend-labels { display: flex; justify-content: space-between;
+            font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 3px; }
+        .layer-legend-swatches { display: flex; gap: 3px; flex-wrap: wrap; }
+        .layer-legend-swatches .legend-swatch { flex: 1; padding: 3px 0;
+            font-size: 9px; text-align: center; color: #fff; border-radius: 3px;
+            min-width: 28px; font-weight: 600; }
+        .layer-opacity-row { margin-top: 10px; }
+        .layer-opacity-row label { font-size: 10px; color: rgba(255,255,255,0.7);
+            display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .layer-opacity-row input[type="range"] { width: 100%; height: 4px;
+            appearance: none; background: rgba(255,255,255,0.18); border-radius: 2px;
+            outline: none; }
+        .layer-opacity-row input[type="range"]::-webkit-slider-thumb {
+            appearance: none; width: 14px; height: 14px; border-radius: 50%;
+            background: #fff; cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+        .layer-filter-row { margin-top: 10px; }
+        .layer-filter-row label { font-size: 10px; color: rgba(255,255,255,0.7);
+            display: block; margin-bottom: 4px; }
+        .layer-filter-row .filter-select { font-size: 11px; padding: 6px 8px;
+            background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.15); color:#fff; }
+
+        /* Section title styling */
+        .section-title-wrap { display: flex; align-items: center; gap: 8px;
+            margin-bottom: 4px; }
+        .section-title-icon { width: 18px; height: 18px; color: #e6edf3; }
+        .section-title-text { font-size: 15px; font-weight: 700; color: #fff;
+            letter-spacing: -0.2px; }
+        .section-subtitle { font-size: 11px; color: #8b949e;
+            margin-bottom: 12px; letter-spacing: 0.1px; }
+
+        /* Action button color variants */
+        .action-btn { margin-bottom: 6px; }
+        .action-btn-blue { border-left: 3px solid #58A6FF; }
+        .action-btn-orange { border-left: 3px solid #FF4500; }
+        .action-btn-indigo { border-left: 3px solid #6366f1; }
+
+        /* ─── Map Header Card (top-center overlay) ─── */
+        .map-header {
+            position: fixed;
+            top: 14px;
+            left: calc(var(--sidebar-width, 360px) + 20px);
+            z-index: 150;
+            background: rgba(13,17,23,0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+            font-family: Inter, system-ui, -apple-system, sans-serif;
+        }
+        .map-header-pulse {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #22C55E;
+            box-shadow: 0 0 0 0 rgba(34,197,94,0.7);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+            100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+        }
+        .map-header-title { font-size: 13px; font-weight: 700; color: #fff;
+            letter-spacing: -0.1px; }
+        .map-header-meta { font-size: 11px; color: #8b949e; margin-top: 1px;
+            font-family: ui-monospace, SFMono-Regular, monospace; }
+
+        /* ─── Active Alerts Panel (right side) ─── */
+        .alerts-panel {
+            position: fixed;
+            top: 14px;
+            right: 14px;
+            /* Fixed width — never bind this to --alerts-width: that var is
+               the LAYOUT offset the panel *causes*, and rail-mode sets it
+               to 0 when closed (a 0-width panel sliver was the result). */
+            width: 320px;
+            max-height: calc(100vh - 100px);
+            z-index: 140;
+            background: rgba(13,17,23,0.88);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+            overflow: hidden;
+            font-family: Inter, system-ui, sans-serif;
+        }
+        .alerts-header {
+            padding: 14px 16px 10px;
+            display: flex; align-items: center; gap: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .alerts-header svg { width: 18px; height: 18px; color: #EF4444; flex-shrink: 0; }
+        .alerts-header-text { flex: 1; }
+        .alerts-header-title { font-size: 14px; font-weight: 700; color: #fff;
+            letter-spacing: -0.1px; }
+        .alerts-header-sub { font-size: 10px; color: #6e7681; margin-top: 1px; }
+        .alerts-count-badge {
+            background: #DC2626; color: #fff;
+            font-size: 11px; font-weight: 700;
+            padding: 2px 8px; border-radius: 10px;
+            min-width: 22px; text-align: center;
+        }
+        .alerts-body {
+            flex: 1; overflow-y: auto; padding: 8px;
+        }
+        .alert-card {
+            padding: 11px 12px; margin-bottom: 6px;
+            background: rgba(255,255,255,0.02);
+            border-left: 3px solid var(--alert-color, #6e7681);
+            border-radius: 7px;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.15s;
+        }
+        .alert-card:hover {
+            background: rgba(255,255,255,0.06);
+            transform: translateX(-2px);
+        }
+        .alert-card:active { transform: translateX(0); }
+
+        /* ─── Bottom Stats Bar ─── */
+        .map-stats-bar {
+            position: fixed;
+            bottom: 14px;
+            left: calc(var(--sidebar-width, 360px) + 20px);
+            right: calc(var(--alerts-width, 320px) + 26px);
+            z-index: 130;
+            background: rgba(13,17,23,0.88);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 12px 18px;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+            font-family: Inter, system-ui, sans-serif;
+        }
+        .stat-cell {
+            display: flex; flex-direction: column;
+            padding: 4px 12px;
+            border-right: 1px solid rgba(255,255,255,0.06);
+            border-radius: 0;
+            background: transparent;
+            border-top: none; border-bottom: none; border-left: none;
+            color: inherit;
+            font-family: inherit;
+            text-align: left;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.15s;
+        }
+        .stat-cell:last-child { border-right: none; }
+        .stat-cell:hover { background: rgba(255,255,255,0.04); }
+        .stat-cell.open { background: rgba(255,255,255,0.08); }
+        .stat-cell-chevron {
+            position: absolute; top: 8px; right: 8px;
+            color: #6e7681; transition: transform 0.2s, color 0.15s;
+        }
+        .stat-cell:hover .stat-cell-chevron { color: #e6edf3; }
+        .stat-cell.open .stat-cell-chevron { transform: rotate(180deg); color: #e6edf3; }
+
+        /* Dropdown popover above the stat cell */
+        .stat-dropdown {
+            position: absolute;
+            bottom: calc(100% + 12px);
+            left: 50%; transform: translateX(-50%);
+            width: 280px;
+            background: rgba(13,17,23,0.96);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 14px 16px;
+            display: none;
+            z-index: 500;
+            box-shadow: 0 10px 32px rgba(0,0,0,0.55);
+            cursor: default;
+        }
+        .stat-cell.open .stat-dropdown { display: block; }
+        .stat-dropdown::after {
+            content: '';
+            position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+            width: 12px; height: 12px;
+            background: rgba(13,17,23,0.96);
+            border-right: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-top: -6px;
+            transform: translateX(-50%) rotate(45deg);
+        }
+        /* First cell: pin dropdown to the left so it doesn't clip off-screen */
+        .stat-cell:first-child .stat-dropdown { left: 10px; transform: none; }
+        .stat-cell:first-child .stat-dropdown::after { left: 40px; transform: rotate(45deg); }
+        .stat-cell:last-child .stat-dropdown { left: auto; right: 10px; transform: none; }
+        .stat-cell:last-child .stat-dropdown::after { left: auto; right: 40px; transform: rotate(45deg); }
+
+        .dropdown-title { font-size: 11px; font-weight: 700; color: #e6edf3;
+            letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 10px; }
+        .dropdown-row {
+            display: grid;
+            grid-template-columns: 72px 1fr 42px;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+        .dropdown-row-label { color: #c9d1d9; }
+        .dropdown-row-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .dropdown-row-fill {
+            height: 100%;
+            background: var(--bar-color, #58A6FF);
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+        .dropdown-row-val { font-variant-numeric: tabular-nums; color: #8b949e;
+            font-size: 10.5px; text-align: right; }
+        .dropdown-summary {
+            margin-top: 10px; padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            font-size: 10.5px; color: #8b949e; line-height: 1.4;
+        }
+        .dropdown-summary b { color: #e6edf3; font-weight: 600; }
+        .stat-label {
+            font-size: 10px; color: #8b949e;
+            letter-spacing: 0.4px; text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 20px; font-weight: 700; color: #fff;
+            letter-spacing: -0.5px; line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-delta {
+            font-size: 10px; margin-top: 4px;
+            display: flex; align-items: center; gap: 3px;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-delta.up { color: #F87171; }
+        .stat-delta.down { color: #4ADE80; }
+        .stat-delta.neutral { color: #8b949e; }
+        .stat-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            margin-right: 2px; flex-shrink: 0;
+        }
+        .alert-card-top { display: flex; align-items: center; gap: 8px;
+            margin-bottom: 4px; }
+        .alert-card-icon {
+            width: 24px; height: 24px; border-radius: 6px;
+            background: var(--alert-color-bg, rgba(255,255,255,0.05));
+            display: flex; align-items: center; justify-content: center;
+            color: var(--alert-color, #fff);
+            flex-shrink: 0;
+        }
+        .alert-card-icon svg { width: 13px; height: 13px; }
+        .alert-card-title {
+            flex: 1; font-size: 12.5px; font-weight: 700; color: #fff;
+            letter-spacing: -0.1px; line-height: 1.2;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .alert-sev {
+            font-size: 9px; font-weight: 700;
+            padding: 2px 6px; border-radius: 4px;
+            text-transform: uppercase; letter-spacing: 0.4px;
+        }
+        .alert-sev.critical { background: rgba(220,38,38,0.18); color: #FCA5A5; }
+        .alert-sev.high     { background: rgba(249,115,22,0.18); color: #FDBA74; }
+        .alert-sev.medium   { background: rgba(245,158,11,0.18); color: #FCD34D; }
+        .alert-sev.info     { background: rgba(59,130,246,0.18); color: #93C5FD; }
+        .alert-card-loc { font-size: 10.5px; color: #8b949e; margin-bottom: 4px;
+            letter-spacing: 0.1px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .alert-card-desc { font-size: 11px; color: #c9d1d9; line-height: 1.35;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            overflow: hidden; }
+        .alerts-intel-summary {
+            margin: 0 12px 10px;
+            padding: 10px;
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 7px;
+            background: rgba(88,166,255,0.06);
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .intel-kpi-label {
+            font-size: 9px;
+            font-weight: 800;
+            color: #6e7681;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .intel-kpi-value {
+            margin-top: 2px;
+            font-size: 12px;
+            color: #e6edf3;
+            font-weight: 800;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .alert-card-intel {
+            margin-top: 7px;
+            padding: 7px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(0,0,0,0.16);
+            font-size: 10.5px;
+            line-height: 1.35;
+            color: #aeb8c4;
+        }
+        .alert-card-intel b { color: #f0f6fc; }
+        .alert-card-actions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+        .alert-card-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+        .alert-meta-chip {
+            font-size: 9px; font-weight: 700; color: #8b949e;
+            padding: 2px 6px; border-radius: 4px;
+            background: rgba(255,255,255,0.045);
+            border: 1px solid rgba(255,255,255,0.06);
+            max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .alert-card-action {
+            min-width: 0; height: 24px; border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 5px; background: rgba(255,255,255,0.045);
+            color: #c9d1d9; font-size: 10px; font-weight: 700;
+            cursor: pointer;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .alert-card-action:hover { border-color: var(--alert-color, #58A6FF); color: #fff; }
+        .alert-card-time { font-size: 10px; color: #6e7681; margin-top: 6px;
+            font-variant-numeric: tabular-nums; }
+        .alerts-empty { padding: 20px; text-align: center; color: #6e7681;
+            font-size: 12px; }
+
+        /* ─── Archive badge ─── */
+        .archive-badge { margin-top: 8px; font-size: 10px; color: #6e7681;
+            letter-spacing: 0.3px; font-variant-numeric: tabular-nums; }
+
+        /* ─── Atlas Analyst section ─── */
+        .atlas-form { display: flex; gap: 6px; margin-bottom: 8px; }
+        .atlas-form input { flex: 1; background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+            color: #e6edf3; font-size: 12px; padding: 8px 10px; outline: none; }
+        .atlas-form input:focus { border-color: rgba(0,180,216,0.5); }
+        .atlas-btn { background: rgba(0,180,216,0.18); color: #58d8ff;
+            border: 1px solid rgba(0,180,216,0.35); border-radius: 8px;
+            padding: 7px 14px; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .atlas-btn:hover { background: rgba(0,180,216,0.28); }
+        .atlas-run-status { font-size: 11px; color: #8b949e; min-height: 14px;
+            margin-bottom: 6px; line-height: 1.4; }
+        .atlas-plan-title { font-size: 12px; font-weight: 700; color: #fff; margin: 6px 0 4px; }
+        .atlas-plan-title span { font-weight: 500; color: #6e7681; font-size: 10px; }
+        .atlas-plan-body { font-size: 11.5px; color: #c9d1d9; line-height: 1.45; }
+        .atlas-plan-sources { font-size: 10px; color: #6e7681; margin-top: 4px; }
+        .atlas-plan-blocked { font-size: 11px; color: #FCD34D; margin-top: 6px;
+            padding: 6px 8px; background: rgba(245,158,11,0.08); border-radius: 6px; }
+        .atlas-plan-auto { font-size: 11px; color: #58d8ff; margin-top: 6px; }
+        #atlas-plan .atlas-btn { width: 100%; margin-top: 8px; }
+        .atlas-feed { max-height: 140px; overflow-y: auto; margin-top: 8px;
+            border-left: 2px solid rgba(0,180,216,0.25); padding-left: 8px; }
+        .atlas-feed-row { font-size: 10.5px; color: #8b949e; padding: 2px 0; line-height: 1.35; }
+        .atlas-feed-row b { color: #c9d1d9; font-weight: 600; }
+        .atlas-feed-row.failed b, .atlas-feed-row.failed span { color: #F87171; }
+        .atlas-card { margin-top: 8px; padding: 8px 10px; border-radius: 7px;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+            font-size: 11px; line-height: 1.45; color: #c9d1d9; }
+        .atlas-card b { color: #fff; display: block; margin-bottom: 2px; }
+        .atlas-card-gap { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.05); }
+        .atlas-card-insight { border-color: rgba(0,180,216,0.3); }
+        .atlas-card-done { border-color: rgba(34,197,94,0.3); }
+        .atlas-downloads a { color: #58d8ff; text-decoration: none; font-size: 10.5px; }
+        .atlas-layers { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+        .atlas-layer-row { display: flex; align-items: center; gap: 8px; width: 100%;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 7px; padding: 7px 10px; color: #c9d1d9; font-size: 11px;
+            cursor: pointer; text-align: left; }
+        .atlas-layer-row i { width: 8px; height: 8px; border-radius: 50%;
+            background: #6e7681; flex-shrink: 0; }
+        .atlas-layer-row.active i { background: #22C55E; }
+        .atlas-layer-row span { flex: 1; overflow: hidden; text-overflow: ellipsis;
+            white-space: nowrap; }
+        .atlas-layer-row b { font-size: 9px; color: #6e7681; font-weight: 700; }
+        .atlas-moran-chip { margin-top: 8px; font-size: 10px; color: #93C5FD;
+            line-height: 1.4; min-height: 0; }
+        .atlas-moran-chip:empty { display: none; }
+
+        /* ─── Bivariate 3×3 legend ─── */
+        .bivariate-legend { position: relative; padding: 0 0 18px 18px; width: 96px; }
+        .bivariate-grid { display: grid; grid-template-columns: repeat(3, 26px);
+            grid-template-rows: repeat(3, 26px); gap: 1px; }
+        .bivariate-grid span { display: block; }
+        .bivariate-axis-x { position: absolute; bottom: 0; left: 18px; font-size: 9px;
+            color: rgba(255,255,255,0.65); letter-spacing: 0.3px; }
+        .bivariate-axis-y { position: absolute; left: 0; bottom: 18px; font-size: 9px;
+            color: rgba(255,255,255,0.65); letter-spacing: 0.3px;
+            writing-mode: vertical-rl; transform: rotate(180deg); }
+    </style>
+
+    <!-- Paper & Ink editorial theme — loads last, wins the cascade -->
+    <link rel="stylesheet" href="css/paper-theme.css?v=g22">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner-container">
+            <div class="spinner"></div>
+            <div class="loading-text">Initializing EcoLens...</div>
+            <div class="loading-subtext">Loading 3D terrain and hazard data</div>
+        </div>
+    </div>
+
+    <!-- Main Map Container -->
+    <div id="map"></div>
+
+    <!-- Map Header Card (status overlay) -->
+    <div class="map-header" id="map-header">
+        <div class="map-header-pulse"></div>
+        <div>
+            <div class="map-header-title">Global Hazard Monitor</div>
+            <div class="map-header-meta" id="map-header-meta">Initializing streams…</div>
+        </div>
+    </div>
+
+    <!-- Active Alerts Panel -->
+    <aside class="alerts-panel" id="alerts-panel">
+        <div class="alerts-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <div class="alerts-header-text">
+                <div class="alerts-header-title">Event Queue</div>
+                <div class="alerts-header-sub" id="alerts-subtitle">Monitoring source-backed signals</div>
+            </div>
+            <span class="alerts-count-badge" id="alerts-count">0</span>
+        </div>
+
+        <!-- Drawer tabs: Events (queue) | Selected (clicked-feature brief) -->
+        <div class="drawer-tabs" id="drawer-tabs">
+            <button class="drawer-tab active" data-tab="events" type="button">
+                <span>Events</span>
+                <span class="drawer-tab-badge" id="drawer-tab-events-count">0</span>
+            </button>
+            <button class="drawer-tab" data-tab="selected" type="button">
+                <span>Selected</span>
+                <span class="drawer-tab-dot" id="drawer-tab-selected-dot"></span>
+            </button>
+            <button class="drawer-tab" data-tab="atlas" type="button" id="drawer-tab-atlas" style="display:none;">
+                <span>Atlas</span>
+                <span class="drawer-tab-dot" id="drawer-tab-atlas-dot"></span>
+            </button>
+        </div>
+
+        <!-- EVENTS PANE (default) -->
+        <div class="drawer-pane active" data-pane="events">
+            <div class="alerts-intel-summary" id="alerts-summary">
+                <div>
+                    <div class="intel-kpi-label">Window</div>
+                    <div class="intel-kpi-value">Last week</div>
+                </div>
+                <div>
+                    <div class="intel-kpi-label">Comparison</div>
+                    <div class="intel-kpi-value">Awaiting data</div>
+                </div>
+                <div>
+                    <div class="intel-kpi-label">Weather linked</div>
+                    <div class="intel-kpi-value">--</div>
+                </div>
+                <div>
+                    <div class="intel-kpi-label">Primary pattern</div>
+                    <div class="intel-kpi-value">Initializing</div>
+                </div>
+            </div>
+            <div class="alerts-body" id="alerts-body">
+                <div class="alerts-empty">Awaiting data stream…</div>
+            </div>
+        </div>
+
+        <!-- SELECTED PANE (feature brief renders here on click) -->
+        <div class="drawer-pane" data-pane="selected">
+            <div class="drawer-selected-empty" id="drawer-selected-empty">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.35;">
+                    <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/>
+                </svg>
+                <div class="drawer-selected-empty-title">No feature selected</div>
+                <div class="drawer-selected-empty-hint">Click any hazard on the map and its full intelligence brief will load here.</div>
+            </div>
+            <div class="drawer-selected-content" id="drawer-selected-content" style="display:none;"></div>
+        </div>
+
+        <!-- ATLAS PANE — the research analyst lives in the reading panel,
+             not buried in the layers flyout. Tab appears when the engine
+             (local or cloud) answers its health check. -->
+        <div class="drawer-pane" data-pane="atlas">
+            <div id="atlas-section" style="display:none; padding: 12px 14px;">
+                <div class="section-subtitle" style="margin-top:0;">Evidence-gated spatial analysis · every result carries its audit trail</div>
+                <form id="atlas-form" class="atlas-form">
+                    <input type="text" id="atlas-prompt" autocomplete="off"
+                           placeholder="Ask a research question about a place…">
+                    <button type="submit" class="atlas-btn">Run</button>
+                </form>
+                <div id="atlas-run-status" class="atlas-run-status"></div>
+                <div id="atlas-plan"></div>
+                <div id="atlas-feed" class="atlas-feed"></div>
+                <div id="atlas-cards"></div>
+                <div id="atlas-layers" class="atlas-layers"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Sidebar Toggle Button (hidden when sidebar is open) -->
+    <button id="sidebar-toggle" class="sidebar-toggle shifted" title="Toggle Panel">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <rect y="3" width="20" height="2" rx="1"/>
+            <rect y="9" width="20" height="2" rx="1"/>
+            <rect y="15" width="20" height="2" rx="1"/>
+        </svg>
+    </button>
+
+    <!-- Sidebar Panel -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-area">
+                <span class="logo-icon">&#127758;</span>
+                <h2>EcoLens</h2>
+                <button id="sidebar-close" class="sidebar-close-btn" title="Close panel">&times;</button>
+            </div>
+            <span class="sidebar-subtitle">Environmental Intelligence</span>
+        </div>
+
+        <div class="sidebar-content">
+            <!-- Search -->
+            <div class="panel-section">
+                <div class="search-container">
+                    <input type="text" id="geocode-input" placeholder="Search location..." autocomplete="off">
+                    <button id="geocode-btn" class="search-btn" title="Search">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                    </button>
+                    <div id="geocode-results" class="geocode-results"></div>
+                </div>
+                <div id="archive-badge" class="archive-badge" title="EcoLens hazard archive — daily snapshots powering baselines, playback and comparisons">Archive: checking…</div>
+            </div>
+
+            <!-- Hazard Layers -->
+            <div class="panel-section">
+                <div class="section-title-wrap">
+                    <svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+                    </svg>
+                    <span class="section-title-text">Hazard Layers</span>
+                </div>
+                <div class="section-subtitle">Toggle hazard types on the map</div>
+
+                <div id="layer-toggles" class="layer-toggles">
+
+                    <!-- Fires -->
+                    <div class="layer-toggle-wrap" data-layer="fires"
+                         style="--pill-from:#F97316; --pill-to:#DC2626;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-fires" checked>
+                            <label for="toggle-fires" class="pill-icon" title="Toggle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 2c0 6-8 8-8 14a8 8 0 0016 0c0-6-8-8-8-14z"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Wildfires</div>
+                            <div class="pill-subtitle"><span id="count-fires">--</span> hotspots · FIRMS</div>
+                            <label for="toggle-fires" class="pill-switch" aria-label="Toggle"></label>
+                            <button class="layer-expand" type="button" data-expand aria-label="Details">
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+                            </button>
+                        </div>
+                        <div class="layer-legend">
+                            <div class="layer-legend-title">Fire Radiative Power (FRP)</div>
+                            <div class="layer-legend-gradient" style="background: linear-gradient(to right, #FFEDA0, #FEB24C, #FD8D3C, #BD0026);"></div>
+                            <div class="layer-legend-labels"><span>Low</span><span>High MW</span></div>
+                            <div class="layer-opacity-row">
+                                <label>Opacity <span id="opacity-val-fires">100%</span></label>
+                                <input type="range" id="opacity-fires" min="0" max="100" value="100" data-layer="fires">
+                            </div>
+                            <div class="layer-filter-row">
+                                <label>Detection confidence</label>
+                                <select id="filter-fire-confidence" class="filter-select">
+                                    <option value="all">All detections</option>
+                                    <option value="high">High only</option>
+                                    <option value="nominal">Nominal+</option>
+                                    <option value="low">Low+</option>
+                                </select>
+                            </div>
+                            <div class="layer-filter-row">
+                                <button type="button" id="fires-compare-btn" class="filter-select" style="cursor:pointer;text-align:left;"
+                                        title="Swipe-compare live fires against the archived previous week">
+                                    ⇔ Compare with last week (archive)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fire Hot-Spot Significance (client-side Getis-Ord Gi*) -->
+                    <div class="layer-toggle-wrap" data-layer="hotspots"
+                         style="--pill-from:#B2182B; --pill-to:#67001F;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-hotspots">
+                            <label for="toggle-hotspots" class="pill-icon" title="Toggle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="12 3 20 7.5 20 16.5 12 21 4 16.5 4 7.5"/>
+                                    <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Fire Hot Spots</div>
+                            <div class="pill-subtitle"><span id="count-hotspots">--</span> significant zones · Gi* statistic</div>
+                            <label for="toggle-hotspots" class="pill-switch" aria-label="Toggle"></label>
+                            <button class="layer-expand" type="button" data-expand aria-label="Details">
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+                            </button>
+                        </div>
+                        <div class="layer-legend">
+                            <div class="layer-legend-title">Cluster significance (Getis-Ord Gi*)</div>
+                            <div class="layer-legend-swatches">
+                                <span class="legend-swatch" style="background:#B2182B;">Hot 99%</span>
+                                <span class="legend-swatch" style="background:#EF8A62;">Hot 95%</span>
+                                <span class="legend-swatch" style="background:#67A9CF;">Cold 95%</span>
+                                <span class="legend-swatch" style="background:#555; color:#ccc;">Not sig.</span>
+                            </div>
+                            <div class="layer-legend-labels" style="margin-top:6px;">
+                                <span>Answers: do the dots mean anything?</span>
+                            </div>
+                            <div id="atlas-moran-chip" class="atlas-moran-chip"></div>
+                            <div class="layer-opacity-row">
+                                <label>Opacity <span id="opacity-val-hotspots">100%</span></label>
+                                <input type="range" id="opacity-hotspots" min="0" max="100" value="100" data-layer="hotspots">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bivariate: Fire × Drought (CONUS) -->
+                    <div class="layer-toggle-wrap" data-layer="bivariate"
+                         style="--pill-from:#9972af; --pill-to:#804d36;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-bivariate">
+                            <label for="toggle-bivariate" class="pill-icon" title="Toggle">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="8" height="8"/><rect x="13" y="13" width="8" height="8"/>
+                                    <rect x="13" y="3" width="8" height="8" opacity="0.5"/><rect x="3" y="13" width="8" height="8" opacity="0.5"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Fire × Drought</div>
+                            <div class="pill-subtitle">Bivariate · Contiguous US · FIRMS × USDM</div>
+                            <label for="toggle-bivariate" class="pill-switch" aria-label="Toggle"></label>
+                            <button class="layer-expand" type="button" data-expand aria-label="Details">
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+                            </button>
+                        </div>
+                        <div class="layer-legend">
+                            <div class="layer-legend-title">Fire density × drought severity</div>
+                            <div class="bivariate-legend">
+                                <div class="bivariate-grid">
+                                    <span style="background:#9972af;"></span><span style="background:#976b82;"></span><span style="background:#804d36;"></span>
+                                    <span style="background:#cbb8d7;"></span><span style="background:#c8ada0;"></span><span style="background:#af8e53;"></span>
+                                    <span style="background:#e8e8e8;"></span><span style="background:#e4d9ac;"></span><span style="background:#c8b35a;"></span>
+                                </div>
+                                <div class="bivariate-axis-x">fire density →</div>
+                                <div class="bivariate-axis-y">drought →</div>
+                            </div>
+                            <div class="layer-legend-labels" style="margin-top:6px;">
+                                <span>Contiguous US only — drought data: US Drought Monitor</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Earthquakes -->
+                    <div class="layer-toggle-wrap" data-layer="earthquakes"
+                         style="--pill-from:#A855F7; --pill-to:#6B21A8;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-earthquakes" checked>
+                            <label for="toggle-earthquakes" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 12h3l2-8 4 16 3-12 2 6 2-4 4 2"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Earthquakes</div>
+                            <div class="pill-subtitle"><span id="count-earthquakes">--</span> events · USGS</div>
+                            <label for="toggle-earthquakes" class="pill-switch"></label>
+                            <button class="layer-expand" type="button" data-expand>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+                            </button>
+                        </div>
+                        <div class="layer-legend">
+                            <div class="layer-legend-title">Focal Depth (USGS)</div>
+                            <div class="layer-legend-swatches">
+                                <span class="legend-swatch" style="background:#FF0000;">&lt;70 km</span>
+                                <span class="legend-swatch" style="background:#FFA500;">70–300</span>
+                                <span class="legend-swatch" style="background:#800080;">&gt;300 km</span>
+                            </div>
+                            <div class="layer-legend-title" style="margin-top:10px;">Symbol size = Magnitude</div>
+                        </div>
+                    </div>
+
+                    <!-- Floods -->
+                    <div class="layer-toggle-wrap" data-layer="floods"
+                         style="--pill-from:#3B82F6; --pill-to:#1D4ED8;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-floods">
+                            <label for="toggle-floods" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 2c3 4 6 7 6 11a6 6 0 01-12 0c0-4 3-7 6-11z"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Floods</div>
+                            <div class="pill-subtitle"><span id="count-floods">--</span> gauges · NOAA</div>
+                            <label for="toggle-floods" class="pill-switch"></label>
+                            <button class="layer-expand" type="button" data-expand>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+                            </button>
+                        </div>
+                        <div class="layer-legend">
+                            <div class="layer-legend-title">Flood Status (NOAA)</div>
+                            <div class="layer-legend-gradient" style="background: linear-gradient(to right, #87CEEB, #4169E1, #0000CD, #00008B);"></div>
+                            <div class="layer-legend-labels"><span>Minor</span><span>Major</span></div>
+                            <div class="layer-opacity-row">
+                                <label>Opacity <span id="opacity-val-floods">40%</span></label>
+                                <input type="range" id="opacity-floods" min="0" max="100" value="40" data-layer="floods">
+                            </div>
+                            <div class="layer-filter-row">
+                                <label>Severity</label>
+                                <select id="filter-flood-severity" class="filter-select">
+                                    <option value="all">All statuses</option>
+                                    <option value="major">Major flooding</option>
+                                    <option value="moderate">Moderate+</option>
+                                    <option value="minor">Minor+</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Drought -->
+                    <div class="layer-toggle-wrap" data-layer="drought"
+                         style="--pill-from:#F59E0B; --pill-to:#B45309;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-drought">
+                            <label for="toggle-drought" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="7" y2="7"/><line x1="17" y1="17" x2="19.1" y2="19.1"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Drought</div>
+                            <div class="pill-subtitle"><span id="count-drought">--</span> zones · USDM</div>
+                            <label for="toggle-drought" class="pill-switch"></label>
+                            <button class="layer-expand" type="button" data-expand>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+                            </button>
+                        </div>
+                        <div class="layer-legend">
+                            <div class="layer-legend-title">U.S. Drought Monitor</div>
+                            <div class="layer-legend-swatches">
+                                <span class="legend-swatch" style="background:#FFD700;color:#222;">D0</span>
+                                <span class="legend-swatch" style="background:#FFA500;">D1</span>
+                                <span class="legend-swatch" style="background:#FF4500;">D2</span>
+                                <span class="legend-swatch" style="background:#DC143C;">D3</span>
+                                <span class="legend-swatch" style="background:#8B0000;">D4</span>
+                            </div>
+                            <div class="layer-opacity-row">
+                                <label>Opacity <span id="opacity-val-drought">60%</span></label>
+                                <input type="range" id="opacity-drought" min="0" max="100" value="60" data-layer="drought">
+                            </div>
+                            <div class="layer-filter-row">
+                                <label>Minimum severity</label>
+                                <select id="filter-drought-level" class="filter-select">
+                                    <option value="all">All levels</option>
+                                    <option value="D4">D4 — Exceptional</option>
+                                    <option value="D3">D3+ — Extreme</option>
+                                    <option value="D2">D2+ — Severe</option>
+                                    <option value="D1">D1+ — Moderate</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Air Quality -->
+                    <div class="layer-toggle-wrap" data-layer="airquality"
+                         style="--pill-from:#10B981; --pill-to:#047857;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-airquality">
+                            <label for="toggle-airquality" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M3 8h13a3 3 0 100-6M3 16h17a3 3 0 110 6M3 12h18"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Air Quality</div>
+                            <div class="pill-subtitle"><span id="count-airquality">--</span> stations · Open-Meteo</div>
+                            <label for="toggle-airquality" class="pill-switch"></label>
+                            <button class="layer-expand" type="button" data-expand>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+                            </button>
+                        </div>
+                        <div class="layer-legend">
+                            <div class="layer-legend-title">US AQI Scale</div>
+                            <div class="layer-legend-gradient" style="background: linear-gradient(to right, #00E400, #FFFF00, #FF7E00, #FF0000, #8F3F97, #7E0023);"></div>
+                            <div class="layer-legend-labels"><span>Good</span><span>Hazardous</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Volcanoes -->
+                    <div class="layer-toggle-wrap" data-layer="volcanoes"
+                         style="--pill-from:#EF4444; --pill-to:#7F1D1D;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-volcanoes">
+                            <label for="toggle-volcanoes" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 21l6-14 4 5 3-2 5 11z"/><path d="M11 4c0-1 1-2 2-2"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Volcanoes</div>
+                            <div class="pill-subtitle"><span id="count-volcanoes">--</span> catalogued · showing alert-level only · GVP</div>
+                            <label for="toggle-volcanoes" class="pill-switch"></label>
+                            <button class="layer-expand" type="button" data-expand>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+                            </button>
+                        </div>
+                        <div class="layer-legend">
+                            <div class="layer-legend-title">Alert Level</div>
+                            <div class="layer-legend-swatches">
+                                <span class="legend-swatch" style="background:#00AA00;">Normal</span>
+                                <span class="legend-swatch" style="background:#FFFF00;color:#333;">Adv</span>
+                                <span class="legend-swatch" style="background:#FFA500;">Watch</span>
+                                <span class="legend-swatch" style="background:#FF0000;">Warn</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Glaciers -->
+                    <div class="layer-toggle-wrap" data-layer="glaciers"
+                         style="--pill-from:#60A5FA; --pill-to:#2563EB;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-glaciers">
+                            <label for="toggle-glaciers" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Glaciers</div>
+                            <div class="pill-subtitle"><span id="count-glaciers">--</span> tracked · GLIMS</div>
+                            <label for="toggle-glaciers" class="pill-switch"></label>
+                            <button class="layer-expand" type="button" data-expand>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+                            </button>
+                        </div>
+                        <div class="layer-legend">
+                            <div class="layer-legend-title">Cryosphere outlines — 3D extruded</div>
+                            <div class="layer-opacity-row">
+                                <label>Opacity <span id="opacity-val-glaciers">70%</span></label>
+                                <input type="range" id="opacity-glaciers" min="0" max="100" value="70" data-layer="glaciers">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NDVI -->
+                    <div class="layer-toggle-wrap" data-layer="ndvi"
+                         style="--pill-from:#22C55E; --pill-to:#15803D;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-ndvi">
+                            <label for="toggle-ndvi" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 2c-3 4-3 8 0 12M12 14c3 4 3 8 0 10M8 8c-2 3-2 6 0 9M16 8c2 3 2 6 0 9"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Vegetation (NDVI)</div>
+                            <div class="pill-subtitle">Sentinel-2 · raster tiles</div>
+                            <label for="toggle-ndvi" class="pill-switch"></label>
+                            <button class="layer-expand" type="button" data-expand>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+                            </button>
+                        </div>
+                        <div class="layer-legend">
+                            <div class="layer-legend-title">NDVI Index (–0.2 to 1.0)</div>
+                            <div class="layer-legend-gradient" style="background: linear-gradient(to right, #8B0000, #FF4500, #FFD700, #ADFF2F, #228B22);"></div>
+                            <div class="layer-legend-labels"><span>Bare</span><span>Dense</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Watersheds -->
+                    <div class="layer-toggle-wrap" data-layer="watershed"
+                         style="--pill-from:#0EA5E9; --pill-to:#0369A1;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-watershed">
+                            <label for="toggle-watershed" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 18c4 0 5-4 8-4s4 4 8 4M4 10c4 0 5-4 8-4s4 4 8 4"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Watersheds</div>
+                            <div class="pill-subtitle"><span id="count-watershed">--</span> basins · Hydro</div>
+                            <label for="toggle-watershed" class="pill-switch"></label>
+                            <span class="layer-expand-placeholder"></span>
+                        </div>
+                    </div>
+
+                    <!-- Composite Risk -->
+                    <div class="layer-toggle-wrap" data-layer="risk"
+                         style="--pill-from:#EC4899; --pill-to:#9F1239;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-risk">
+                            <label for="toggle-risk" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 2l10 20H2z"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="17" r="0.5" fill="currentColor"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Composite Risk</div>
+                            <div class="pill-subtitle">Multi-hazard kernel density</div>
+                            <label for="toggle-risk" class="pill-switch"></label>
+                            <button class="layer-expand" type="button" data-expand>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+                            </button>
+                        </div>
+                        <div class="layer-legend">
+                            <div class="layer-legend-title">Inferno heatmap (normalized)</div>
+                            <div class="layer-legend-gradient" style="background: linear-gradient(to right, #1B0C41, #781C6D, #CF4446, #ED6925, #F7D13D, #FCFFA4);"></div>
+                            <div class="layer-legend-labels"><span>Low</span><span>Extreme</span></div>
+                            <div class="layer-opacity-row">
+                                <label>Opacity <span id="opacity-val-risk">60%</span></label>
+                                <input type="range" id="opacity-risk" min="0" max="100" value="60" data-layer="risk">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weather Patterns -->
+            <div class="panel-section">
+                <div class="section-title-wrap">
+                    <svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.5 19a4.5 4.5 0 100-9 6 6 0 00-11.5 1.5 4.5 4.5 0 002 8.5h9.5z"/>
+                    </svg>
+                    <span class="section-title-text">Weather Patterns</span>
+                </div>
+                <div class="section-subtitle">Conditions driving the hazards</div>
+
+                <div id="intel-weather-toggles" class="layer-toggles">
+
+                    <!-- Wind vectors -->
+                    <div class="layer-toggle-wrap" data-intel="wind"
+                         style="--pill-from:#38BDF8; --pill-to:#0284C7;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-wind">
+                            <label for="toggle-wind" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M3 12h13a3 3 0 100-6"/><path d="M3 18h17a3 3 0 110 6"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Wind vectors</div>
+                            <div class="pill-subtitle"><span id="count-wind">--</span> grid · Open-Meteo</div>
+                            <label for="toggle-wind" class="pill-switch"></label>
+                            <button class="layer-expand" type="button" data-expand>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+                            </button>
+                        </div>
+                        <div class="layer-legend">
+                            <div class="layer-legend-title">Speed (km/h) · arrows point downwind</div>
+                            <div class="layer-legend-gradient" style="background:linear-gradient(to right,#7DD3FC,#38BDF8,#0284C7,#1E40AF);"></div>
+                            <div class="layer-legend-labels"><span>Calm</span><span>Gale</span></div>
+                            <div class="layer-opacity-row">
+                                <label>Opacity <span id="opacity-val-wind">85%</span></label>
+                                <input type="range" id="opacity-wind" min="0" max="100" value="85" data-intel="wind">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Precipitation forecast (48h) -->
+                    <div class="layer-toggle-wrap" data-intel="precipitation"
+                         style="--pill-from:#60A5FA; --pill-to:#1E40AF;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-precipitation">
+                            <label for="toggle-precipitation" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M8 19l1-3M12 21l1-3M16 19l1-3M20 16.6A5 5 0 0017 8a7 7 0 00-13 2 5 5 0 002 9.6"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Precipitation (48h)</div>
+                            <div class="pill-subtitle"><span id="count-precipitation">--</span> wet cells · GFS</div>
+                            <label for="toggle-precipitation" class="pill-switch"></label>
+                            <button class="layer-expand" type="button" data-expand>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+                            </button>
+                        </div>
+                        <div class="layer-legend">
+                            <div class="layer-legend-title">Cumulative rainfall forecast (mm)</div>
+                            <div class="layer-legend-gradient" style="background:linear-gradient(to right,#bae4f7,#74b2e0,#3083c4,#084594);"></div>
+                            <div class="layer-legend-labels"><span>Light</span><span>Extreme</span></div>
+                            <div class="layer-opacity-row">
+                                <label>Opacity <span id="opacity-val-precipitation">75%</span></label>
+                                <input type="range" id="opacity-precipitation" min="0" max="100" value="75" data-intel="precipitation">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SST anomaly -->
+                    <div class="layer-toggle-wrap" data-intel="sst"
+                         style="--pill-from:#F97316; --pill-to:#0C4A6E;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-sst">
+                            <label for="toggle-sst" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M2 17c3 0 3-2 6-2s3 2 6 2 3-2 6-2 3 2 6 2M2 12c3 0 3-2 6-2s3 2 6 2 3-2 6-2 3 2 6 2"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Sea surface temp</div>
+                            <div class="pill-subtitle"><span id="count-sst">--</span> marine cells</div>
+                            <label for="toggle-sst" class="pill-switch"></label>
+                            <button class="layer-expand" type="button" data-expand>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+                            </button>
+                        </div>
+                        <div class="layer-legend">
+                            <div class="layer-legend-title">Measured sea surface temperature (°C)</div>
+                            <div class="layer-legend-gradient" style="background:linear-gradient(to right,#0c4a6e,#38bdf8,#cbd5e1,#fde68a,#f97316,#7f1d1d);"></div>
+                            <div class="layer-legend-labels"><span>0</span><span>32</span></div>
+                            <div style="font-size:10px;color:#8C8574;line-height:1.45;margin-top:6px;">Open-Meteo Marine current reading. No anomaly is shown: EcoLens holds no climatology baseline. NOAA OISST v2.1 1991–2020 daily climatology would answer whether a reading is unusual.</div>
+                            <div class="layer-opacity-row">
+                                <label>Opacity <span id="opacity-val-sst">55%</span></label>
+                                <input type="range" id="opacity-sst" min="0" max="100" value="55" data-intel="sst">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Response Activity -->
+            <div class="panel-section">
+                <div class="section-title-wrap">
+                    <svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    <span class="section-title-text">Response Activity</span>
+                </div>
+                <div class="section-subtitle">Worldwide: GDACS + NASA EONET · US detail: NWS</div>
+
+                <div id="intel-response-toggles" class="layer-toggles">
+
+                    <!-- Reported human impact: GDACS Sendai indicator records.
+                         A dozen markers worldwide, not a heat map — this answers
+                         "who was affected", which no hazard feed does on its own. -->
+                    <div class="layer-toggle-wrap" data-intel="impacts"
+                         style="--pill-from:#232019; --pill-to:#5B564A;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-impacts" checked>
+                            <label for="toggle-impacts" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Who is affected</div>
+                            <div class="pill-subtitle" id="subtitle-impacts"><span id="count-impacts">--</span> events with reported impact</div>
+                            <label for="toggle-impacts" class="pill-switch"></label>
+                            <span class="layer-expand-placeholder"></span>
+                        </div>
+                    </div>
+
+                    <!-- Areas affected: the footprint GDACS itself publishes —
+                         GloFAS flood extents, JTWC wind-threshold buffers,
+                         ShakeMap intensity contours. Never a radius EcoLens
+                         invented. Default OFF and lazy: one flood footprint is
+                         ~450 KB, so nothing is fetched until this is switched on. -->
+                    <div class="layer-toggle-wrap" data-intel="affected"
+                         style="--pill-from:#2B5A73; --pill-to:#1B3B4C;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-affected">
+                            <label for="toggle-affected" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21 1 6"/><line x1="8" y1="3" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="21"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Areas affected</div>
+                            <div class="pill-subtitle" id="subtitle-affected"><span id="count-affected">--</span> published zones · GDACS</div>
+                            <label for="toggle-affected" class="pill-switch"></label>
+                            <span class="layer-expand-placeholder"></span>
+                        </div>
+                    </div>
+
+                    <!-- NASA EONET (replaces ReliefWeb which now requires appname registration) -->
+                    <div class="layer-toggle-wrap" data-intel="eonet"
+                         style="--pill-from:#0EA5E9; --pill-to:#075985;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-eonet">
+                            <label for="toggle-eonet" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Open events (7 d)</div>
+                            <div class="pill-subtitle"><span id="count-eonet">--</span> tracked · NASA EONET</div>
+                            <label for="toggle-eonet" class="pill-switch"></label>
+                            <span class="layer-expand-placeholder"></span>
+                        </div>
+                    </div>
+
+                    <!-- GDACS -->
+                    <div class="layer-toggle-wrap" data-intel="gdacs"
+                         style="--pill-from:#DC2626; --pill-to:#7F1D1D;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-gdacs">
+                            <label for="toggle-gdacs" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">GDACS alerts</div>
+                            <div class="pill-subtitle"><span id="count-gdacs">--</span> events · JRC</div>
+                            <label for="toggle-gdacs" class="pill-switch"></label>
+                            <span class="layer-expand-placeholder"></span>
+                        </div>
+                    </div>
+
+                    <!-- NWS active alerts -->
+                    <div class="layer-toggle-wrap" data-intel="nwsalerts"
+                         style="--pill-from:#FBBF24; --pill-to:#B45309;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-nwsalerts">
+                            <label for="toggle-nwsalerts" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">NWS warnings</div>
+                            <div class="pill-subtitle"><span id="count-nwsalerts">--</span> active · United States only</div>
+                            <label for="toggle-nwsalerts" class="pill-switch"></label>
+                            <span class="layer-expand-placeholder"></span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Correlations -->
+            <div class="panel-section">
+                <div class="section-title-wrap">
+                    <svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M7 17l5-5 5 5M7 7l5 5 5-5"/>
+                    </svg>
+                    <span class="section-title-text">Correlations</span>
+                </div>
+                <div class="section-subtitle">Why this hazard is here, where it's going</div>
+
+                <div id="intel-correlation-toggles" class="layer-toggles">
+
+                    <!-- Fire spread arrows -->
+                    <div class="layer-toggle-wrap" data-intel="firewind"
+                         style="--pill-from:#EF4444; --pill-to:#7F1D1D;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-firewind">
+                            <label for="toggle-firewind" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M12 2c0 6-8 8-8 14a8 8 0 0016 0c0-6-8-8-8-14z"/><path d="M14 18l4-4-4-4"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Fire spread risk</div>
+                            <div class="pill-subtitle">Arrows point downwind from each hotspot</div>
+                            <label for="toggle-firewind" class="pill-switch"></label>
+                            <span class="layer-expand-placeholder"></span>
+                        </div>
+                    </div>
+
+                    <!-- Flood escalation -->
+                    <div class="layer-toggle-wrap" data-intel="floodescalation"
+                         style="--pill-from:#3B82F6; --pill-to:#1E3A8A;">
+                        <div class="layer-toggle">
+                            <input type="checkbox" id="toggle-floodescalation">
+                            <label for="toggle-floodescalation" class="pill-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M12 2c3 4 6 7 6 11a6 6 0 01-12 0c0-4 3-7 6-11z"/><polyline points="9 14 12 11 15 14"/>
+                                </svg>
+                            </label>
+                            <div class="pill-title">Flood escalation</div>
+                            <div class="pill-subtitle">Floods × 48h precip forecast</div>
+                            <label for="toggle-floodescalation" class="pill-switch"></label>
+                            <span class="layer-expand-placeholder"></span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Tools -->
+            <div class="panel-section">
+                <h3 class="section-title">Tools</h3>
+                <button id="country-intelligence-btn" class="action-btn action-btn-blue">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10A15.3 15.3 0 0112 2z"/>
+                    </svg>
+                    Country Intelligence
+                </button>
+                <!-- Historical Events + 3D story launchers removed 2026-07-28 —
+                     the 3D data isn't there yet; shelved until it is. -->
+                <button id="export-btn" class="action-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Export Screenshot
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Right Rail: consolidated floating map controls ─── -->
+    <div class="map-rail">
+        <!-- Photorealistic 3D (Google Earth) button removed — the underlying
+             tileset wasn't loading reliably. Native MapLibre terrain stays. -->
+        <button id="area-intel-btn" data-tooltip="Area Intelligence" onclick="toggleAreaIntelMode()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor"/>
+            </svg>
+        </button>
+        <div class="map-rail-divider"></div>
+        <button id="btn-basemap-toggle" data-tooltip="Basemap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Basemap popover (positioned beside rail) -->
+    <div id="basemap-popover" class="basemap-popover">
+        <div class="basemap-popover-title">Basemap</div>
+        <div class="basemap-grid">
+            <button class="basemap-btn active" data-style="liberty" title="EcoLens Paper — the house cartography">
+                <div class="basemap-preview" style="background: linear-gradient(135deg, #F2EFE4, #D9D2BF);"></div>
+                <span>Paper</span>
+            </button>
+            <button class="basemap-btn" data-style="bright" title="Bright">
+                <div class="basemap-preview" style="background: linear-gradient(135deg, #f0f0f0, #d4e6f1);"></div>
+                <span>Bright</span>
+            </button>
+            <button class="basemap-btn" data-style="positron" title="Dark">
+                <div class="basemap-preview" style="background: linear-gradient(135deg, #2c3e50, #1a252f);"></div>
+                <span>Dark</span>
+            </button>
+            <button class="basemap-btn" data-style="satellite" title="Satellite">
+                <div class="basemap-preview" style="background: linear-gradient(135deg, #1a3a1a, #2d5016);"></div>
+                <span>Satellite</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Info Panel (legacy — kept in DOM for compatibility, hidden; inline popup is the single source of truth) -->
+    <div id="info-panel" class="info-panel hidden" style="display:none !important;">
+        <div class="info-panel-header">
+            <h3 id="info-panel-title">Feature Details</h3>
+            <button id="info-panel-close" class="info-close-btn">&times;</button>
+        </div>
+        <div id="info-panel-body" class="info-panel-body"></div>
+    </div>
+
+    <!-- Bottom Stats Bar (real-time metrics with drill-down charts) -->
+    <div class="map-stats-bar" id="map-stats-bar">
+        <button class="stat-cell" data-stat="fires" type="button">
+            <div class="stat-label"><span class="stat-dot" style="background:#F97316;display:inline-block;"></span>Wildfires</div>
+            <div class="stat-value" id="stat-fires">--</div>
+            <div class="stat-delta up">active hotspots</div>
+            <svg class="stat-cell-chevron" width="10" height="10" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+            <div class="stat-dropdown" id="dropdown-fires"></div>
+        </button>
+        <button class="stat-cell" data-stat="quakes" type="button">
+            <div class="stat-label"><span class="stat-dot" style="background:#A855F7;display:inline-block;"></span>Seismic</div>
+            <div class="stat-value" id="stat-quakes">--</div>
+            <div class="stat-delta neutral">events · 24h</div>
+            <svg class="stat-cell-chevron" width="10" height="10" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+            <div class="stat-dropdown" id="dropdown-quakes"></div>
+        </button>
+        <button class="stat-cell" data-stat="floods" type="button">
+            <div class="stat-label"><span class="stat-dot" style="background:#3B82F6;display:inline-block;"></span>Floods</div>
+            <div class="stat-value" id="stat-floods">--</div>
+            <div class="stat-delta neutral">gauges reporting</div>
+            <svg class="stat-cell-chevron" width="10" height="10" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+            <div class="stat-dropdown" id="dropdown-floods"></div>
+        </button>
+        <button class="stat-cell" data-stat="aq" type="button">
+            <div class="stat-label"><span class="stat-dot" style="background:#10B981;display:inline-block;"></span>Air Quality</div>
+            <div class="stat-value" id="stat-aq">--</div>
+            <div class="stat-delta neutral">stations live</div>
+            <svg class="stat-cell-chevron" width="10" height="10" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+            <div class="stat-dropdown" id="dropdown-aq"></div>
+        </button>
+        <button class="stat-cell" data-stat="volc" type="button">
+            <div class="stat-label"><span class="stat-dot" style="background:#EF4444;display:inline-block;"></span>Volcanoes</div>
+            <div class="stat-value" id="stat-volc">--</div>
+            <div class="stat-delta neutral">on alert</div>
+            <svg class="stat-cell-chevron" width="10" height="10" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+            <div class="stat-dropdown" id="dropdown-volc"></div>
+        </button>
+        <button class="stat-cell" data-stat="critical" type="button">
+            <div class="stat-label"><span class="stat-dot" style="background:#22C55E;display:inline-block;"></span>Critical</div>
+            <div class="stat-value" id="stat-critical">--</div>
+            <div class="stat-delta up">severity ≥ high</div>
+            <svg class="stat-cell-chevron" width="10" height="10" viewBox="0 0 12 12" fill="currentColor"><path d="M3 4.5l3 3 3-3z"/></svg>
+            <div class="stat-dropdown" id="dropdown-critical"></div>
+        </button>
+    </div>
+
+    <!-- Event Time Window -->
+    <div id="time-slider-container" class="time-slider-container">
+        <div class="time-slider-inner">
+            <button id="time-play-btn" class="time-play-btn" title="Play/Pause">
+                <svg id="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5,3 19,12 5,21"/>
+                </svg>
+                <svg id="pause-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display:none;">
+                    <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+                </svg>
+            </button>
+            <div class="time-window-tabs" aria-label="Event time window">
+                <button class="time-window-btn" type="button" data-hours="24">Day</button>
+                <button class="time-window-btn active" type="button" data-hours="168">Week</button>
+                <button class="time-window-btn" type="button" data-hours="720">Month</button>
+                <button class="time-window-btn" type="button" data-hours="8760">Year</button>
+            </div>
+            <span id="time-label-start" class="time-label">Past week</span>
+            <input type="range" id="time-slider" min="1" max="8760" value="168" step="1">
+            <span id="time-label-end" class="time-label">Now</span>
+            <span id="time-current" class="time-current">Last 7 days</span>
+        </div>
+    </div>
+
+    <!-- Event Catalog Panel -->
+    <div id="event-catalog-panel" class="event-catalog-panel hidden">
+        <div class="ec-header">
+            <h3>Historical Events</h3>
+            <button id="ec-close-btn" class="info-close-btn">&times;</button>
+        </div>
+        <div class="ec-toolbar">
+            <div class="ec-filters">
+                <button class="ec-filter-btn active" data-filter="all">All</button>
+                <button class="ec-filter-btn" data-filter="wildfire">Fires</button>
+                <button class="ec-filter-btn" data-filter="flood">Floods</button>
+                <button class="ec-filter-btn" data-filter="drought">Drought</button>
+                <button class="ec-filter-btn" data-filter="glacier">Glacier</button>
+                <button class="ec-filter-btn" data-filter="deforestation">Forest</button>
+            </div>
+            <select id="ec-sort" class="filter-select" style="width:auto; min-width:120px;">
+                <option value="date-desc">Newest first</option>
+                <option value="date-asc">Oldest first</option>
+                <option value="severity">Largest area</option>
+                <option value="name">Name A-Z</option>
+            </select>
+        </div>
+        <div id="event-catalog-grid" class="ec-grid"></div>
+    </div>
+
+    <!-- Satellite Swipe Comparison Overlay -->
+    <div id="sim-swipe-container" class="sim-swipe-container hidden">
+        <div id="sim-swipe-divider" class="sim-swipe-divider" style="left: 50%;">
+            <div class="sim-swipe-handle">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="15,18 9,12 15,6"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="9,18 15,12 9,6"/></svg>
+            </div>
+        </div>
+        <div class="sim-swipe-label sim-swipe-before" style="left: 38%;">2018</div>
+        <div class="sim-swipe-label sim-swipe-after" style="left: 54%;">2024</div>
+    </div>
+
+    <!-- Simulation Playback Bar -->
+    <div id="sim-playback-bar" class="sim-playback-bar hidden">
+        <button id="sim-play-btn" class="time-play-btn" title="Play / Pause">
+            <svg id="sim-play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5,3 19,12 5,21"/>
+            </svg>
+            <svg id="sim-pause-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display:none;">
+                <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+            </svg>
+        </button>
+        <span id="sim-date-label" class="sim-date-label">--</span>
+        <input type="range" id="sim-scrubber" class="sim-scrubber" min="0" max="1000" value="0" step="1">
+        <span id="sim-progress-pct" class="sim-progress-pct">0%</span>
+        <button id="sim-speed-btn" class="sim-speed-btn" title="Playback speed">
+            <span id="sim-speed-label">1x</span>
+        </button>
+        <button id="sim-compare-btn" class="sim-compare-btn" title="Toggle swipe comparison">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/>
+                <polyline points="8,10 6,12 8,14"/><polyline points="16,10 18,12 16,14"/>
+            </svg>
+            Compare
+        </button>
+        <span id="sim-stat-label" class="sim-stat-label">--</span>
+        <button id="sim-exit-btn" class="sim-exit-btn" title="Exit simulation">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            Exit
+        </button>
+    </div>
+
+    <!-- Simulation Info Panel -->
+    <div id="sim-info-panel" class="sim-info-panel hidden">
+        <div class="sim-info-header">
+            <div>
+                <span id="sim-info-category" class="sim-category-badge sim-cat-wildfire">Wildfire</span>
+                <h3 id="sim-info-title">Event Name</h3>
+            </div>
+        </div>
+        <div class="sim-info-body">
+            <p id="sim-info-description" class="sim-info-desc"></p>
+            <div class="info-row">
+                <span class="info-key">Dates</span>
+                <span class="info-value" id="sim-info-dates">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-key">Area</span>
+                <span class="info-value" id="sim-info-area">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-key">Country</span>
+                <span class="info-value" id="sim-info-country">--</span>
+            </div>
+            <div id="sim-info-metadata"></div>
+        </div>
+    </div>
+
+    <!-- Custom attribution -->
+    <div id="custom-attribution" class="custom-attribution">
+        EcoLens | Data: NASA FIRMS, NOAA, USDM, GLIMS, USGS, Open-Meteo | Tiles: OpenFreeMap
+    </div>
+
+    <!-- Runtime config -->
+    <script>
+        // FIRMS API key now lives server-side in the firms_proxy Cloud Function.
+        // Override the proxy URL here only if you've redeployed under a custom region.
+        // window.ECOLENS_FIRMS_PROXY_URL = 'https://us-central1-ecolens-ad854.cloudfunctions.net/firms_proxy';
+    </script>
+
+    <!-- Layer row expand + basemap popover toggles -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Chevron click expands the row's legend (without toggling the checkbox)
+            document.querySelectorAll('.layer-expand').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const wrap = btn.closest('.layer-toggle-wrap');
+                    if (wrap) wrap.classList.toggle('expanded');
+                });
+            });
+
+            // Sync .is-on class on the pill wrap from its checkbox state
+            const syncPillState = (cb) => {
+                const wrap = cb.closest('.layer-toggle-wrap');
+                if (wrap) wrap.classList.toggle('is-on', cb.checked);
+            };
+            document.querySelectorAll('#layer-toggles input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', () => syncPillState(cb));
+                syncPillState(cb); // initial state
+            });
+            // Re-sync after map-core loads defaults (setTimeout covers async state)
+            [800, 2000, 5000].forEach(ms => setTimeout(() => {
+                document.querySelectorAll('#layer-toggles input[type="checkbox"]').forEach(syncPillState);
+            }, ms));
+
+            // ─── Intelligence-layer toggles (Weather / Response / Correlations) ───
+            const intelKeys = ['wind','precipitation','sst','impacts','affected','eonet','gdacs','nwsalerts','firewind','floodescalation'];
+            intelKeys.forEach(key => {
+                const cb = document.getElementById(`toggle-${key}`);
+                if (!cb) return;
+                cb.addEventListener('change', () => {
+                    syncPillState(cb);
+                    if (window.IntelligenceLayers) {
+                        // Heavy source-geometry layers ('Areas affected') fetch
+                        // on the first switch-on only, then stay cached for the
+                        // session. Progress lands in the pill's own count span.
+                        if (cb.checked && window.IntelligenceLayers.ensureLoaded) {
+                            window.IntelligenceLayers.ensureLoaded(key);
+                        }
+                        window.IntelligenceLayers.setLayerVisibility(key, cb.checked);
+                        // Correlation layers depend on fresh derived data — rebuild on toggle-on
+                        if (cb.checked && (key === 'firewind' || key === 'floodescalation')) {
+                            window.IntelligenceLayers.refreshCorrelations();
+                        }
+                    }
+                });
+                syncPillState(cb);
+            });
+
+            // Opacity sliders for intel layers
+            ['wind','precipitation','sst'].forEach(key => {
+                const slider = document.getElementById(`opacity-${key}`);
+                const label = document.getElementById(`opacity-val-${key}`);
+                if (!slider) return;
+                slider.addEventListener('input', () => {
+                    const v = Number(slider.value);
+                    if (label) label.textContent = `${v}%`;
+                    if (window.IntelligenceLayers) {
+                        window.IntelligenceLayers.setLayerOpacity(key, v / 100);
+                    }
+                });
+            });
+
+            // ─── Active Alerts Panel: pull from loaded sources ───
+            const alertBody = document.getElementById('alerts-body');
+            const alertCount = document.getElementById('alerts-count');
+            const alertSub = document.getElementById('alerts-subtitle');
+            const alertSummary = document.getElementById('alerts-summary');
+            const headerMeta = document.getElementById('map-header-meta');
+
+            const timeAgo = (d) => {
+                if (!d) return '';
+                const sec = Math.floor((Date.now() - d.getTime()) / 1000);
+                if (sec < 60) return sec + 's ago';
+                if (sec < 3600) return Math.floor(sec/60) + 'm ago';
+                if (sec < 86400) return Math.floor(sec/3600) + 'h ago';
+                return Math.floor(sec/86400) + 'd ago';
+            };
+
+            const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[ch]));
+
+            const signalId = (prefix, lat, lng, seed = '') =>
+                `${prefix}-${lat.toFixed(3)}-${lng.toFixed(3)}-${String(seed).replace(/[^a-z0-9]/gi, '').slice(0, 8) || 'live'}`;
+
+            const firstCoordPair = (coords) => {
+                if (!Array.isArray(coords)) return null;
+                if (typeof coords[0] === 'number' && typeof coords[1] === 'number') return coords;
+                for (const child of coords) {
+                    const hit = firstCoordPair(child);
+                    if (hit) return hit;
+                }
+                return null;
+            };
+
+            const featurePoint = (feature) => {
+                const c = firstCoordPair(feature?.geometry?.coordinates);
+                return c || [0, 0];
+            };
+
+            const windowHours = () => Number(window.EcoLensTimeWindowHours || 168);
+
+            const windowLabel = (hours) => {
+                if (hours <= 24) return 'Last 24h';
+                if (hours <= 168) return 'Last 7 days';
+                if (hours <= 720) return 'Last 30 days';
+                return 'Last 12 months';
+            };
+
+            const eventAgeHours = (event) => {
+                if (!event.time || Number.isNaN(event.time.getTime())) return null;
+                return (Date.now() - event.time.getTime()) / 3600000;
+            };
+
+            const inWindow = (event, hours) => {
+                const age = eventAgeHours(event);
+                return age == null ? true : age <= hours;
+            };
+
+            const inPreviousWindow = (event, hours) => {
+                const age = eventAgeHours(event);
+                return age != null && age > hours && age <= hours * 2;
+            };
+
+            const typePattern = (type) => ({
+                wildfire: 'heat + dry fuels',
+                flood: 'rainfall + river response',
+                drought: 'precipitation deficit',
+                airquality: 'stagnation or smoke',
+                quake: 'tectonic pattern',
+                volcano: 'ash and wind transport',
+            }[type] || 'monitoring signal');
+
+            /**
+             * An EcoLens scenario parameter. NOT a measurement, NOT a
+             * published boundary, and never to be rendered as either.
+             *
+             * It used to be called impactRadiusKm, was drawn on the live
+             * map as a dashed circle on every Locate click, and was
+             * printed on the card as "Impact radius: 120 km watch zone".
+             * No agency published any of those numbers — 120 came from
+             * `mag >= 6`, 75 from the word "drought". Worse, the same
+             * screen can show the "Areas affected" layer, whose whole
+             * promise is that its outlines are the ones the source itself
+             * published, and nothing told the reader which circle was
+             * which.
+             *
+             * Two callers remain, and neither renders it as a figure: it
+             * sizes the clearly-labelled simulation, and it bounds the
+             * "nearby events" proximity search. Where the real extent of
+             * an event matters, "Areas affected" carries the footprints
+             * GDACS publishes, and where no footprint is published,
+             * EcoLens draws nothing.
+             */
+            const scenarioRadiusKm = (event) => {
+                if (event.scenarioRadiusKm) return event.scenarioRadiusKm;
+                if (event.type === 'wildfire') return event.sev === 'critical' ? 30 : event.sev === 'high' ? 18 : 8;
+                if (event.type === 'flood') return event.sev === 'critical' ? 35 : event.sev === 'high' ? 22 : 12;
+                if (event.type === 'drought') return 75;
+                if (event.type === 'airquality') return 50;
+                if (event.type === 'quake') return event.sev === 'critical' ? 150 : event.sev === 'high' ? 90 : 45;
+                return 25;
+            };
+
+            const attachEventIntel = (event) => ({
+                weatherLinked: ['wildfire', 'flood', 'drought', 'airquality'].includes(event.type),
+                drivers: event.drivers || typePattern(event.type),
+                pattern: event.pattern || typePattern(event.type),
+                forecast: event.forecast || 'Open Area Intelligence to compare local weather, exposure, and nearby hazards.',
+                ...event,
+            });
+
+            const haversineKm = (a, b) => {
+                const R = 6371;
+                const dLat = (b.lat - a.lat) * Math.PI / 180;
+                const dLon = (b.lng - a.lng) * Math.PI / 180;
+                const lat1 = a.lat * Math.PI / 180;
+                const lat2 = b.lat * Math.PI / 180;
+                const x = Math.sin(dLat / 2) ** 2 +
+                    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+                return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+            };
+
+            const addNearbyPattern = (events) => events.map(event => {
+                if (event.lat == null || event.lng == null) return event;
+                const nearby = events.filter(other =>
+                    other !== event &&
+                    other.lat != null &&
+                    other.lng != null &&
+                    haversineKm(event, other) <= Math.max(scenarioRadiusKm(event), 50));
+                const mixedTypes = [...new Set(nearby.map(n => n.type).filter(t => t !== event.type))];
+                return {
+                    ...event,
+                    pattern: mixedTypes.length
+                        ? `${typePattern(event.type)}; nearby ${mixedTypes.slice(0, 2).join(' + ')}`
+                        : event.pattern || typePattern(event.type),
+                };
+            });
+
+            const ICONS = {
+                wildfire: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c0 6-8 8-8 14a8 8 0 0016 0c0-6-8-8-8-14z"/></svg>',
+                quake:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2-8 4 16 3-12 2 6 2-4 4 2"/></svg>',
+                volcano:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l6-14 4 5 3-2 5 11z"/></svg>',
+                flood:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c3 4 6 7 6 11a6 6 0 01-12 0c0-4 3-7 6-11z"/></svg>',
+                drought:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c7-1 12-6 16-16"/><path d="M8 19c-3-5-2-10 2-14"/><path d="M14 15c-2-2-3-5-2-9"/></svg>',
+                airquality:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h13a3 3 0 100-6"/><path d="M3 16h17a3 3 0 110 6"/><path d="M3 12h18"/></svg>',
+            };
+
+            const statsState = { fires: 0, quakes: 0, floods: 0, aq: 0, volc: 0, drought: 0 };
+
+            const buildAlerts = () => {
+                const map = window.ecoMap;
+                if (!map || !map.getSource) return;
+                // Archive playback owns the sources — freeze the queue while active
+                if (window.EcoLensHistoryMode) return;
+                if (window.HazardLayers?.applyTimeWindow) {
+                    window.HazardLayers.applyTimeWindow(windowHours());
+                }
+                const alerts = [];
+
+                // Fires — top by FRP, deduped spatially (0.5° grid)
+                try {
+                    const src = map.getSource('fires-source');
+                    const data = src && src._data;
+                    if (data && data.features) {
+                        statsState.fires = data.features.length;
+                        const seen = new Set();
+                        const byFrp = [...data.features]
+                            .filter(f => f.properties && f.properties.frp)
+                            .sort((a,b) => (b.properties.frp||0) - (a.properties.frp||0));
+                        for (const f of byFrp) {
+                            const c = f.geometry?.coordinates || [0, 0];
+                            const key = `${Math.round(c[0] * 2)},${Math.round(c[1] * 2)}`;
+                            if (seen.has(key)) continue;
+                            seen.add(key);
+                            const p = f.properties;
+                            const frp = p.frp || 0;
+                            const sev = frp > 200 ? 'critical' : frp > 80 ? 'high' : 'medium';
+                            const lat = c[1], lng = c[0];
+                            const date = p.acq_date ? new Date(p.acq_date + 'T00:00:00Z') : null;
+                            const title = frp > 200 ? 'Extreme wildfire complex'
+                                        : frp > 80  ? 'Active wildfire'
+                                        :             'Wildfire detection';
+                            alerts.push({
+                                id: signalId('FIRMS', lat, lng, `${p.acq_date || ''}${frp}`),
+                                type: 'wildfire',
+                                color: '#F97316', colorBg: 'rgba(249,115,22,0.15)',
+                                sev, title,
+                                loc: `${lat.toFixed(2)}°, ${lng.toFixed(2)}° · ${p.confidence || 'n/a'} conf.`,
+                                source: 'NASA FIRMS VIIRS',
+                                confidence: p.confidence || 'unrated',
+                                status: 'live detection',
+                                desc: `${frp.toFixed(1)} MW fire radiative power. Verify wind, humidity, fuels, and nearby communities before publication.`,
+                                drivers: 'heat anomaly, dry fuels, wind exposure',
+                                forecast: 'Spread risk rises if winds increase or relative humidity drops below local seasonal norms.',
+                                scenarioRadiusKm: frp > 200 ? 30 : frp > 80 ? 18 : 8,
+                                time: date,
+                                lat, lng, zoom: 11,
+                            });
+                            if (alerts.length >= 4) break;
+                        }
+                    }
+                } catch (e) { console.warn('[alerts] fires', e); }
+
+                // Earthquakes — top 4 by magnitude
+                try {
+                    const src = map.getSource('earthquakes-source');
+                    const data = src && src._data;
+                    if (data && data.features) {
+                        statsState.quakes = data.features.length;
+                        const top = [...data.features]
+                            .filter(f => f.properties && f.properties.mag)
+                            .sort((a,b) => (b.properties.mag||0) - (a.properties.mag||0))
+                            .slice(0, 4);
+                        top.forEach(f => {
+                            const p = f.properties;
+                            const c = f.geometry?.coordinates || [0, 0, 0];
+                            const mag = p.mag || 0;
+                            const sev = mag >= 6 ? 'critical' : mag >= 5 ? 'high' : mag >= 4 ? 'medium' : 'info';
+                            const depth = (c[2] || 0).toFixed(0);
+                            alerts.push({
+                                id: p.code || p.id || signalId('USGS', c[1], c[0], mag),
+                                type: 'quake',
+                                color: '#A855F7', colorBg: 'rgba(168,85,247,0.15)',
+                                sev,
+                                title: `M${mag.toFixed(1)} earthquake`,
+                                loc: p.place || 'Unknown location',
+                                desc: `Focal depth ${depth} km · ${p.tsunami ? '⚠ tsunami flag · ' : ''}USGS rapid solution`,
+                                source: 'USGS Earthquake Hazards',
+                                confidence: p.status || 'automatic',
+                                status: p.type || 'earthquake',
+                                drivers: 'tectonic rupture, not weather-driven',
+                                forecast: 'Aftershock monitoring and exposure mapping are more useful here than weather anomaly analysis.',
+                                scenarioRadiusKm: mag >= 6 ? 150 : mag >= 5 ? 90 : mag >= 4 ? 45 : 20,
+                                time: p.time ? new Date(p.time) : null,
+                                lat: c[1], lng: c[0], zoom: 7,
+                            });
+                        });
+                    }
+                } catch (e) { console.warn('[alerts] quakes', e); }
+
+                // Volcanoes — any at Watch/Warning level
+                try {
+                    const src = map.getSource('volcanoes-source');
+                    const data = src && src._data;
+                    if (data && data.features) {
+                        const watchCount = data.features.filter(f => {
+                            const lvl = (f.properties?.alert_level || '').toLowerCase();
+                            return lvl.includes('warn') || lvl.includes('watch');
+                        }).length;
+                        statsState.volc = watchCount;
+                        const top = data.features
+                            .filter(f => {
+                                const lvl = (f.properties?.alert_level || '').toLowerCase();
+                                return lvl.includes('warn') || lvl.includes('watch');
+                            })
+                            .slice(0, 2);
+                        top.forEach(f => {
+                            const p = f.properties;
+                            const c = f.geometry?.coordinates || [0, 0];
+                            const lvl = (p.alert_level || '').toLowerCase();
+                            const sev = lvl.includes('warn') ? 'critical' : 'high';
+                            alerts.push({
+                                id: p.id || signalId('GVP', c[1], c[0], p.name || ''),
+                                type: 'volcano',
+                                color: '#EF4444', colorBg: 'rgba(239,68,68,0.15)',
+                                sev,
+                                title: p.name || 'Volcano alert',
+                                loc: p.country || 'Unknown',
+                                desc: `Alert: ${p.alert_level || 'elevated'} · Smithsonian GVP`,
+                                source: 'Smithsonian GVP',
+                                confidence: p.alert_level || 'monitored',
+                                status: p.alert_level || 'elevated',
+                                drivers: 'volcanic unrest; wind controls ash exposure',
+                                forecast: 'Use wind direction and aviation color to estimate ash transport and air-quality exposure.',
+                                scenarioRadiusKm: sev === 'critical' ? 80 : 45,
+                                time: null,
+                                lat: c[1], lng: c[0], zoom: 8,
+                            });
+                        });
+                    }
+                } catch (e) { console.warn('[alerts] volc', e); }
+
+                // GDACS — worldwide multi-hazard alerts (cyclones, floods,
+                // droughts, quakes) so the queue never reads US-centric.
+                try {
+                    const src = map.getSource('intel-gdacs-source');
+                    const data = src && src._data;
+                    if (data && data.features) {
+                        const ranked = [...data.features]
+                            .filter(f => {
+                                const lvl = f.properties?.alert_level || '';
+                                return lvl === 'Red' || lvl === 'Orange';
+                            })
+                            .sort((a, b) => (b.properties.score || 0) - (a.properties.score || 0))
+                            .slice(0, 4);
+                        ranked.forEach(f => {
+                            const p = f.properties;
+                            const c = featurePoint(f);
+                            const sev = p.alert_level === 'Red' ? 'critical' : 'high';
+                            const kind = ({ TC: 'Tropical cyclone', EQ: 'Earthquake', FL: 'Flood',
+                                DR: 'Drought', VO: 'Volcano', WF: 'Wildfire', TS: 'Tsunami' })[p.event_type]
+                                || p.event_type || 'Disaster event';
+                            alerts.push({
+                                id: signalId('GDACS', c[1], c[0], p.event_name || ''),
+                                type: 'gdacs',
+                                color: '#DC2626', colorBg: 'rgba(220,38,38,0.15)',
+                                sev,
+                                title: `${kind} — ${p.alert_level} alert`,
+                                loc: p.event_name ? `${p.event_name}${p.country ? ' · ' + p.country : ''}` : (p.country || 'International'),
+                                desc: `GDACS alert score ${(p.score || 0).toFixed(1)}${p.affected ? ' · population exposure ' + p.affected : ''}. Humanitarian impact assessment by the Joint Research Centre.`,
+                                source: 'GDACS · EC-JRC',
+                                confidence: p.alert_level,
+                                status: 'active event',
+                                drivers: 'multi-hazard event scored on population exposure',
+                                forecast: 'GDACS scores update as exposure and severity estimates are refined.',
+                                scenarioRadiusKm: sev === 'critical' ? 120 : 60,
+                                time: p.from_date ? new Date(p.from_date) : null,
+                                lat: c[1], lng: c[0], zoom: 6,
+                            });
+                        });
+                    }
+                } catch (e) { console.warn('[alerts] gdacs', e); }
+
+                // Floods count
+                try {
+                    const src = map.getSource('floods-source');
+                    const data = src && src._data;
+                    if (data?.features) {
+                        statsState.floods = data.features.length;
+                        const top = [...data.features]
+                            .filter(f => f.geometry && f.properties)
+                            .sort((a,b) => (b.properties.risk_level || 0) - (a.properties.risk_level || 0))
+                            .slice(0, 3);
+                        top.forEach(f => {
+                            const p = f.properties;
+                            const c = featurePoint(f);
+                            const risk = p.risk_level || 0;
+                            const sev = risk >= 3 ? 'critical' : risk >= 2 ? 'high' : risk >= 1 ? 'medium' : 'info';
+                            alerts.push({
+                                id: p.id || signalId('NWS', c[1], c[0], p.event || p.status || risk),
+                                type: 'flood',
+                                color: '#3B82F6', colorBg: 'rgba(59,130,246,0.15)',
+                                sev,
+                                title: p.event || p.title || 'Flood alert',
+                                loc: p.areaDesc || p.location || `${(c[1] || 0).toFixed(2)}°, ${(c[0] || 0).toFixed(2)}°`,
+                                desc: p.headline || p.description || `Flood risk level ${risk}`,
+                                source: 'NOAA / National Weather Service (US coverage)',
+                                confidence: p.certainty || p.status || 'issued',
+                                status: p.status || p.severity || 'active',
+                                drivers: 'heavy rainfall, runoff, stream stage',
+                                forecast: 'Escalation risk depends on upstream rain, soil saturation, and tide or storm-surge timing.',
+                                scenarioRadiusKm: risk >= 3 ? 35 : risk >= 2 ? 22 : 12,
+                                time: p.effective ? new Date(p.effective) : null,
+                                lat: c[1], lng: c[0], zoom: 9,
+                            });
+                        });
+                    }
+                } catch (e) {}
+
+                // Drought products - high severity areas become slow-onset weather events
+                try {
+                    const src = map.getSource('drought-source');
+                    const data = src && src._data;
+                    if (data?.features) {
+                        statsState.drought = data.features.length;
+                        const top = [...data.features]
+                            .filter(f => f.geometry && f.properties)
+                            .sort((a,b) => (b.properties.severity_index || 0) - (a.properties.severity_index || 0))
+                            .slice(0, 3);
+                        top.forEach(f => {
+                            const p = f.properties;
+                            const c = featurePoint(f);
+                            const idx = p.severity_index || 0;
+                            if (idx < 3) return;
+                            const sev = idx >= 5 ? 'critical' : idx >= 4 ? 'high' : 'medium';
+                            alerts.push({
+                                id: p.fips || signalId('USDM', c[1], c[0], p.max_severity || idx),
+                                type: 'drought',
+                                color: '#D97706', colorBg: 'rgba(217,119,6,0.15)',
+                                sev,
+                                title: `${p.max_severity || 'Drought'} drought signal`,
+                                loc: [p.county, p.state].filter(Boolean).join(', ') || `${(c[1] || 0).toFixed(2)}°, ${(c[0] || 0).toFixed(2)}°`,
+                                desc: 'Slow-onset water stress. Compare rainfall deficit, vegetation stress, and wildfire probability.',
+                                source: 'US Drought Monitor',
+                                confidence: 'weekly composite',
+                                status: p.max_severity || 'active',
+                                drivers: 'precipitation deficit, heat, vegetation stress',
+                                forecast: 'Watch for wildfire amplification, crop stress, and water-supply pressure if heat persists.',
+                                scenarioRadiusKm: 75,
+                                time: p.valid_date ? new Date(String(p.valid_date)) : null,
+                                lat: c[1], lng: c[0], zoom: 7,
+                            });
+                        });
+                    }
+                } catch (e) { console.warn('[alerts] drought', e); }
+
+                // Air quality count + unhealthy exposure events
+                try {
+                    const src = map.getSource('airquality-source');
+                    const data = src && src._data;
+                    if (data?.features) {
+                        statsState.aq = data.features.length;
+                        const top = [...data.features]
+                            .filter(f => f.geometry && f.properties && (f.properties.aqi || f.properties.us_aqi || 0) > 100)
+                            .sort((a,b) => ((b.properties.aqi || b.properties.us_aqi || 0) - (a.properties.aqi || a.properties.us_aqi || 0)))
+                            .slice(0, 3);
+                        top.forEach(f => {
+                            const p = f.properties;
+                            const c = featurePoint(f);
+                            const aqi = p.aqi || p.us_aqi || 0;
+                            const sev = aqi > 200 ? 'critical' : aqi > 150 ? 'high' : 'medium';
+                            alerts.push({
+                                id: signalId('AQ', c[1], c[0], aqi),
+                                type: 'airquality',
+                                color: '#10B981', colorBg: 'rgba(16,185,129,0.15)',
+                                sev,
+                                title: `Air-quality exposure ${aqi}`,
+                                loc: `${(c[1] || 0).toFixed(2)}°, ${(c[0] || 0).toFixed(2)}°`,
+                                desc: `PM2.5 ${p.pm25 ?? '--'} ug/m3. Check smoke transport, stagnation, and vulnerable populations.`,
+                                source: 'Open-Meteo Air Quality',
+                                confidence: 'model grid',
+                                status: 'current',
+                                drivers: 'smoke, stagnant air, wind transport',
+                                forecast: 'Exposure can worsen under low wind, inversions, heat, or nearby wildfire smoke.',
+                                scenarioRadiusKm: 50,
+                                time: new Date(),
+                                lat: c[1], lng: c[0], zoom: 8,
+                            });
+                        });
+                    }
+                } catch (e) {}
+
+                // Sort by severity rank, then recency
+                const sevRank = { critical: 3, high: 2, medium: 1, info: 0 };
+                const enrichedAlerts = addNearbyPattern(alerts.map(attachEventIntel));
+                enrichedAlerts.sort((a,b) => {
+                    const s = (sevRank[b.sev]||0) - (sevRank[a.sev]||0);
+                    if (s !== 0) return s;
+                    return (b.time?.getTime() || 0) - (a.time?.getTime() || 0);
+                });
+
+                const hours = windowHours();
+                const currentAlerts = enrichedAlerts.filter(a => inWindow(a, hours));
+                const previousAlerts = enrichedAlerts.filter(a => inPreviousWindow(a, hours));
+                render(currentAlerts.slice(0, 8), {
+                    allAlerts: enrichedAlerts,
+                    currentAlerts,
+                    previousAlerts,
+                    hours,
+                });
+                renderStats(currentAlerts);
+            };
+
+            const renderStats = (alerts) => {
+                const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+                const fmt = (n) => n >= 1000 ? (n/1000).toFixed(n >= 10000 ? 0 : 1) + 'k' : String(n);
+                set('stat-fires',  fmt(statsState.fires));
+                set('stat-quakes', fmt(statsState.quakes));
+                set('stat-floods', fmt(statsState.floods));
+                set('stat-aq',     fmt(statsState.aq));
+                set('stat-volc',   fmt(statsState.volc));
+                const crit = alerts.filter(a => a.sev === 'critical' || a.sev === 'high').length;
+                set('stat-critical', String(crit));
+
+                // Recompute drill-down charts
+                buildDropdowns(alerts);
+            };
+
+            // ─── Drill-down chart builders ───
+            const barRow = (label, count, max, color) => {
+                const pct = max > 0 ? (count / max * 100) : 0;
+                return `<div class="dropdown-row">
+                    <span class="dropdown-row-label">${label}</span>
+                    <div class="dropdown-row-bar"><div class="dropdown-row-fill" style="width:${pct}%;--bar-color:${color};"></div></div>
+                    <span class="dropdown-row-val">${count}</span>
+                </div>`;
+            };
+
+            const getFeatures = (sourceId) => {
+                try {
+                    const src = window.ecoMap?.getSource(sourceId);
+                    return src?._data?.features || [];
+                } catch (e) { return []; }
+            };
+
+            const buildDropdowns = (alerts) => {
+                // WILDFIRES — confidence distribution + day/night split
+                const fires = getFeatures('fires-source');
+                const conf = { high: 0, nominal: 0, low: 0 };
+                let day = 0, night = 0;
+                let sumFrp = 0;
+                fires.forEach(f => {
+                    const c = (f.properties?.confidence || 'nominal').toLowerCase();
+                    if (c.startsWith('h')) conf.high++;
+                    else if (c.startsWith('l')) conf.low++;
+                    else conf.nominal++;
+                    if ((f.properties?.daynight || 'D') === 'D') day++; else night++;
+                    sumFrp += (f.properties?.frp || 0);
+                });
+                const maxConf = Math.max(conf.high, conf.nominal, conf.low, 1);
+                const totalFrp = sumFrp.toFixed(0);
+                document.getElementById('dropdown-fires').innerHTML = `
+                    <div class="dropdown-title">Detection confidence · ${fires.length.toLocaleString()} pixels</div>
+                    ${barRow('High', conf.high, maxConf, '#DC2626')}
+                    ${barRow('Nominal', conf.nominal, maxConf, '#F97316')}
+                    ${barRow('Low', conf.low, maxConf, '#FCD34D')}
+                    <div class="dropdown-summary">Σ FRP <b>${totalFrp} MW</b> · Day/Night <b>${day}/${night}</b> · NASA FIRMS VIIRS+MODIS</div>`;
+
+                // SEISMIC — magnitude distribution
+                const quakes = getFeatures('earthquakes-source');
+                const mags = { m2: 0, m3: 0, m4: 0, m5: 0, m6: 0 };
+                let sumDepth = 0, maxMag = 0;
+                quakes.forEach(f => {
+                    const m = f.properties?.mag || 0;
+                    if (m >= 6) mags.m6++;
+                    else if (m >= 5) mags.m5++;
+                    else if (m >= 4) mags.m4++;
+                    else if (m >= 3) mags.m3++;
+                    else mags.m2++;
+                    sumDepth += (f.geometry?.coordinates?.[2] || 0);
+                    if (m > maxMag) maxMag = m;
+                });
+                const maxBar = Math.max(mags.m2, mags.m3, mags.m4, mags.m5, mags.m6, 1);
+                const avgDepth = quakes.length ? (sumDepth / quakes.length).toFixed(0) : 0;
+                document.getElementById('dropdown-quakes').innerHTML = `
+                    <div class="dropdown-title">Magnitude distribution · last 24h</div>
+                    ${barRow('M 6.0+', mags.m6, maxBar, '#DC2626')}
+                    ${barRow('M 5.0–5.9', mags.m5, maxBar, '#EA580C')}
+                    ${barRow('M 4.0–4.9', mags.m4, maxBar, '#D97706')}
+                    ${barRow('M 3.0–3.9', mags.m3, maxBar, '#A855F7')}
+                    ${barRow('M 2.5–2.9', mags.m2, maxBar, '#6366F1')}
+                    <div class="dropdown-summary">Peak <b>M${maxMag.toFixed(1)}</b> · Avg depth <b>${avgDepth} km</b> · USGS</div>`;
+
+                // FLOODS — severity distribution
+                const floods = getFeatures('floods-source');
+                const sev = { major: 0, moderate: 0, minor: 0, action: 0, normal: 0 };
+                floods.forEach(f => {
+                    const s = (f.properties?.status || f.properties?.severity || 'normal').toLowerCase();
+                    if (s.includes('major')) sev.major++;
+                    else if (s.includes('mod')) sev.moderate++;
+                    else if (s.includes('minor')) sev.minor++;
+                    else if (s.includes('act')) sev.action++;
+                    else sev.normal++;
+                });
+                const maxF = Math.max(sev.major, sev.moderate, sev.minor, sev.action, sev.normal, 1);
+                document.getElementById('dropdown-floods').innerHTML = `
+                    <div class="dropdown-title">Gauge status · NOAA NWS</div>
+                    ${barRow('Major', sev.major, maxF, '#1D4ED8')}
+                    ${barRow('Moderate', sev.moderate, maxF, '#3B82F6')}
+                    ${barRow('Minor', sev.minor, maxF, '#60A5FA')}
+                    ${barRow('Action', sev.action, maxF, '#93C5FD')}
+                    ${barRow('Normal', sev.normal, maxF, '#6b7280')}
+                    <div class="dropdown-summary"><b>${floods.length}</b> stream gauges reporting · updates every 15 min</div>`;
+
+                // AIR QUALITY — AQI bucket distribution
+                const aq = getFeatures('airquality-source');
+                const aqi = { good: 0, mod: 0, usg: 0, unhealthy: 0, vuh: 0, haz: 0 };
+                aq.forEach(f => {
+                    const v = f.properties?.us_aqi ?? f.properties?.aqi ?? 0;
+                    if (v > 300) aqi.haz++;
+                    else if (v > 200) aqi.vuh++;
+                    else if (v > 150) aqi.unhealthy++;
+                    else if (v > 100) aqi.usg++;
+                    else if (v > 50) aqi.mod++;
+                    else aqi.good++;
+                });
+                const maxA = Math.max(aqi.good, aqi.mod, aqi.usg, aqi.unhealthy, aqi.vuh, aqi.haz, 1);
+                document.getElementById('dropdown-aq').innerHTML = `
+                    <div class="dropdown-title">US AQI buckets · live</div>
+                    ${barRow('Hazardous', aqi.haz, maxA, '#7E0023')}
+                    ${barRow('Very Unhealthy', aqi.vuh, maxA, '#8F3F97')}
+                    ${barRow('Unhealthy', aqi.unhealthy, maxA, '#FF0000')}
+                    ${barRow('Sensitive', aqi.usg, maxA, '#FF7E00')}
+                    ${barRow('Moderate', aqi.mod, maxA, '#FFFF00')}
+                    ${barRow('Good', aqi.good, maxA, '#00E400')}
+                    <div class="dropdown-summary"><b>${aq.length}</b> stations · Open-Meteo</div>`;
+
+                // VOLCANOES — alert level distribution
+                const volc = getFeatures('volcanoes-source');
+                const lvl = { warn: 0, watch: 0, adv: 0, normal: 0 };
+                volc.forEach(f => {
+                    const l = (f.properties?.alert_level || 'normal').toLowerCase();
+                    if (l.includes('warn')) lvl.warn++;
+                    else if (l.includes('watch')) lvl.watch++;
+                    else if (l.includes('adv')) lvl.adv++;
+                    else lvl.normal++;
+                });
+                const maxV = Math.max(lvl.warn, lvl.watch, lvl.adv, lvl.normal, 1);
+                document.getElementById('dropdown-volc').innerHTML = `
+                    <div class="dropdown-title">Alert level · ${volc.length} monitored</div>
+                    ${barRow('Warning', lvl.warn, maxV, '#FF0000')}
+                    ${barRow('Watch', lvl.watch, maxV, '#FFA500')}
+                    ${barRow('Advisory', lvl.adv, maxV, '#FFD700')}
+                    ${barRow('Normal', lvl.normal, maxV, '#22C55E')}
+                    <div class="dropdown-summary">Smithsonian Global Volcanism Program</div>`;
+
+                // CRITICAL — breakdown by type
+                const byType = { wildfire: 0, quake: 0, volcano: 0, flood: 0, drought: 0, airquality: 0 };
+                alerts.forEach(a => {
+                    if (a.sev === 'critical' || a.sev === 'high') byType[a.type] = (byType[a.type] || 0) + 1;
+                });
+                const maxC = Math.max(byType.wildfire, byType.quake, byType.volcano, byType.flood, byType.drought, byType.airquality, 1);
+                document.getElementById('dropdown-critical').innerHTML = `
+                    <div class="dropdown-title">Critical alerts by type</div>
+                    ${barRow('Wildfires', byType.wildfire, maxC, '#F97316')}
+                    ${barRow('Earthquakes', byType.quake, maxC, '#A855F7')}
+                    ${barRow('Volcanoes', byType.volcano, maxC, '#EF4444')}
+                    ${barRow('Floods', byType.flood, maxC, '#3B82F6')}
+                    ${barRow('Drought', byType.drought, maxC, '#D97706')}
+                    ${barRow('Air quality', byType.airquality, maxC, '#10B981')}
+                    <div class="dropdown-summary">Severity ≥ high · click an alert to locate</div>`;
+            };
+
+            // Toggle dropdown open/close
+            document.querySelectorAll('.stat-cell').forEach(cell => {
+                cell.addEventListener('click', (e) => {
+                    // Don't toggle if clicking inside the dropdown content
+                    if (e.target.closest('.stat-dropdown')) return;
+                    const wasOpen = cell.classList.contains('open');
+                    document.querySelectorAll('.stat-cell.open').forEach(c => c.classList.remove('open'));
+                    if (!wasOpen) cell.classList.add('open');
+                });
+            });
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.stat-cell')) {
+                    document.querySelectorAll('.stat-cell.open').forEach(c => c.classList.remove('open'));
+                }
+            });
+
+            const updateAlertSummary = ({ currentAlerts, previousAlerts, hours }) => {
+                if (!alertSummary) return;
+                const weatherCount = currentAlerts.filter(a => a.weatherLinked).length;
+                const delta = currentAlerts.length - previousAlerts.length;
+                const topType = currentAlerts.length
+                    ? Object.entries(currentAlerts.reduce((acc, a) => {
+                        acc[a.type] = (acc[a.type] || 0) + 1;
+                        return acc;
+                    }, {})).sort((a,b) => b[1] - a[1])[0][0]
+                    : 'none';
+                alertSummary.innerHTML = `
+                    <div><div class="intel-kpi-label">Window</div><div class="intel-kpi-value">${windowLabel(hours)}</div></div>
+                    <div><div class="intel-kpi-label">Comparison</div><div class="intel-kpi-value">${delta >= 0 ? '+' : ''}${delta} vs previous</div></div>
+                    <div><div class="intel-kpi-label">Weather linked</div><div class="intel-kpi-value">${weatherCount}/${currentAlerts.length}</div></div>
+                    <div><div class="intel-kpi-label">Primary pattern</div><div class="intel-kpi-value">${esc(typePattern(topType))}</div></div>
+                `;
+            };
+
+            /**
+             * Locate used to paint a 96-vertex dashed #58A6FF circle here
+             * at whatever kilometre figure the severity lookup returned,
+             * and the card printed the same number as "Impact radius: N km
+             * watch zone" with no source chip. Nobody published that
+             * boundary. It is not drawn any more; this only tears down the
+             * layers a previously cached build may have left on the map.
+             */
+            const clearImpactRadius = () => {
+                const map = window.ecoMap;
+                if (!map || !map.getLayer) return;
+                ['event-impact-radius-fill', 'event-impact-radius-line'].forEach(id => {
+                    if (map.getLayer(id)) map.removeLayer(id);
+                });
+                if (map.getSource('event-impact-radius')) map.removeSource('event-impact-radius');
+            };
+
+            const analyzeAlert = (a) => {
+                if (typeof FocusArea !== 'undefined' && FocusArea.analyzePoint && a?.lat != null && a?.lng != null) {
+                    FocusArea.analyzePoint({ lat: a.lat, lng: a.lng });
+                }
+            };
+
+            const openInsights = (a) => {
+                if (window.EcoLensBridge) {
+                    window.EcoLensBridge.sendToFlutter('openEventInsights', a);
+                }
+            };
+
+            const simulateAlert = (a) => {
+                if (typeof InMapSimulation === 'undefined' || a?.lat == null || a?.lng == null) return;
+                const lngLat = { lat: a.lat, lng: a.lng };
+                const opts = {
+                    title: a.title,
+                    severity: a.sev,
+                    radiusKm: scenarioRadiusKm(a),
+                    drivers: a.drivers,
+                    pattern: a.pattern,
+                    forecast: a.forecast,
+                    source: a.source,
+                };
+                if (a.type === 'wildfire') {
+                    InMapSimulation.startFireSimulation(lngLat, opts);
+                } else if (a.type === 'flood') {
+                    InMapSimulation.startFloodSimulation(lngLat, opts);
+                } else if (a.type === 'drought' && InMapSimulation.startDroughtSimulation) {
+                    InMapSimulation.startDroughtSimulation(lngLat, opts);
+                } else if (a.type === 'airquality' && InMapSimulation.startAirQualitySimulation) {
+                    InMapSimulation.startAirQualitySimulation(lngLat, opts);
+                } else if (a.type === 'quake' && InMapSimulation.startEarthquakeSimulation) {
+                    InMapSimulation.startEarthquakeSimulation(lngLat, opts);
+                } else if (a.type === 'volcano' && InMapSimulation.startVolcanoSimulation) {
+                    InMapSimulation.startVolcanoSimulation(lngLat, opts);
+                } else if (InMapSimulation.startImpactSimulation) {
+                    InMapSimulation.startImpactSimulation(lngLat, { ...opts, type: a.type });
+                } else {
+                    analyzeAlert(a);
+                }
+            };
+
+            const render = (alerts, context = {}) => {
+                if (!alertBody) return;
+                alertCount.textContent = (context.currentAlerts || alerts).length;
+                const tabBadge = document.getElementById('drawer-tab-events-count');
+                if (tabBadge) tabBadge.textContent = (context.currentAlerts || alerts).length;
+                updateAlertSummary({
+                    currentAlerts: context.currentAlerts || alerts,
+                    previousAlerts: context.previousAlerts || [],
+                    hours: context.hours || windowHours(),
+                });
+                if (alerts.length === 0) {
+                    alertBody.innerHTML = '<div class="alerts-empty">No events in the selected time window. Try Month or Year, or inspect static risk layers.</div>';
+                    return;
+                }
+                alertBody.innerHTML = alerts.map((a, i) => `
+                    <div class="alert-card" data-idx="${i}" style="--alert-color:${a.color};--alert-color-bg:${a.colorBg};">
+                        <div class="alert-card-top">
+                            <div class="alert-card-icon">${ICONS[a.type] || ''}</div>
+                            <div class="alert-card-title">${esc(a.title)}</div>
+                            <span class="alert-sev ${esc(a.sev)}">${esc(a.sev)}</span>
+                        </div>
+                        <div class="alert-card-loc">${esc(a.loc)}</div>
+                        <div class="alert-card-desc">${esc(a.desc)}</div>
+                        <div class="alert-card-intel">
+                            <b>Drivers:</b> ${esc(a.drivers)}<br>
+                            <b>Pattern:</b> ${esc(a.pattern)}<br>
+                            <b>Forecast cue:</b> ${esc(a.forecast)}<br>
+                            <b>Extent:</b> not published for this event. EcoLens does not draw a radius of its own — switch on &ldquo;Areas affected&rdquo; for the footprints GDACS publishes.
+                        </div>
+                        <div class="alert-card-meta">
+                            <span class="alert-meta-chip">${esc(a.source || 'source pending')}</span>
+                            <span class="alert-meta-chip">${esc(a.confidence || 'confidence pending')}</span>
+                            <span class="alert-meta-chip">${a.weatherLinked ? 'weather-linked' : 'non-weather driver'}</span>
+                            <span class="alert-meta-chip">${esc(a.id || 'event id pending')}</span>
+                        </div>
+                        <div class="alert-card-actions">
+                            <button class="alert-card-action" type="button" data-action="locate">Locate</button>
+                            <button class="alert-card-action" type="button" data-action="insights">Intel</button>
+                            <button class="alert-card-action" type="button" data-action="analyze">Analyze</button>
+                            <button class="alert-card-action" type="button" data-action="simulate">Sim</button>
+                            <button class="alert-card-action" type="button" data-action="copy">ID</button>
+                        </div>
+                        ${a.time ? `<div class="alert-card-time">${timeAgo(a.time)}</div>` : ''}
+                    </div>
+                `).join('');
+
+                // Wire click → flyTo location
+                const locateAlert = (a) => {
+                    const map = window.ecoMap;
+                    if (!a || !map || a.lat == null || a.lng == null) return;
+                    map.flyTo({
+                        center: [a.lng, a.lat],
+                        zoom: a.zoom || 8,
+                        pitch: 50,
+                        duration: 1800,
+                        essential: true,
+                    });
+                    clearImpactRadius();
+
+                    const layerMap = { wildfire: 'fires', quake: 'earthquakes', volcano: 'volcanoes', flood: 'floods', drought: 'drought', airquality: 'airquality' };
+                    const layer = layerMap[a.type];
+                    if (layer && window.HazardLayers) {
+                        window.HazardLayers.setLayerVisibility(layer, true);
+                        const cb = document.getElementById(`toggle-${layer}`);
+                        if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change')); }
+                        const wrap = cb?.closest('.layer-toggle-wrap');
+                        if (wrap) wrap.classList.add('is-on');
+                    }
+
+                    if (window.EcoLensBridge) {
+                        window.EcoLensBridge.sendToFlutter('eventSelected', a);
+                    }
+
+                    // Also load the structured brief into the Selected drawer
+                    // so the queue → brief jump is a single click.
+                    if (window.EventIntelligence?.showBriefInDrawer && a?.type) {
+                        const hazardKey = { wildfire: 'fires', quake: 'earthquakes', volcano: 'volcanoes',
+                            flood: 'floods', drought: 'drought', airquality: 'airquality' }[a.type];
+                        if (hazardKey) {
+                            // Build a synthetic 'feature properties' object from the queue card
+                            const synthProps = {
+                                frp: a.frp, mag: a.mag, magnitude: a.mag, depth_km: a.depth,
+                                place: a.loc, confidence: a.confidence, satellite: a.source,
+                                event: a.title, headline: a.desc, severity: a.sev,
+                                acq_date: a.time ? a.time.toISOString().split('T')[0] : '',
+                                alert_level: a.status, country: a.loc, max_severity: a.confidence,
+                                point_lng: a.lng, point_lat: a.lat,
+                            };
+                            window.EventIntelligence.showBriefInDrawer(
+                                hazardKey, synthProps, { lat: a.lat, lng: a.lng });
+                        }
+                    }
+                };
+
+                alertBody.querySelectorAll('.alert-card').forEach(card => {
+                    card.addEventListener('click', (event) => {
+                        if (event.target.closest('.alert-card-action')) return;
+                        const idx = parseInt(card.dataset.idx, 10);
+                        locateAlert(alerts[idx]);
+                    });
+                    card.querySelectorAll('.alert-card-action').forEach(btn => {
+                        btn.addEventListener('click', async (event) => {
+                            event.stopPropagation();
+                            const idx = parseInt(card.dataset.idx, 10);
+                            const a = alerts[idx];
+                            if (!a) return;
+                            if (btn.dataset.action === 'locate') {
+                                locateAlert(a);
+                                return;
+                            }
+                            if (btn.dataset.action === 'insights') {
+                                locateAlert(a);
+                                openInsights(a);
+                                return;
+                            }
+                            if (btn.dataset.action === 'analyze') {
+                                locateAlert(a);
+                                analyzeAlert(a);
+                                return;
+                            }
+                            if (btn.dataset.action === 'simulate') {
+                                locateAlert(a);
+                                simulateAlert(a);
+                                return;
+                            }
+                            if (btn.dataset.action === 'copy') {
+                                try {
+                                    await navigator.clipboard.writeText(a.id || a.title || '');
+                                    btn.textContent = 'Copied';
+                                    setTimeout(() => btn.textContent = 'ID', 1200);
+                                } catch {
+                                    btn.textContent = 'Copy failed';
+                                    setTimeout(() => btn.textContent = 'ID', 1200);
+                                }
+                            }
+                        });
+                    });
+                });
+
+                const critCount = alerts.filter(a => a.sev === 'critical').length;
+                alertSub.textContent = critCount > 0
+                    ? `${critCount} critical - ${alerts.length - critCount} other - ${windowLabel(context.hours || windowHours())}`
+                    : `${alerts.length} events tracked - ${windowLabel(context.hours || windowHours())}`;
+            };
+
+            window.EcoLensEventIntelligence = {
+                refresh: buildAlerts,
+                analyze: analyzeAlert,
+                openInsights,
+                simulate: simulateAlert,
+                clearImpactRadius,
+            };
+
+            // Refresh header time + alerts on a loop
+            const refreshHeader = () => {
+                if (!headerMeta) return;
+                const now = new Date();
+                const hh = now.getUTCHours().toString().padStart(2,'0');
+                const mm = now.getUTCMinutes().toString().padStart(2,'0');
+                headerMeta.textContent = `Live - Last update ${hh}:${mm} UTC - FIRMS + USGS + NOAA + Open-Meteo`;
+            };
+            refreshHeader();
+            setInterval(refreshHeader, 60000);
+
+            // ─── Public fly-to entry point (dashboard pins, alerts) ───
+            let _targetMarker = null;
+            window.ecolensFlyTo = function (lat, lng, zoom, label, opts) {
+                if (!window.ecoMap) { setTimeout(() => window.ecolensFlyTo(lat, lng, zoom, label, opts), 500); return; }
+                window.ecoMap.flyTo({
+                    center: [lng, lat],
+                    zoom: zoom || 9,
+                    pitch: 50,
+                    duration: 1800,
+                    essential: true,
+                });
+
+                // Optional: switch named layer pills on for the arrival, so a
+                // "View on map" from Environmental News lands with the
+                // published impact markers and affected areas already showing.
+                // Same code path as a user tap, so lazy layers load themselves.
+                const wanted = (opts && Array.isArray(opts.layers)) ? opts.layers : [];
+                wanted.forEach((key) => {
+                    const cb = document.getElementById('toggle-' + key);
+                    if (!cb || cb.checked) return;
+                    cb.checked = true;
+                    cb.dispatchEvent(new Event('change'));
+                    const wrap = cb.closest('.layer-toggle-wrap');
+                    if (wrap) wrap.classList.add('is-on');
+                });
+
+                // Drop a target marker so the user can visually confirm arrival,
+                // even when live hazard feeds have no active features at the location
+                // (e.g. April in Canada — no active fires, but a threat is archived).
+                try {
+                    if (_targetMarker) { _targetMarker.remove(); _targetMarker = null; }
+                    const el = document.createElement('div');
+                    el.style.cssText = 'width:24px;height:24px;border-radius:50%;background:#FF3D00;border:3px solid #fff;box-shadow:0 0 0 6px rgba(255,61,0,0.35),0 0 20px rgba(255,61,0,0.6);cursor:pointer;';
+                    el.title = label || 'Target location';
+                    _targetMarker = new maplibregl.Marker({ element: el })
+                        .setLngLat([lng, lat])
+                        .addTo(window.ecoMap);
+
+                    if (label) {
+                        const popup = new maplibregl.Popup({ closeButton: true, offset: 18, maxWidth: '260px' })
+                            .setLngLat([lng, lat])
+                            .setHTML(
+                                `<div style="font-family:Inter,sans-serif;color:#fff;">
+                                    <div style="font-size:11px;opacity:0.5;letter-spacing:0.5px;text-transform:uppercase;">Target from dashboard</div>
+                                    <div style="font-size:14px;font-weight:700;margin:4px 0;">${label}</div>
+                                    <div style="font-size:11px;opacity:0.7;">${lat.toFixed(4)}°, ${lng.toFixed(4)}°</div>
+                                    <div style="font-size:10px;opacity:0.55;margin-top:6px;line-height:1.35;">If no live hazard pixels appear here, the feed may be seasonal — this is still the archived threat location.</div>
+                                </div>`
+                            )
+                            .addTo(window.ecoMap);
+                        setTimeout(() => { try { popup.remove(); } catch (e) {} }, 12000);
+                    }
+                    // Auto-remove marker after 30s so it doesn't linger
+                    setTimeout(() => {
+                        if (_targetMarker) { _targetMarker.remove(); _targetMarker = null; }
+                    }, 30000);
+                } catch (e) { console.warn('[ecolensFlyTo] marker drop failed:', e); }
+            };
+
+            // ─── Fly-to requests from the Flutter shell ───
+            // Three routes can carry one request — the parent's postMessage
+            // (repeated every 700 ms until acknowledged), an eval on this
+            // window, and a __pendingFly left before this script ran — so
+            // every route goes through one handler. A request stamped with a
+            // nonce flies once: repeats are ignored but still acknowledged,
+            // so the shell stops resending even if the first ack was lost.
+            const _handledFlyNonces = new Set();
+            const ackFly = (nonce) => {
+                if (window.EcoLensBridge && typeof window.EcoLensBridge.sendToFlutter === 'function') {
+                    window.EcoLensBridge.sendToFlutter('flyAck', { nonce: nonce });
+                }
+            };
+            const handleFlyRequest = (d) => {
+                if (!d || typeof d !== 'object') return;
+                const lat = Number(d.lat), lng = Number(d.lng);
+                if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+                const nonce = (d.nonce === undefined || d.nonce === null) ? null : String(d.nonce);
+                if (nonce !== null) {
+                    if (_handledFlyNonces.has(nonce)) { ackFly(nonce); return; }
+                    _handledFlyNonces.add(nonce);
+                    // Keep the set small; only recent retries need recognising.
+                    if (_handledFlyNonces.size > 50) {
+                        _handledFlyNonces.delete(_handledFlyNonces.values().next().value);
+                    }
+                }
+                const zoom = Number(d.zoom);
+                window.ecolensFlyTo(lat, lng, Number.isFinite(zoom) ? zoom : undefined, d.label, {
+                    layers: Array.isArray(d.layers) ? d.layers : [],
+                });
+                if (nonce !== null) ackFly(nonce);
+            };
+            window.__ecolensHandleFly = handleFlyRequest;
+
+            // ─── Consume any pending fly request that arrived before this script ran ───
+            if (window.__pendingFly) {
+                const p = window.__pendingFly;
+                window.__pendingFly = null;
+                handleFlyRequest(p);
+            }
+
+            // ─── Also listen for postMessage from parent (Flutter Web bridge) ───
+            window.addEventListener('message', (e) => {
+                let d = e && e.data;
+                if (typeof d === 'string') {
+                    try { d = JSON.parse(d); } catch (_) { return; }
+                }
+                if (!d || typeof d !== 'object') return;
+                if (d.type === 'ecolens_fly_to') handleFlyRequest(d);
+            });
+
+            // Placeholder content so open dropdowns aren't empty before data arrives
+            document.querySelectorAll('.stat-dropdown').forEach(d => {
+                d.innerHTML = '<div class="dropdown-title">Loading live feed…</div>' +
+                    '<div class="dropdown-summary">Data stream initializing from upstream providers.</div>';
+            });
+
+            // First attempt after data has loaded; then poll to catch refreshes
+            setTimeout(buildAlerts, 3500);
+            setTimeout(buildAlerts, 8000);
+            setInterval(buildAlerts, 60000);
+
+            // ─── Drawer tab switching (Events / Selected) ───
+            // EventIntelligence.showBriefInDrawer() pushes brief HTML into
+            // the Selected pane and switches the active tab.
+            const drawerTabs = document.querySelectorAll('.drawer-tab');
+            const drawerPanes = document.querySelectorAll('.drawer-pane');
+
+            const switchDrawerTab = (tabName) => {
+                drawerTabs.forEach(t => {
+                    t.classList.toggle('active', t.dataset.tab === tabName);
+                });
+                drawerPanes.forEach(p => {
+                    p.classList.toggle('active', p.dataset.pane === tabName);
+                });
+            };
+
+            drawerTabs.forEach(tab => {
+                tab.addEventListener('click', () => switchDrawerTab(tab.dataset.tab));
+            });
+
+            // Public API used by EventIntelligence + clicked-alert handler
+            window.EcoLensDrawer = {
+                switchTab: switchDrawerTab,
+                renderSelected: (briefHtml, options = {}) => {
+                    const empty = document.getElementById('drawer-selected-empty');
+                    const content = document.getElementById('drawer-selected-content');
+                    if (!content) return;
+                    if (empty) empty.style.display = 'none';
+                    content.style.display = 'block';
+                    // Action bar at the top so the user can clear / locate / share.
+                    const actionsHtml = `
+                        <div class="drawer-brief-actions">
+                            <button class="drawer-brief-action" data-action="locate">Locate</button>
+                            <button class="drawer-brief-action" data-action="analyze">Analyze area</button>
+                            <button class="drawer-brief-action" data-action="clear">Clear</button>
+                        </div>`;
+                    content.innerHTML = actionsHtml + briefHtml;
+                    switchDrawerTab('selected');
+                    // Highlight the Selected tab dot to show new content
+                    const dot = document.getElementById('drawer-tab-selected-dot');
+                    if (dot) dot.classList.add('has-selection');
+                    // Wire action buttons
+                    content.querySelectorAll('.drawer-brief-action').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const a = btn.dataset.action;
+                            if (a === 'clear') window.EcoLensDrawer.clearSelected();
+                            else if (a === 'locate' && options.lat != null && options.lng != null) {
+                                window.ecoMap?.flyTo({
+                                    center: [options.lng, options.lat],
+                                    zoom: options.zoom || 10,
+                                    duration: 1200,
+                                });
+                            }
+                            else if (a === 'analyze' && options.lat != null && options.lng != null) {
+                                if (typeof FocusArea !== 'undefined' && FocusArea.analyzePoint) {
+                                    FocusArea.analyzePoint({ lat: options.lat, lng: options.lng });
+                                }
+                            }
+                        });
+                    });
+                },
+                clearSelected: () => {
+                    const empty = document.getElementById('drawer-selected-empty');
+                    const content = document.getElementById('drawer-selected-content');
+                    if (content) { content.innerHTML = ''; content.style.display = 'none'; }
+                    if (empty) empty.style.display = '';
+                    const dot = document.getElementById('drawer-tab-selected-dot');
+                    if (dot) dot.classList.remove('has-selection');
+                    // Also remove the click-feature marker from the map
+                    if (window._eiSelectedMarker) {
+                        window._eiSelectedMarker.remove();
+                        window._eiSelectedMarker = null;
+                    }
+                    switchDrawerTab('events');
+                },
+            };
+
+            // Basemap popover
+            const bmBtn = document.getElementById('btn-basemap-toggle');
+            const bmPop = document.getElementById('basemap-popover');
+            if (bmBtn && bmPop) {
+                const place = () => {
+                    const r = bmBtn.getBoundingClientRect();
+                    bmPop.style.top = (r.top + window.scrollY) + 'px';
+                };
+                bmBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    place();
+                    bmPop.classList.toggle('open');
+                    bmBtn.classList.toggle('active', bmPop.classList.contains('open'));
+                });
+                document.addEventListener('click', (e) => {
+                    if (!bmPop.contains(e.target) && e.target !== bmBtn) {
+                        bmPop.classList.remove('open');
+                        bmBtn.classList.remove('active');
+                    }
+                });
+                bmPop.querySelectorAll('.basemap-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        setTimeout(() => { bmPop.classList.remove('open'); bmBtn.classList.remove('active'); }, 150);
+                    });
+                });
+            }
+        });
+    </script>
+
+    <!-- JavaScript Modules -->
+    <script src="js/flutter-bridge.js?v=g22"></script>
+    <script src="js/data-fetchers.js?v=g22"></script>
+    <script src="js/hazard-layers.js?v=g22"></script>
+    <script src="js/intelligence-layers.js?v=g22"></script>
+    <script src="js/event-intelligence.js?v=g22"></script>
+    <script src="js/historical-event-evidence.js?v=g22"></script>
+    <script src="js/event-simulations.js?v=g22"></script>
+    <script src="js/event-catalog-ui.js?v=g22"></script>
+    <script src="js/in-map-simulation.js?v=g22"></script>
+    <script src="js/focus-area.js?v=g22"></script>
+    <script src="js/story-pins.js?v=g22"></script>
+    <!-- Remember / Reason / Report modules (before map-core, which inits them) -->
+    <script src="js/chrome-shell.js?v=g22"></script>
+    <script src="js/spatial-stats.js?v=g22"></script>
+    <script src="js/history-archive.js?v=g22"></script>
+    <script src="js/atlas-bridge.js?v=g22"></script>
+    <script src="js/ask-the-map.js?v=g22"></script>
+    <script src="js/atlas-dock.js?v=g22"></script>
+    <script src="js/permalink.js?v=g22"></script>
+    <script src="js/map-card.js?v=g22"></script>
+    <script src="js/time-playback.js?v=g22"></script>
+    <script src="js/swipe-compare.js?v=g22"></script>
+    <script src="js/anomaly-desk.js?v=g22"></script>
+    <script src="js/bivariate.js?v=g22"></script>
+    <script src="js/map-annotations.js?v=g22"></script>
+    <script src="js/paper-basemap.js?v=g22"></script>
+    <script src="js/map-core.js?v=g22"></script>
+    <script src="js/filter-controls.js?v=g22"></script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+# ── Build output and toolchain caches ────────────────────────────
+ecolens/build/
+ecolens/.dart_tool/
+ecolens/.flutter-plugins
+ecolens/.flutter-plugins-dependencies
+ecolens/.packages
+ecolens/android/.gradle/
+ecolens/android/local.properties
+ecolens/android/hs_err_*.log
+ecolens/ios/Pods/
+ecolens/ios/.symlinks/
+ecolens/macos/Pods/
+*.iml
+
+# ── Python environments and caches ───────────────────────────────
+ecolens/functions/venv/
+ecolens/functions/venv_broken/
+ecolens/functions/Python/
+.docx-venv/
+**/__pycache__/
+*.pyc
+
+# ── Secrets and per-machine config. Never commit. ────────────────
+# Firebase admin service account: full project access.
+ecolens/lib/backend/serviceAccountKey.json
+**/serviceAccountKey*.json
+**/*service-account*.json
+# Platform Firebase configs: regenerate from the Firebase console.
+ecolens/android/app/google-services.json
+ecolens/ios/Runner/GoogleService-Info.plist
+ecolens/macos/Runner/GoogleService-Info.plist
+ecolens/android/key.properties
+.env
+.env.*
+*.pem
+*.p12
+*.jks
+*.keystore
+.claude/settings.local.json
+.vscode/
+
+# ── Private documents (business plans, reviews) ──────────────────
+Docs/
+
+# ── Local scratch, logs and dumps ────────────────────────────────
+*.log
+ecolens/analysis.txt
+ecolens/full_analysis.txt
+ecolens/ecolens.db
+ecolens/fix_map.py
+ecolens/functions/test_output.json
+ecolens/functions/test_pipeline_output.json
+ecolens/functions/test_user_coords.json
+ecolens/functions/deep_dive_test.json
+firms_test.csv
+
+# Firebase CLI hosting cache
+ecolens/.firebase/
+
+# Browser-shipped keys kept out of the tree (copy keys.example.js to keys.js)
+ecolens/assets/3d_simulations/keys.js
+ecolens/assets/story_viewer/js/keys.js
+
+# Private document generators (business-planning material)
+fill_spark_workbook.py
+generate_docs.py

@@ -1,0 +1,197 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Saylani mobile kitchens",
+        "actor_type": "Pakistani NGO",
+        "response_type": "hot meals",
+        "location_name": "Dadu, Larkana, Sehwan",
+        "what": "Mobile kitchens scaled to roughly 250,000 hot meals per day at peak, serving flood-affected families across central Sindh.",
+        "needs": "Ongoing food security support, local logistics, and verified field updates.",
+        "verification_status": "reported by organization; cited in research brief",
+        "source": "Saylani Welfare Trust; EcoLens research brief",
+        "source_url": "https://saylaniwelfare.com/",
+        "support_url": "https://saylaniwelfare.com/",
+        "active_status": "response evolved into recovery support",
+        "last_verified": "2026-06-10"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.7771,
+          26.7319
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "JDC volunteer boat rescues",
+        "actor_type": "Pakistani NGO + volunteers",
+        "response_type": "boat rescue",
+        "location_name": "Khairpur and Dadu",
+        "what": "Volunteer boats supported first-wave rescues and movement through flooded settlements before formal systems fully arrived.",
+        "needs": "Field interviews, survivor testimony, and verified route mapping.",
+        "verification_status": "reported by organization; needs field documentation",
+        "source": "JDC Foundation; EcoLens research brief",
+        "source_url": "https://jdc.org.pk/",
+        "support_url": "https://jdc.org.pk/",
+        "active_status": "historical emergency response",
+        "last_verified": "2026-06-10"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.7617,
+          27.5295
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Al-Khidmat shelter and school rebuilds",
+        "actor_type": "Pakistani NGO",
+        "response_type": "shelter, health, education",
+        "location_name": "Sindh recovery corridor",
+        "what": "Built about 3,000 temporary shelters, ran medical camps, and rebuilt about 200 schools by mid-2024.",
+        "needs": "School reconstruction tracking, verification photos, and district-level delivery records.",
+        "verification_status": "reported by organization; cited in research brief",
+        "source": "Al-Khidmat Foundation; EcoLens research brief",
+        "source_url": "https://alkhidmat.org/",
+        "support_url": "https://alkhidmat.org/",
+        "active_status": "continuing recovery work",
+        "last_verified": "2026-06-10"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.2,
+          27.5
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Edhi emergency relief camps",
+        "actor_type": "Pakistani NGO",
+        "response_type": "relief camps, rations, ambulance support",
+        "location_name": "Sindh and Balochistan",
+        "what": "Ran roughly 300 emergency relief camps, recovered bodies, and distributed food rations to about 400,000 families.",
+        "needs": "Local camp locations, beneficiary testimony, and updated recovery status.",
+        "verification_status": "reported by organization; cited in research brief",
+        "source": "Edhi Foundation; EcoLens research brief",
+        "source_url": "https://edhi.org/",
+        "support_url": "https://edhi.org/",
+        "active_status": "emergency response and ongoing welfare work",
+        "last_verified": "2026-06-10"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.0011,
+          24.8607
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hindu Panchayat relief camps",
+        "actor_type": "local mutual aid",
+        "response_type": "cross-community relief camps",
+        "location_name": "Mithi, Tharparkar",
+        "what": "Hindu community networks in Tharparkar ran cross-religious relief points for displaced families, a response largely absent from international donor reporting.",
+        "needs": "Field verification, interviews, photos, and consented community profile.",
+        "verification_status": "reported in research brief; needs field verification",
+        "source": "EcoLens research brief; HRCP context",
+        "source_url": "https://hrcp-web.org/",
+        "support_url": "",
+        "active_status": "historical mutual aid response",
+        "last_verified": "2026-06-10"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.7971,
+          24.7370
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Boatmen of Bhit Shah",
+        "actor_type": "local mutual aid",
+        "response_type": "boat rescue",
+        "location_name": "Bhit Shah and lower Sindh floodplain",
+        "what": "Sufi-shrine-affiliated fishermen reportedly used their own boats for rescues and transport, refusing reimbursement.",
+        "needs": "Primary interviews, route reconstruction, and archival photos.",
+        "verification_status": "under-documented; needs field verification",
+        "source": "EcoLens research brief",
+        "source_url": "",
+        "support_url": "",
+        "active_status": "historical community response",
+        "last_verified": "2026-06-10"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.4918,
+          25.8057
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Aurat Foundation camp-safety advocacy",
+        "actor_type": "women's rights organization",
+        "response_type": "camp safety and gender accountability",
+        "location_name": "Sindh and national advocacy channels",
+        "what": "Advocacy helped expose gender-blind relief conditions, including lack of women-only spaces, female medics, and menstrual hygiene support in early camps.",
+        "needs": "Specific camp examples, women-led interviews, and safety-sensitive documentation.",
+        "verification_status": "reported by UN Women/HRCP context; needs story-level sourcing",
+        "source": "EcoLens research brief; HRCP and UN Women context",
+        "source_url": "https://hrcp-web.org/",
+        "support_url": "https://www.af.org.pk/",
+        "active_status": "advocacy and accountability",
+        "last_verified": "2026-06-10"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          73.0479,
+          33.6844
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mohana fishers of Manchar",
+        "actor_type": "frontline community",
+        "response_type": "displacement, fishery survival, local knowledge",
+        "location_name": "Manchar Lake",
+        "what": "The Mohana fishing community was displaced when Manchar Lake expanded and breached; their knowledge is central to understanding what recovery means around the lake.",
+        "needs": "Consented field interviews, livelihood recovery status, and support pathways.",
+        "verification_status": "documented in reporting; needs EcoLens field profile",
+        "source": "EcoLens research brief; Dawn and NASA Earth Observatory context",
+        "source_url": "",
+        "support_url": "",
+        "active_status": "frontline recovery story",
+        "last_verified": "2026-06-10"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.6573,
+          26.4170
+        ]
+      }
+    }
+  ]
+}

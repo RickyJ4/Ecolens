@@ -1,0 +1,95 @@
+{
+  "headline": {
+    "people_affected": 33000000,
+    "people_displaced": 7900000,
+    "killed": 1739,
+    "children_killed": 615,
+    "women_killed": 333,
+    "children_affected": 16000000,
+    "women_affected": 8200000,
+    "pregnant_women_affected": 650000,
+    "full_term_pregnant": 73000,
+    "homes_damaged": 2100000,
+    "homes_climate_resilient_rebuilt": 800,
+    "livestock_killed_balochistan": 500000,
+    "total_damage_usd": 40000000000,
+    "pdna_need_usd": 16300000000,
+    "pledged_geneva_usd": 10900000000,
+    "disbursed_by_2026_usd": 2800000000
+  },
+  "rainfall": {
+    "country_pct_of_normal": 190,
+    "sindh_pct_of_normal": 466,
+    "balochistan_pct_above_aug_normal": 500,
+    "sindh_pct_above_aug_normal": 784,
+    "attribution_intensity_increase_pct": 75,
+    "wwa_lower_bound_pct": 50
+  },
+  "displacement": {
+    "calamity_districts_oct_2022": 94,
+    "displaced_5_worst_districts_oct_2022": 1731737,
+    "in_formal_camps_oct_2022": 598000,
+    "still_displaced_sindh_end_2023": 240000,
+    "in_substandard_shelter_may_2026": 480000
+  },
+  "recovery_2026": {
+    "homes_pct_rebuilt": 0.04,
+    "schools_pct_rebuilt": 17,
+    "health_facilities_pct_rebuilt": 30,
+    "livelihoods_pct_restored": 2.5,
+    "out_of_school_children_jan_2026": 700000,
+    "loss_and_damage_fund_disbursed_to_pakistan": 0
+  },
+  "top_districts": [
+    {
+      "name": "Larkana",
+      "province": "Sindh",
+      "pop_in_flood": 5786785
+    },
+    {
+      "name": "Hyderabad",
+      "province": "Sindh",
+      "pop_in_flood": 4827903
+    },
+    {
+      "name": "Sukkur",
+      "province": "Sindh",
+      "pop_in_flood": 4030488
+    },
+    {
+      "name": "Gujranwala",
+      "province": "Punjab",
+      "pop_in_flood": 3776818
+    },
+    {
+      "name": "Lahore",
+      "province": "Punjab",
+      "pop_in_flood": 1751663
+    },
+    {
+      "name": "Dera Ghazi Khan",
+      "province": "Punjab",
+      "pop_in_flood": 1711877
+    },
+    {
+      "name": "Mirpur Khas",
+      "province": "Sindh",
+      "pop_in_flood": 1707972
+    },
+    {
+      "name": "Faisalabad",
+      "province": "Punjab",
+      "pop_in_flood": 873220
+    },
+    {
+      "name": "Nasirabad",
+      "province": "Balochistan",
+      "pop_in_flood": 775594
+    },
+    {
+      "name": "Malakand",
+      "province": "KP",
+      "pop_in_flood": 641601
+    }
+  ]
+}

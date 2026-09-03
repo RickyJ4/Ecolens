@@ -1,0 +1,86 @@
+rules_version = '2';
+
+// EcoLens Firestore security rules.
+//
+// Threat model: we serve mostly read-only environmental data to the
+// public webapp. Writes come from Cloud Functions (admin SDK — these
+// rules don't apply to those). Anything truly user-specific is gated
+// behind Firebase Auth.
+//
+// PRINCIPLE: deny by default. Open up specific collections explicitly.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─────────────────────────────────────────────────────────────
+    // PUBLIC READ-ONLY DATA (Cloud Function writes only)
+    // ─────────────────────────────────────────────────────────────
+
+    // Hotspot intelligence written by the scout pipeline.
+    match /hotspots/{docId} {
+      allow read: if true;
+      allow write: if false; // Cloud Functions bypass via admin SDK
+    }
+
+    // Conservation stories curated/edited by Laurence (added via Firebase
+    // Console or admin SDK).
+    match /conservation_stories/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Community initiative pins (places where stewardship work happens).
+    // Pinned to the map. Same write model as stories.
+    match /community_initiatives/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Hazard alerts written by monitor_hazards_scheduled.
+    match /hazard_alerts/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Environmental news: the GDACS RSS feed mirrored every 15 minutes by
+    // refresh_environmental_news. Read by the Insights page.
+    match /news_feed/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /news_meta/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Deforestation heatmap tiles / aggregations.
+    match /deforestation_heatmap/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // USER-OWNED DATA (signed-in user only, scoped to their UID)
+    // ─────────────────────────────────────────────────────────────
+
+    // A user's own profile / preferences / saved-places.
+    match /users/{userId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // Blocked users list (used in community moderation).
+    match /users/{userId}/blocked/{blockedId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // DEFAULT DENY — anything not explicitly listed above
+    // ─────────────────────────────────────────────────────────────
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

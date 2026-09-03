@@ -1,0 +1,221 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "UN OCHA",
+        "city": "Geneva, Switzerland",
+        "role": "Coordinated the $816 M revised Flood Response Plan (Sep 2022 \u2013 May 2023).",
+        "amount_usd": 816000000,
+        "amount_label": "Plan size (UN appeal)",
+        "url": "https://fts.unocha.org/plans/1108/flows"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          6.1438,
+          46.2293
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "World Bank",
+        "city": "Washington DC, USA",
+        "role": "Led the PDNA + 4RF framework. Largest reconstruction lender via $1.5 B Sindh People's Housing project.",
+        "amount_usd": 2000000000,
+        "amount_label": "Programmatic loans pledged Geneva 2023",
+        "url": "https://www.worldbank.org/en/country/pakistan/overview"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.0421,
+          38.899
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Asian Development Bank",
+        "city": "Manila, Philippines",
+        "role": "Geneva 2023 pledge for reconstruction loans, energy, agriculture rehabilitation.",
+        "amount_usd": 1500000000,
+        "amount_label": "Geneva pledge",
+        "url": "https://www.adb.org/countries/pakistan/overview"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.0244,
+          14.5547
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Islamic Development Bank",
+        "city": "Jeddah, Saudi Arabia",
+        "role": "Largest single bilateral pledge at the Jan 2023 Geneva conference.",
+        "amount_usd": 4200000000,
+        "amount_label": "Geneva pledge",
+        "url": "https://www.isdb.org/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          39.2192,
+          21.5169
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "USAID",
+        "city": "Washington DC, USA",
+        "role": "Direct emergency assistance via partners (IOM, WFP, Catholic Relief Services).",
+        "amount_usd": 200000000,
+        "amount_label": "FY22\u201323 flood response total",
+        "url": "https://www.usaid.gov/pakistan"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.0185,
+          38.892
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "UNICEF",
+        "city": "New York, USA",
+        "role": "$173.5 M flash appeal for children \u2014 health, nutrition, education, child protection.",
+        "amount_usd": 173500000,
+        "amount_label": "Flash appeal",
+        "url": "https://www.unicef.org/appeals/pakistan"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.9685,
+          40.7494
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "UNDP",
+        "city": "New York, USA",
+        "role": "Flood Recovery Programme \u2014 built ~800 climate-resilient homes, restored ~200k livelihoods.",
+        "amount_usd": 65000000,
+        "amount_label": "FRP programme spend through 2025",
+        "url": "https://www.undp.org/pakistan/frp"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.9681,
+          40.7506
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "WHO",
+        "city": "Geneva, Switzerland",
+        "role": "Emergency health relief, cholera + dengue + malaria surveillance, mental health.",
+        "amount_usd": 10000000,
+        "amount_label": "Direct emergency allocation",
+        "url": "https://www.who.int/countries/pak/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          6.1467,
+          46.2326
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "IOM",
+        "city": "Geneva, Switzerland",
+        "role": "Displacement Tracking Matrix, shelter coordination, ~700k beneficiaries.",
+        "amount_usd": 90000000,
+        "amount_label": "Pakistan flood appeal",
+        "url": "https://dtm.iom.int/pakistan"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          6.1485,
+          46.2257
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "UNHCR",
+        "city": "Geneva, Switzerland",
+        "role": "Refugee + IDP shelter support, focused on the 800k Afghan refugees in calamity districts.",
+        "amount_usd": 35000000,
+        "amount_label": "Supplementary appeal",
+        "url": "https://www.unhcr.org/pk/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          6.1361,
+          46.2185
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "China (bilateral)",
+        "city": "Beijing, China",
+        "role": "Largest bilateral state donor \u2014 tents, food, medical supplies via military airlift; CPEC reconstruction loans.",
+        "amount_usd": 100000000,
+        "amount_label": "Direct + in-kind assistance",
+        "url": ""
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.4074,
+          39.9042
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Saudi Arabia (bilateral)",
+        "city": "Riyadh, Saudi Arabia",
+        "role": "Cash assistance and deferred oil payments to ease the post-flood fiscal crunch.",
+        "amount_usd": 1000000000,
+        "amount_label": "Direct deposit to State Bank",
+        "url": ""
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          46.6753,
+          24.7136
+        ]
+      }
+    }
+  ]
+}

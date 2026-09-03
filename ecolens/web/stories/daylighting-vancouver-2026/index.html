@@ -1,0 +1,2435 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Coming Back — Daylighting Vancouver's Buried Streams · EcoLens</title>
+  <meta name="description" content="A hundred years ago there were more than fifty salmon streams running through Vancouver. Most were buried. A handful are now coming back." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,800;8..60,900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" />
+
+  <link rel="preconnect" href="https://basemaps.cartocdn.com" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%230f4c81'/%3E%3Cpath d='M8 20 Q12 12 16 20 T24 20' stroke='%237ec4e8' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+
+  <style>
+    :root {
+      /* Cool water-forward palette. Base is a soft mineral-white with a blue-gray shift,
+         not warm parchment. Every accent points to water or its absence. */
+      --paper:     #ecf0f3;
+      --paper-2:   #dde4ea;
+      --paper-3:   #c8d3dc;
+      --ink:       #0a1a26;
+      --ink-soft:  #17293b;
+      --muted:     #526676;
+      --line:      #b5c1cd;
+      --line-soft: #cfd7e0;
+
+      --water:      #0f4c81;
+      --water-2:    #1e6091;
+      --water-3:    #3a92c9;
+      --water-pale: #a3c7e0;
+      --water-deep: #062340;
+      --water-glow: #7ec4e8;
+
+      --stream:      #1e6091;
+      --stream-pale: #7ec4e8;
+      --stream-glow: #b5e0f3;
+
+      /* Burial + urbanization — cool slate, never warm brown. */
+      --pipe:      #3b4a58;
+      --pipe-deep: #1f2a35;
+      --built:     #5b6b7a;
+      --built-2:   #8695a4;
+
+      /* Damage + loss — a single sparingly-used warm coral. */
+      --floodplain:#c8503c;
+      --salmon:    #d05a44;
+      --alert:     #b8402c;
+      --warn:      #a86b1e;
+
+      /* Recovery — deep river green. */
+      --recover:    #1c6b48;
+      --recover-2:  #2f8f6a;
+
+      --status-done:   #1c6b48;
+      --status-active: #a86b1e;
+      --status-plan:   #0f4c81;
+
+      --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+      --sans:  Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      --mono:  "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 17px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    a { color: var(--water); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img, svg { max-width: 100%; display: block; }
+
+    /* ============================== Chrome bar ============================== */
+    .chrome {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 60;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 24px;
+      align-items: center;
+      min-height: 52px;
+      padding: 12px 28px;
+      background: transparent;
+      color: var(--ink);
+      transition: background 240ms ease, border-color 240ms ease;
+    }
+    .chrome.scrolled {
+      background: rgba(236, 240, 243, 0.94);
+      border-bottom: 1px solid rgba(181, 193, 205, 0.6);
+      backdrop-filter: blur(12px);
+    }
+    .chrome .brand { font-family: var(--sans); font-weight: 800; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .chrome .progress { grid-column: 2; justify-self: center; width: clamp(180px, 28vw, 360px); height: 2px; background: rgba(82, 102, 118, 0.18); border-radius: 999px; overflow: hidden; }
+    .chrome .progress-fill { height: 100%; width: 0; background: var(--water); transition: width 120ms linear; }
+    .chrome .meta { font-family: var(--sans); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+
+    /* ============================== Cover ============================== */
+    .cover {
+      position: relative;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      padding: 100px clamp(24px, 6vw, 80px) 56px;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(43, 111, 156, 0.10), transparent 50%),
+        radial-gradient(circle at 78% 78%, rgba(28, 74, 114, 0.08), transparent 55%),
+        var(--paper);
+      overflow: hidden;
+    }
+    .cover::after {
+      content: "";
+      position: absolute; inset: 0; pointer-events: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='0.85' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 0.04 0 0 0 0 0.09 0 0 0 0 0.14 0 0 0 0.13 0'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='0.5'/></svg>");
+      mix-blend-mode: multiply;
+      opacity: 0.28;
+    }
+    .cover-grid {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+      gap: clamp(28px, 5vw, 80px);
+      align-items: center;
+      max-width: 1320px; margin: 0 auto; width: 100%;
+    }
+    .cover .eyebrow {
+      display: inline-flex; align-items: center; gap: 10px;
+      margin-bottom: 28px; padding: 6px 14px;
+      border: 1px solid rgba(82, 102, 118, 0.34);
+      border-radius: 999px;
+      background: rgba(255, 252, 244, 0.55);
+      color: var(--ink-soft);
+      font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+    }
+    .cover .eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--water); }
+    .cover h1 {
+      font-family: var(--serif); font-weight: 900;
+      font-size: clamp(3.4rem, 8.5vw, 7rem);
+      line-height: 0.92; letter-spacing: -0.025em;
+      margin: 0 0 28px; color: var(--ink);
+    }
+    .cover .dek {
+      font-family: var(--serif); font-weight: 400;
+      font-size: clamp(1.15rem, 1.7vw, 1.45rem);
+      line-height: 1.42; letter-spacing: -0.005em;
+      color: var(--ink-soft); max-width: 40ch; margin: 0 0 36px;
+    }
+    .cover .byline {
+      display: grid; grid-template-columns: auto 1px auto 1px auto;
+      gap: 16px; align-items: center;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted);
+    }
+    .cover .byline .sep { width: 1px; height: 12px; background: rgba(82, 102, 118, 0.4); }
+    .cover .byline strong { color: var(--ink); font-weight: 800; }
+
+    .cover-art { position: relative; aspect-ratio: 1 / 1.1; width: 100%; max-width: 480px; justify-self: end; }
+    .cover-art svg { width: 100%; height: 100%; }
+    .cover-art .label {
+      position: absolute; bottom: -6px; left: 0; right: 0; text-align: center;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+    }
+
+    .cover-foot {
+      position: relative; z-index: 1;
+      display: flex; justify-content: space-between; align-items: end; gap: 24px;
+      max-width: 1320px; margin: 0 auto; width: 100%;
+      padding-top: 40px;
+      color: var(--muted);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .cover-foot .scroll-cue { display: inline-flex; align-items: center; gap: 10px; color: var(--ink-soft); }
+    .scroll-arrow {
+      width: 14px; height: 14px;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg);
+      animation: bob 2s ease-in-out infinite;
+    }
+    @keyframes bob { 0%, 100% { transform: translateY(0) rotate(45deg); } 50% { transform: translateY(5px) rotate(45deg); } }
+
+    /* ============================== Lead ============================== */
+    .lead {
+      position: relative;
+      padding: clamp(80px, 11vh, 130px) clamp(24px, 6vw, 80px);
+      background: var(--paper);
+      border-top: 1px solid var(--line-soft);
+    }
+    .lead-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: clamp(40px, 6vw, 90px);
+      align-items: center;
+    }
+    .lead .hero-num {
+      font-family: var(--serif); font-weight: 900;
+      font-size: clamp(6rem, 12vw, 11rem);
+      line-height: 0.85; letter-spacing: -0.04em;
+      color: var(--water);
+    }
+    .lead .hero-num .unit { font-size: 0.32em; letter-spacing: 0.02em; font-weight: 700; color: var(--water-deep); vertical-align: 0.3em; }
+    .lead .hero-num-label {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted);
+      max-width: 32ch; margin-top: 18px; line-height: 1.5;
+    }
+    .lead-copy {
+      font-family: var(--serif); font-size: clamp(1.05rem, 1.3vw, 1.2rem);
+      line-height: 1.55; color: var(--ink-soft); max-width: 40ch;
+    }
+    .lead-copy p { margin: 0 0 1em; }
+    .lead-copy p:first-child::first-line { font-weight: 600; color: var(--ink); }
+
+    /* ============================== Explainer (what daylighting is) ============================== */
+    .explainer {
+      position: relative;
+      padding: clamp(70px, 10vh, 120px) clamp(24px, 6vw, 80px);
+      background: var(--paper-2);
+      border-top: 1px solid var(--line-soft);
+    }
+    .explainer-inner { max-width: 1120px; margin: 0 auto; }
+    .explainer-head { max-width: 760px; margin-bottom: 36px; }
+    .explainer-kicker {
+      display: inline-block; margin-bottom: 14px;
+      font-family: var(--sans); font-size: 11px; font-weight: 800;
+      letter-spacing: 0.18em; text-transform: uppercase; color: var(--water-2);
+    }
+    .explainer-head h2 {
+      font-family: var(--serif); font-weight: 800;
+      font-size: clamp(1.9rem, 3.4vw, 2.8rem);
+      line-height: 1.08; letter-spacing: -0.02em;
+      margin: 0; color: var(--ink);
+    }
+
+    .definition-block {
+      max-width: 760px;
+      padding: 26px 30px;
+      margin-bottom: 40px;
+      background: var(--paper);
+      border-left: 4px solid var(--water);
+      border-radius: 0 6px 6px 0;
+      box-shadow: 0 12px 32px rgba(10, 26, 38, 0.07);
+    }
+    .definition-block .definition {
+      font-family: var(--serif);
+      font-size: clamp(1.1rem, 1.6vw, 1.35rem);
+      line-height: 1.5; color: var(--ink); margin: 0 0 14px;
+      max-width: 62ch;
+    }
+    .definition-block .definition strong { color: var(--water); font-weight: 800; }
+    .definition-block .definition-src {
+      font-family: var(--sans); font-size: 12px; line-height: 1.55;
+      color: var(--muted); margin: 0; max-width: 70ch;
+    }
+
+    .explainer-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+      margin-bottom: 32px;
+      align-items: start;
+    }
+    @media (max-width: 760px) { .explainer-grid { grid-template-columns: 1fr; } }
+    .ex-card {
+      position: relative;
+      padding: 24px 26px 22px;
+      background: var(--paper);
+      border: 1px solid var(--line-soft);
+      border-radius: 6px;
+    }
+    .ex-card .ex-num {
+      display: block; margin-bottom: 10px;
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      letter-spacing: 0.14em; color: var(--water-2);
+    }
+    .ex-card h3 {
+      font-family: var(--serif); font-weight: 800;
+      font-size: 1.22rem; line-height: 1.2; letter-spacing: -0.012em;
+      margin: 0 0 12px; color: var(--ink);
+    }
+    .ex-card p {
+      font-family: var(--serif); font-size: 0.97rem; line-height: 1.55;
+      color: var(--ink-soft); margin: 0 0 0.9em;
+    }
+    .ex-card p:last-child { margin-bottom: 0; }
+    .ex-card strong { color: var(--ink); }
+    .ex-list {
+      margin: 0 0 0.9em; padding-left: 18px;
+      font-family: var(--serif); font-size: 0.95rem; line-height: 1.5;
+      color: var(--ink-soft);
+    }
+    .ex-list li { margin-bottom: 8px; }
+    .ex-list li::marker { color: var(--water-2); }
+    .ex-cite {
+      margin-top: 14px !important; padding-top: 12px;
+      border-top: 1px solid var(--line-soft);
+      font-family: var(--sans) !important; font-size: 12px !important;
+      line-height: 1.55 !important; color: var(--muted) !important;
+    }
+
+    .explainer-caveat {
+      padding: 24px 28px;
+      background: rgba(200, 80, 60, 0.06);
+      border: 1px solid rgba(200, 80, 60, 0.22);
+      border-radius: 6px;
+    }
+    .explainer-caveat h3 {
+      font-family: var(--sans); font-size: 11px; font-weight: 800;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--alert); margin: 0 0 12px;
+    }
+    .explainer-caveat p {
+      font-family: var(--serif); font-size: 0.99rem; line-height: 1.55;
+      color: var(--ink-soft); margin: 0 0 0.9em; max-width: 78ch;
+    }
+    .explainer-caveat p:last-child { margin-bottom: 0; }
+    .explainer-caveat strong { color: var(--ink); }
+
+    .explainer-handoff {
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+      margin-top: 48px; text-align: center;
+    }
+    .explainer-handoff .eh-rule { width: 1px; height: 32px; background: linear-gradient(var(--line), transparent); }
+    .explainer-handoff .eh-text {
+      font-family: var(--serif); font-style: italic;
+      font-size: clamp(1.05rem, 1.5vw, 1.25rem); color: var(--ink-soft);
+      max-width: 40ch;
+    }
+    .explainer-handoff .eh-arrow {
+      width: 12px; height: 12px;
+      border-right: 2px solid var(--water-2); border-bottom: 2px solid var(--water-2);
+      transform: rotate(45deg);
+      animation: bob 2s ease-in-out infinite;
+    }
+
+    /* ============================== Methodology ============================== */
+    .methodology {
+      padding: clamp(60px, 9vh, 100px) clamp(24px, 6vw, 80px);
+      background: var(--paper);
+      border-top: 1px solid var(--line-soft);
+    }
+    .methodology-inner { max-width: 900px; margin: 0 auto; }
+    .methodology .m-kicker {
+      display: inline-block; margin-bottom: 12px;
+      font-family: var(--sans); font-size: 11px; font-weight: 800;
+      letter-spacing: 0.18em; text-transform: uppercase; color: var(--water-2);
+    }
+    .methodology h2 {
+      font-family: var(--serif); font-weight: 800;
+      font-size: clamp(1.6rem, 2.6vw, 2.2rem); line-height: 1.1;
+      letter-spacing: -0.018em; margin: 0 0 22px; color: var(--ink);
+    }
+    .methodology p {
+      font-family: var(--serif); font-size: 1rem; line-height: 1.6;
+      color: var(--ink-soft); margin: 0 0 1em; max-width: 74ch;
+    }
+    .methodology strong { color: var(--ink); }
+    .m-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px; margin: 28px 0 8px;
+    }
+    .m-item {
+      padding: 18px 20px;
+      background: var(--paper-2);
+      border-radius: 5px;
+      border-left: 3px solid var(--water-2);
+    }
+    .m-item dt {
+      font-family: var(--sans); font-size: 10px; font-weight: 800;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 6px;
+    }
+    .m-item dd {
+      margin: 0; font-family: var(--serif); font-size: 0.95rem;
+      line-height: 1.45; color: var(--ink-soft);
+    }
+    .m-item dd strong { color: var(--ink); }
+
+    /* ============================== Story shell ============================== */
+    .story { position: relative; background: var(--paper); border-top: 1px solid var(--line-soft); }
+    .map-stage { position: sticky; top: 0; height: 100vh; background: linear-gradient(180deg, #dbe6ee 0%, #c5d5e2 100%); overflow: hidden; }
+    #map { position: absolute; inset: 0; background: linear-gradient(180deg, #dbe6ee 0%, #c5d5e2 100%); }
+
+    /* Sticky map overlays */
+    .map-step {
+      position: absolute; left: 22px; top: 22px; z-index: 4;
+      display: inline-flex; align-items: baseline; gap: 10px;
+      padding: 9px 14px;
+      background: rgba(10, 22, 34, 0.86);
+      color: #e8f2fa;
+      border-radius: 6px;
+      backdrop-filter: blur(10px);
+      font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+      pointer-events: none; opacity: 0;
+      transition: opacity 320ms ease;
+    }
+    .map-step.show { opacity: 1; }
+    .map-step .step-num { font-family: var(--serif); font-size: 13px; font-weight: 800; color: var(--stream-pale); }
+
+    .map-legend {
+      position: absolute; right: 22px; bottom: 22px; z-index: 4;
+      display: none;
+      padding: 12px 14px;
+      background: rgba(236, 240, 243, 0.97);
+      border: 1px solid rgba(82, 102, 118, 0.24);
+      border-radius: 8px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 16px 40px rgba(10, 26, 38, 0.18);
+      max-width: 280px;
+    }
+    .map-legend.show { display: block; }
+    .map-legend .legend-title {
+      font-family: var(--sans); font-size: 10px; font-weight: 800;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .map-legend .legend-rows { display: grid; gap: 6px; }
+    .map-legend .swatch {
+      display: grid; grid-template-columns: 18px 1fr;
+      gap: 10px; align-items: center;
+      font-family: var(--sans); font-size: 12px; font-weight: 600;
+      color: var(--ink-soft);
+    }
+    .map-legend .swatch i { width: 16px; height: 4px; border-radius: 2px; align-self: center; }
+    .map-legend .swatch i.dot { height: 12px; width: 12px; border-radius: 50%; margin-left: 2px; }
+    .map-legend .swatch i.box { height: 12px; width: 16px; border-radius: 2px; }
+    .map-legend .hint {
+      margin-top: 10px; padding-top: 10px;
+      border-top: 1px solid rgba(82, 102, 118, 0.18);
+      font-size: 10px; font-weight: 600; color: var(--muted); line-height: 1.4;
+    }
+    .map-legend .swatch.stream i { background: var(--stream); }
+    .map-legend .swatch.named i { background: var(--water-deep); height: 5px; }
+    .map-legend .swatch.pipe i { background: var(--pipe); }
+    .map-legend .swatch.flood i { background: var(--floodplain); }
+    .map-legend .swatch.building i { background: linear-gradient(180deg, #6d7e8c, #2b3844); }
+    .map-legend .swatch.done i { background: var(--status-done); }
+    .map-legend .swatch.active i { background: var(--status-active); }
+    .map-legend .swatch.plan i { background: var(--status-plan); }
+
+    /* Burial slider (Ch. 2) — mirrors timeline-panel but a distinct control */
+    .burial-panel {
+      position: absolute; left: 22px; right: 22px; bottom: 22px;
+      z-index: 5;
+      display: none;
+      grid-template-columns: auto 1fr auto;
+      gap: 18px;
+      align-items: center;
+      padding: 14px 22px;
+      background: rgba(10, 22, 34, 0.92);
+      border: 1px solid rgba(126, 196, 232, 0.14);
+      border-radius: 10px;
+      backdrop-filter: blur(14px);
+      color: #e8f2fa;
+      box-shadow: 0 22px 44px rgba(0,0,0,0.32);
+    }
+    .burial-panel.show { display: grid; }
+    .burial-label { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(232, 242, 250, 0.6); }
+    .burial-year { font-family: var(--serif); font-size: 22px; font-weight: 900; letter-spacing: -0.02em; color: var(--stream-glow); }
+    .burial-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 2px; background: rgba(126, 196, 232, 0.22); outline: none; }
+    .burial-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--water-glow); cursor: pointer; border: 2px solid #e8f2fa; box-shadow: 0 0 10px rgba(126, 196, 232, 0.5); }
+    .burial-slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--water-glow); cursor: pointer; border: 2px solid #e8f2fa; }
+    .burial-note { font-size: 11px; color: rgba(232, 242, 250, 0.72); max-width: 24ch; line-height: 1.4; }
+    .burial-hint { display: block; font-size: 10px; color: rgba(232, 242, 250, 0.48); margin-top: 3px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+    /* Play / pause / replay button — shared by burial + timeline panels */
+    .play-btn {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--water-glow); color: var(--water-deep);
+      border: 2px solid #e8f2fa;
+      cursor: pointer;
+      display: grid; place-items: center;
+      font-family: var(--mono); font-size: 12px; font-weight: 800;
+      transition: transform 160ms;
+    }
+    .play-btn:hover { transform: scale(1.05); }
+    .play-btn .icon-play { display: inline-block; }
+    .play-btn .icon-pause { display: none; }
+    .play-btn.playing .icon-play { display: none; }
+    .play-btn.playing .icon-pause { display: inline-block; }
+
+    /* Search panel — Vancouver street / place lookup */
+    .search-panel {
+      position: absolute; top: 22px; right: 22px; z-index: 5;
+      display: none;
+      width: min(320px, 40vw);
+      background: rgba(236, 240, 243, 0.97);
+      border: 1px solid rgba(82, 102, 118, 0.24);
+      border-radius: 10px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 16px 40px rgba(10, 26, 38, 0.18);
+      overflow: hidden;
+    }
+    .search-panel.show { display: block; }
+    .search-title {
+      display: block;
+      padding: 10px 14px 6px;
+      font-family: var(--sans); font-size: 10px; font-weight: 800;
+      letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+    }
+    .search-input {
+      display: block; width: 100%;
+      padding: 8px 14px 12px;
+      background: transparent; border: 0;
+      font-family: var(--serif); font-size: 15px; color: var(--ink);
+      outline: none;
+    }
+    .search-input::placeholder { color: var(--muted); font-style: italic; }
+    .search-status {
+      padding: 6px 14px 12px;
+      font-size: 11px; color: var(--muted); line-height: 1.4;
+      display: none;
+    }
+    .search-status.show { display: block; }
+    .search-status.error { color: var(--alert); }
+    .search-status.hit { color: var(--recover); }
+
+    /* Salmon return chart — inside Ch. 4 chapter card */
+    .salmon-chart {
+      margin: 18px 0 0;
+      padding: 14px 0 4px;
+      border-top: 1px solid rgba(181, 193, 205, 0.7);
+      font-family: var(--sans);
+    }
+    .salmon-chart .sc-label {
+      font-size: 11px; font-weight: 800; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .salmon-chart svg { width: 100%; height: auto; display: block; }
+    .salmon-chart .sc-note {
+      margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.5;
+      font-style: italic;
+    }
+    .salmon-chart .sc-note strong { color: var(--ink); font-style: normal; }
+
+    /* Timeline slider (Ch. 4) */
+    .timeline-panel {
+      position: absolute; left: 22px; right: 22px; bottom: 22px;
+      z-index: 5;
+      display: none;
+      grid-template-columns: auto 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 14px 20px;
+      background: rgba(10, 22, 34, 0.9);
+      border-radius: 8px;
+      backdrop-filter: blur(14px);
+      color: #e8f2fa;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.28);
+    }
+    .timeline-panel.show { display: grid; }
+    .timeline-label { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(243, 236, 219, 0.6); }
+    .timeline-year { font-family: var(--serif); font-size: 20px; font-weight: 900; letter-spacing: -0.02em; }
+    .timeline-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 2px; background: rgba(243, 236, 219, 0.18); outline: none; }
+    .timeline-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--stream-pale); cursor: pointer; border: 2px solid #e8f2fa; }
+    .timeline-slider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--stream-pale); cursor: pointer; border: 2px solid #e8f2fa; }
+    .timeline-note { font-size: 11px; color: rgba(243, 236, 219, 0.68); white-space: nowrap; }
+
+    /* Filter chips (Ch. 5) */
+    .filter-panel {
+      position: absolute; left: 22px; bottom: 22px; z-index: 5;
+      display: none;
+      gap: 8px;
+      padding: 10px 12px;
+      background: rgba(236, 240, 243, 0.96);
+      border: 1px solid rgba(82, 102, 118, 0.2);
+      border-radius: 8px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 32px rgba(10, 26, 38, 0.14);
+    }
+    .filter-panel.show { display: inline-flex; }
+    .filter-panel .fp-chip {
+      padding: 6px 12px;
+      background: rgba(255, 252, 244, 0.6);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-family: var(--sans); font-size: 12px; font-weight: 700;
+      color: var(--ink); cursor: pointer;
+      transition: background 160ms, border-color 160ms;
+    }
+    .filter-panel .fp-chip:hover { background: var(--paper-2); }
+    .filter-panel .fp-chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+    /* Toggle panel (Ch. 7) */
+    .toggle-panel {
+      position: absolute; right: 22px; top: 22px; z-index: 5;
+      display: none;
+      padding: 12px 14px;
+      background: rgba(236, 240, 243, 0.96);
+      border: 1px solid rgba(82, 102, 118, 0.2);
+      border-radius: 8px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 32px rgba(10, 26, 38, 0.14);
+      max-width: 260px;
+    }
+    .toggle-panel.show { display: block; }
+    .toggle-panel .tp-title {
+      font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .toggle-panel .tp-btn {
+      display: block; width: 100%;
+      padding: 10px 12px; margin-bottom: 6px;
+      background: rgba(255, 252, 244, 0.6);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      font-family: var(--sans); font-size: 12px; font-weight: 700;
+      color: var(--ink); text-align: left;
+      cursor: pointer;
+      transition: background 160ms, border-color 160ms;
+    }
+    .toggle-panel .tp-btn:hover { background: var(--paper-2); }
+    .toggle-panel .tp-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    .toggle-panel .tp-btn:last-of-type { margin-bottom: 0; }
+    .toggle-panel .tp-note { font-size: 10px; font-weight: 600; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+
+    /* ============================== Chapter cards ============================== */
+    .chapters {
+      position: relative; z-index: 2;
+      margin-top: -100vh;
+      pointer-events: none;
+    }
+    .chapter {
+      pointer-events: none; /* transparent zones outside the card pass to the map */
+      min-height: 110vh;
+      display: flex; align-items: center;
+      padding: 60px clamp(20px, 4vw, 60px) 40px;
+    }
+    .chapter-inner {
+      pointer-events: auto; /* the card itself catches clicks so links + text still work */
+      width: 100%; max-width: 480px;
+      margin-left: clamp(0px, 3vw, 40px);
+      padding: 26px 28px;
+      background: rgba(236, 240, 243, 0.97);
+      border: 1px solid rgba(181, 193, 205, 0.72);
+      border-radius: 6px;
+      box-shadow: 0 24px 48px rgba(10, 26, 38, 0.16);
+      /* Card flows with the page — no internal scroll, no wheel-trapping. */
+    }
+    .chapter-num {
+      display: inline-block; margin-bottom: 14px;
+      padding: 3px 8px;
+      background: var(--ink); color: var(--paper);
+      font-family: var(--serif); font-size: 12px; font-weight: 800; letter-spacing: 0.06em;
+    }
+    .chapter h2 {
+      font-family: var(--serif); font-weight: 800;
+      font-size: clamp(1.5rem, 2.2vw, 1.95rem);
+      line-height: 1.08; letter-spacing: -0.018em;
+      color: var(--ink); margin: 0 0 14px;
+    }
+    .chapter p {
+      font-family: var(--serif); font-size: 0.98rem;
+      line-height: 1.5; color: var(--ink-soft); margin: 0 0 0.85em;
+    }
+    .chapter p:last-of-type { margin-bottom: 0; }
+    .chapter .pull {
+      margin: 16px 0;
+      padding: 14px 0 12px;
+      border-top: 1px solid rgba(181, 193, 205, 0.8);
+      border-bottom: 1px solid rgba(181, 193, 205, 0.8);
+    }
+    .chapter .pull-num {
+      font-family: var(--serif); font-weight: 900;
+      font-size: clamp(2.1rem, 3.4vw, 2.8rem);
+      line-height: 0.95; letter-spacing: -0.022em;
+      color: var(--water);
+      display: block; margin-bottom: 4px;
+    }
+    .chapter .pull-num.recover { color: var(--recover); }
+    .chapter .pull-num.warn { color: var(--warn); }
+    .chapter .pull-num.pipe { color: var(--pipe); }
+    .chapter .pull-label {
+      font-family: var(--sans); font-size: 12px; font-weight: 700;
+      letter-spacing: 0.04em; color: var(--muted); line-height: 1.45;
+    }
+    .chapter .cta {
+      margin-top: 18px;
+      padding: 12px 14px;
+      background: var(--paper-2);
+      border-left: 3px solid var(--water);
+      font-size: 13px; font-weight: 600;
+      color: var(--ink-soft);
+      font-family: var(--sans);
+      border-radius: 0 4px 4px 0;
+    }
+    .chapter .cta strong { color: var(--ink); }
+    .chapter .cta.recover { border-left-color: var(--recover); }
+    .chapter .cta.warn { border-left-color: var(--warn); }
+    .chapter .src {
+      margin-top: 16px;
+      font-family: var(--sans); font-size: 11px; font-weight: 600;
+      color: var(--muted); line-height: 1.5;
+    }
+    .chapter .src a { color: var(--water); text-decoration: underline; text-underline-offset: 2px; }
+    .chapter .src strong { color: var(--ink-soft); }
+
+    /* Expandable depth — cards stay short; researchers open the detail on demand */
+    details.deep {
+      margin: 16px 0 0;
+      border-top: 1px solid rgba(181, 193, 205, 0.8);
+    }
+    details.deep > summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 11px 0 2px;
+      font-family: var(--sans); font-size: 11px; font-weight: 800;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--water-2);
+      display: flex; align-items: center; gap: 8px;
+      user-select: none;
+      transition: color 140ms;
+    }
+    details.deep > summary:hover { color: var(--water); }
+    details.deep > summary::-webkit-details-marker { display: none; }
+    details.deep > summary .chev {
+      display: inline-grid; place-items: center;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--water-2); color: #fff;
+      font-size: 12px; line-height: 1; font-weight: 700;
+    }
+    details.deep > summary .chev::before { content: "+"; }
+    details.deep[open] > summary .chev::before { content: "\2212"; }
+    details.deep .deep-body { padding: 12px 0 4px; }
+    details.deep .deep-body > *:first-child { margin-top: 0; }
+    details.deep .deep-body p {
+      font-family: var(--serif); font-size: 0.95rem; line-height: 1.55;
+      color: var(--ink-soft); margin: 0 0 0.8em;
+    }
+    details.deep .deep-body p:last-child { margin-bottom: 0; }
+    details.deep .deep-body strong { color: var(--ink); }
+
+    /* Mechanism block — used for step-by-step process explainers inside chapters */
+    .mech-block {
+      margin: 18px 0;
+      padding: 18px 20px;
+      background: var(--paper-2);
+      border-radius: 5px;
+      border-left: 3px solid var(--pipe);
+    }
+    .mech-title {
+      font-family: var(--sans); font-size: 10px; font-weight: 800;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 12px;
+    }
+    .mech-steps {
+      margin: 0 0 10px; padding-left: 20px;
+      font-family: var(--serif); font-size: 0.95rem; line-height: 1.5;
+      color: var(--ink-soft);
+    }
+    .mech-steps li { margin-bottom: 7px; }
+    .mech-steps li::marker { color: var(--pipe); font-weight: 700; }
+    .mech-steps strong { color: var(--ink); }
+    .mech-note {
+      margin: 0 !important; font-family: var(--sans) !important;
+      font-size: 12px !important; line-height: 1.5 !important;
+      color: var(--muted) !important;
+    }
+
+    /* Small ephemera in chapter */
+    .chapter .kv {
+      margin: 14px 0 4px;
+      display: grid; grid-template-columns: auto 1fr;
+      gap: 6px 14px;
+      font-family: var(--sans); font-size: 12px; color: var(--ink-soft);
+    }
+    .chapter .kv dt { font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-size: 11px; padding-top: 2px; }
+    .chapter .kv dd { margin: 0; font-weight: 600; }
+
+    /* Popups */
+    .maplibregl-popup-content {
+      padding: 14px 16px;
+      border-radius: 4px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      max-width: 300px;
+      box-shadow: 0 16px 40px rgba(10, 26, 38, 0.22);
+      font-family: var(--sans);
+    }
+    .popup-title { font-family: var(--serif); font-weight: 800; font-size: 15px; color: var(--ink); margin: 0 0 4px; letter-spacing: -0.01em; }
+    .popup-body { margin: 0; color: var(--ink-soft); font-size: 13px; line-height: 1.5; }
+    .popup-body strong { color: var(--ink); }
+    .popup-src { display: block; margin-top: 8px; color: var(--muted); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+    .popup-status {
+      display: inline-block; margin: 6px 0 4px;
+      padding: 3px 8px; border-radius: 999px;
+      font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .popup-status.done { background: rgba(28, 107, 72, 0.14); color: var(--recover); }
+    .popup-status.active { background: rgba(168, 107, 30, 0.14); color: var(--warn); }
+    .popup-status.plan { background: rgba(15, 76, 129, 0.14); color: var(--water); }
+
+    .maplibregl-ctrl-attrib { background: rgba(236, 240, 243, 0.72) !important; font-family: var(--sans) !important; font-size: 10px !important; }
+
+    /* ============================== End ============================== */
+    .end {
+      position: relative;
+      padding: clamp(80px, 12vh, 140px) clamp(24px, 6vw, 80px);
+      background: var(--ink);
+      color: var(--paper);
+      border-top: 1px solid rgba(0, 0, 0, 0.4);
+    }
+    .end-inner { max-width: 920px; margin: 0 auto; }
+    .end .eyebrow {
+      display: inline-block; margin-bottom: 22px;
+      color: var(--stream-pale);
+      font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase;
+    }
+    .end h2 {
+      font-family: var(--serif); font-weight: 800;
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1.05; letter-spacing: -0.02em;
+      margin: 0 0 24px; color: #fff; max-width: 24ch;
+    }
+    .end p {
+      font-family: var(--serif); font-size: 1.08rem;
+      line-height: 1.6;
+      color: rgba(236, 240, 243, 0.84);
+      max-width: 56ch;
+    }
+    .end .credits {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 32px;
+      margin: 56px 0 0;
+      padding-top: 36px;
+      border-top: 1px solid rgba(236, 240, 243, 0.18);
+    }
+    .end .credits dt { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(236, 240, 243, 0.5); margin-bottom: 6px; }
+    .end .credits dd { font-family: var(--serif); font-size: 1rem; color: var(--paper); margin: 0; line-height: 1.4; }
+    .end .sources { margin-top: 48px; padding: 28px 30px; background: rgba(236, 240, 243, 0.07); border-left: 3px solid var(--stream-pale); }
+    .end .sources h3 { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(236, 240, 243, 0.7); margin: 0 0 16px; }
+    .end .sources ol { margin: 0; padding-left: 22px; columns: 2; column-gap: 32px; }
+    .end .sources li { font-size: 13px; line-height: 1.5; color: rgba(236, 240, 243, 0.78); margin-bottom: 8px; break-inside: avoid; }
+    .end .sources a { color: var(--paper); text-decoration: underline; text-decoration-color: rgba(236, 240, 243, 0.4); text-underline-offset: 2px; }
+    .end-foot { margin-top: 40px; padding-top: 24px; border-top: 1px solid rgba(236, 240, 243, 0.18); color: rgba(236, 240, 243, 0.5); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+
+    /* ============================== Responsive ============================== */
+    @media (max-width: 900px) {
+      .cover-grid { grid-template-columns: 1fr; gap: 40px; }
+      .cover-art { max-width: 320px; justify-self: start; }
+      .cover h1 { font-size: clamp(2.8rem, 12vw, 4rem); }
+      .lead-inner { grid-template-columns: 1fr; gap: 28px; }
+      .lead .hero-num { font-size: clamp(5rem, 26vw, 8rem); }
+      .chapter { padding: 40px 18px 30px; }
+      .chapter-inner { margin-left: 0; padding: 24px 22px; max-width: 100%; }
+      .map-step { left: 14px; top: 14px; font-size: 10px; padding: 7px 11px; }
+      .map-legend, .timeline-panel, .filter-panel { right: 14px; left: 14px; bottom: 14px; }
+      .toggle-panel { right: 14px; top: 62px; left: auto; max-width: 200px; }
+      .end .sources ol { columns: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================== Chrome ============================== -->
+  <header class="chrome" id="chrome">
+    <div class="brand">Daylighting</div>
+    <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="meta" id="chromeMeta"></div>
+  </header>
+
+  <!-- ============================== Cover ============================== -->
+  <section class="cover" id="cover">
+    <div class="cover-grid">
+      <div>
+        <div class="eyebrow">Daylighting</div>
+        <h1>Coming Back.</h1>
+        <p class="dek">A hundred years ago there were more than fifty salmon streams running through Vancouver. Most were buried. A handful are now coming back.</p>
+        <div class="byline">
+          <span>By <strong>Laurence Magenga</strong></span>
+          <span class="sep"></span>
+          <span>For <strong>EcoLens</strong></span>
+          <span class="sep"></span>
+          <span>Reviewed by <strong>—</strong></span>
+        </div>
+      </div>
+      <figure class="cover-art" aria-hidden="true">
+        <svg viewBox="0 0 400 440" xmlns="http://www.w3.org/2000/svg" id="coverSvg">
+          <defs>
+            <filter id="soft-blur" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="0.5" /></filter>
+            <radialGradient id="halo" cx="50%" cy="55%" r="60%">
+              <stop offset="0%" stop-color="rgba(43, 111, 156, 0.16)"/>
+              <stop offset="55%" stop-color="rgba(43, 111, 156, 0.04)"/>
+              <stop offset="100%" stop-color="rgba(43, 111, 156, 0)"/>
+            </radialGradient>
+          </defs>
+          <rect x="0" y="0" width="400" height="440" fill="url(#halo)" />
+          <g id="coverStreams" filter="url(#soft-blur)"></g>
+        </svg>
+        <div class="label">Vancouver · Streams 1880–1920 · UBC / Proctor</div>
+      </figure>
+    </div>
+    <div class="cover-foot">
+      <div>EcoLens · Coverage window: 1880 — July 2026</div>
+      <div class="scroll-cue">Scroll <span class="scroll-arrow"></span></div>
+    </div>
+  </section>
+
+  <!-- ============================== Lead ============================== -->
+  <section class="lead" id="lead">
+    <div class="lead-inner">
+      <div>
+        <div class="hero-num">120<span class="unit">&nbsp;km</span></div>
+        <div class="hero-num-label">of salmon streams buried under the City of Vancouver — Sharon Proctor's 1978 mapping, digitized by UBC 2011.</div>
+      </div>
+      <div class="lead-copy">
+        <p>Under the streets of East Vancouver, under Kingsway, under the parking lot behind the Canadian Tire on Grandview Highway, there is a river system. It ran salmon. It carried the drainage of the whole city into False Creek and Burrard Inlet. Most of it is now a pipe.</p>
+        <p>Between the 1880s and the 1970s, Vancouver buried roughly 120 kilometres of stream. The engineering was routine. The reasoning was land use. The result is a modern city built directly on top of a working salmon watershed.</p>
+        <p>This is the story of what was buried, why it was buried, and what has begun — creek by creek — to come back.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== Explainer: what daylighting is ============================== -->
+  <section class="explainer" id="explainer">
+    <div class="explainer-inner">
+
+      <div class="explainer-head">
+        <span class="explainer-kicker">The term</span>
+        <h2>What "daylighting" actually means</h2>
+      </div>
+
+      <div class="definition-block">
+        <p class="definition">
+          <strong>Daylighting</strong> is the deliberate removal of a stream from the pipe, culvert, or
+          concrete channel it was buried in, and its return to an open, vegetated channel at the surface —
+          re-exposing a watercourse to daylight after decades or a century underground.
+        </p>
+        <p class="definition-src">
+          The term entered North American planning vocabulary through
+          <a href="https://www.americanrivers.org/wp-content/uploads/2016/05/AmericanRivers_daylighting-streams-report.pdf" target="_blank">American Rivers' <em>Daylighting Streams: Breathing Life Into Urban Streams and Communities</em></a>,
+          which remains the standard reference text for practitioners.
+        </p>
+      </div>
+
+      <div class="explainer-grid">
+
+        <article class="ex-card">
+          <span class="ex-num">01</span>
+          <h3>What gets removed</h3>
+          <p>
+            A buried stream typically sits inside one of three things: a <strong>combined sewer</strong>
+            (carrying stormwater and sanitary waste in the same pipe), a <strong>storm-only culvert</strong>,
+            or a <strong>hard-lined concrete flume</strong>. Daylighting means taking that structure out —
+            or bypassing it — and cutting a new channel where the water can run open.
+          </p>
+          <p>
+            It is not the same as <em>stream restoration</em> (improving an already-open stream) or
+            <em>naturalization</em> (softening an existing channel). Daylighting is specifically the
+            un-burying step.
+          </p>
+        </article>
+
+        <article class="ex-card">
+          <span class="ex-num">02</span>
+          <h3>What gets built</h3>
+          <p>
+            An open channel alone is not habitat. Working projects pair the excavation with
+            <strong>riparian planting</strong> (native willow, hardhack, sedge along the banks),
+            <strong>gravel substrate</strong> sized for spawning, <strong>large woody debris</strong>
+            for pool-and-riffle structure, and often <strong>biofiltration cells</strong> upstream to
+            treat road runoff before it reaches the new channel.
+          </p>
+          <p>
+            Where fish passage is the goal, culvert crossings downstream must also be corrected —
+            a daylighted reach with a perched culvert below it is inaccessible to salmon.
+          </p>
+        </article>
+
+        <article class="ex-card">
+          <span class="ex-num">03</span>
+          <h3>Why it matters ecologically</h3>
+          <p>
+            A piped stream performs almost none of the functions of a stream. It moves water fast,
+            in the dark, over a smooth invert, with no light, no plants, no gravel, and no insects.
+            Returning it to the surface restores the physical conditions that
+            aquatic ecosystems require:
+          </p>
+          <ul class="ex-list">
+            <li><strong>Shading and thermal buffering</strong> — riparian canopy over an open channel moderates water temperature, which is the limiting factor for salmonid survival in urban streams.</li>
+            <li><strong>Floodplain reconnection</strong> — an open channel with room to spill absorbs peak flows instead of transmitting them downstream at full velocity.</li>
+            <li><strong>Habitat complexity</strong> — gravel, wood, pools and riffles support invertebrate communities, which in turn support fish and birds.</li>
+            <li><strong>Infiltration and recharge</strong> — water in contact with soil returns to groundwater rather than being flushed to the outfall.</li>
+          </ul>
+          <p class="ex-cite">
+            The strongest peer-reviewed evidence for the temperature pathway is
+            <a href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0270339" target="_blank">Jorgensen et al. (2022), <em>PLOS ONE</em></a>,
+            which found that combined riparian shading and floodplain reconnection produced the largest
+            modelled improvement in stream thermal conditions. <strong>Note:</strong> that study is Washington State,
+            not British Columbia — it is cited here as a regional analogue, not as BC-specific evidence.
+          </p>
+        </article>
+
+        <article class="ex-card">
+          <span class="ex-num">04</span>
+          <h3>Why cities do it</h3>
+          <p>
+            Ecology is rarely the whole business case. Municipalities daylight streams for reasons
+            that stack:
+          </p>
+          <ul class="ex-list">
+            <li><strong>Aging infrastructure.</strong> A century-old culvert reaching end-of-life must be replaced regardless. Daylighting competes against the cost of a new pipe, not against zero.</li>
+            <li><strong>Sewer capacity.</strong> Removing clean stormwater from a combined system reduces overflow events during heavy rain.</li>
+            <li><strong>Flood management.</strong> Surface conveyance with floodplain storage handles peak events that pipes size-limited to a design storm cannot.</li>
+            <li><strong>Regulatory obligation.</strong> Fish-bearing waters carry federal <em>Fisheries Act</em> obligations; restoration can be required or credited.</li>
+            <li><strong>Public space.</strong> A daylit creek corridor is a linear park. That value is real, and it is what usually wins the council vote.</li>
+          </ul>
+        </article>
+
+      </div>
+
+      <div class="explainer-caveat">
+        <h3>What daylighting does not do</h3>
+        <p>
+          It does not offset climate warming. Restoration mitigates local thermal and hydrological stress
+          within a reach; it does not counteract regional air-temperature increase, and studies that model
+          restoration benefits generally show them narrowing under high-emissions scenarios.
+          It is also <strong>not linear</strong> — Still Creek's own salmon record includes a multi-year gap
+          after 2016, and recovery in one reach can be undone by a barrier downstream.
+        </p>
+        <p>
+          Claims circulating in popular coverage that this piece <strong>does not</strong> repeat, because they
+          could not be verified against a primary source: a specific "5.9°C cooling" figure attributed to
+          daylighted streams; a "20–80% macroinvertebrate increase"; and the widely-repeated Vancouver
+          folk claim that only two visible streams remain in the city.
+          See the <a href="#methodology">methodology note</a> for how claims were handled.
+        </p>
+      </div>
+
+      <div class="explainer-handoff">
+        <span class="eh-rule"></span>
+        <span class="eh-text">Now — the map. Eight chapters, from what was buried to what's coming back.</span>
+        <span class="eh-arrow"></span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================== Story: sticky map + chapters ============================== -->
+  <section class="story" id="story">
+    <div class="map-stage">
+      <div id="map"></div>
+
+      <div class="map-step" id="mapStep"><span class="step-num">01</span><span id="mapStepLabel">The buried landscape</span></div>
+
+      <div class="map-legend" id="mapLegend"></div>
+
+      <!-- Burial slider (Ch. 2) -->
+      <div class="burial-panel" id="burialPanel">
+        <div>
+          <div class="burial-label">Vancouver · development wave</div>
+          <div class="burial-year" id="burialYear">1900</div>
+        </div>
+        <div>
+          <input type="range" min="0" max="100" step="1" value="0" class="burial-slider" id="burialSlider" />
+          <div class="burial-note" id="burialNote">Streams still on the surface. Vancouver was 14 years old.</div>
+        </div>
+        <div style="display:grid; gap:8px; justify-items:end;">
+          <button class="play-btn" id="burialPlayBtn" title="Play / pause">
+            <span class="icon-play">▶</span><span class="icon-pause">‖</span>
+          </button>
+          <span class="burial-hint">Auto-plays · drag to override</span>
+        </div>
+      </div>
+
+      <!-- Timeline slider (Ch. 4) -->
+      <div class="timeline-panel" id="timelinePanel">
+        <div>
+          <div class="timeline-label">Still Creek · timeline</div>
+          <div class="timeline-year" id="timelineYear">1988</div>
+        </div>
+        <div>
+          <input type="range" min="0" max="6" step="1" value="0" class="timeline-slider" id="timelineSlider" />
+          <div class="timeline-note" id="timelineNote"><strong id="timelineEvent">Vancouver Council endorses stream-daylighting policy</strong></div>
+        </div>
+        <div style="display:grid; gap:8px; justify-items:end;">
+          <button class="play-btn" id="timelinePlayBtn" title="Play / pause">
+            <span class="icon-play">▶</span><span class="icon-pause">‖</span>
+          </button>
+          <span class="burial-hint">Auto-plays · drag to override</span>
+        </div>
+      </div>
+
+      <!-- Filter chips (Ch. 5) -->
+      <div class="filter-panel" id="filterPanel">
+        <button class="fp-chip active" data-filter="all">All</button>
+        <button class="fp-chip" data-filter="done">Completed</button>
+        <button class="fp-chip" data-filter="active">Active</button>
+        <button class="fp-chip" data-filter="plan">Planning</button>
+      </div>
+
+      <!-- Search panel — Vancouver place lookup + nearest stream -->
+      <div class="search-panel" id="searchPanel">
+        <span class="search-title">Find a place</span>
+        <input class="search-input" id="searchInput" type="text"
+               placeholder="Kingsway &amp; Main · Kits Beach · Trout Lake…"
+               autocomplete="off" spellcheck="false" />
+        <div class="search-status" id="searchStatus"></div>
+      </div>
+
+      <!-- Toggle panel (Ch. 7) -->
+      <div class="toggle-panel" id="togglePanel">
+        <div class="tp-title" id="tpTitle">Funding scale</div>
+        <button class="tp-btn active" id="tpBtnA" data-mode="a">Current · WSF grants</button>
+        <button class="tp-btn" id="tpBtnB" data-mode="b">Modernized · corridor mandate</button>
+        <div class="tp-note" id="tpNote">Toggle to see what a full corridor-setback mandate would surface as viable daylighting sites, overlaid on today's UBC Old Streams network.</div>
+      </div>
+    </div>
+
+    <div class="chapters">
+
+      <!-- Chapter 1 — The Buried Landscape -->
+      <article class="chapter" id="ch1" data-step="landscape">
+        <div class="chapter-inner">
+          <span class="chapter-num">CHAPTER 01 · DISCOVERY</span>
+          <h2>Before Vancouver was built, this is what ran through it.</h2>
+          <p>In 1978, aquarium biologist Sharon Proctor sat down with old maps, archival photographs, and interviews with elderly Vancouverites who remembered fishing in Kitsilano and Mount Pleasant as boys. Out of that came a hand-drawn map of Vancouver's original streams: roughly 120 kilometres of surface water, more than fifty of them known salmon streams, threading between what would become the West End and the Fraser.</p>
+          <p>UBC digitized the map in 2011. The result is the layer you are looking at — 178 stream segments, 13 of them still known by name: China Creek, Brewery Creek, Vivian Creek, MacDonald Creek, Musqueam Creek, and the survivor of the whole system, Still Creek.</p>
+          <div class="pull">
+            <span class="pull-num">50+</span>
+            <span class="pull-label">Salmon streams recorded in Vancouver in the 1880s, before industrial-scale burial began.</span>
+          </div>
+          <p>Proctor's reconstruction cross-referenced archival survey maps, fire-insurance atlases, and historical photographs against the memories of long-time residents who had known the creeks as open water in childhood. It remains the most complete picture of Vancouver's pre-development hydrology that exists — and it is a <strong>reconstruction</strong>, not a survey, so segment positions carry the uncertainty of a map partly drawn from memory and century-old paper.</p>
+          <p>UBC's 2011 digitization georeferenced the hand-drawn original to modern coordinates. That is what makes it a layer you can lay buildings and sewers on top of — as the next chapters do. Click any stream to see its name and where it ran.</p>
+          <p class="src">Source: <a href="https://abacus.library.ubc.ca/dataset.xhtml?persistentId=hdl:11272.1/AB2/D6XCQG" target="_blank">UBC Library — Vancouver's Old Streams 1880–1920</a> · Sharon Proctor, Vancouver Aquarium, 1978</p>
+        </div>
+      </article>
+
+      <!-- Chapter 2 — How We Buried Them (beat A) -->
+      <article class="chapter" id="ch2" data-step="burial">
+        <div class="chapter-inner">
+          <span class="chapter-num">CHAPTER 02 · DISCOVERY → DAMAGE</span>
+          <h2>One by one, we buried them.</h2>
+          <p>Vancouver was engineered on top of its streams, not around them. As the grid pushed out from Gastown between the 1880s and the 1930s, the streams became a problem: they cut across the grid on a diagonal it could not accommodate, they flooded basements in wet winters, they carried the sewage of whoever lived upstream, and every crossing needed a bridge or a culvert that someone had to pay for.</p>
+          <p>The answer, again and again, was the <strong>combined sewer</strong> — a single pipe carrying stormwater and sanitary waste together, laid directly in the old streambed. It was the standard of the era, and it was chosen for exactly the reason it is now a liability: it was the cheapest way to make a stream vanish while still moving the water somewhere.</p>
+          <p>By the 1970s most of the network had been culverted, filled, or paved. The streams didn't disappear. They kept flowing — in the dark, at speed, into the same receiving waters as before.</p>
+          <div class="cta"><strong>Watch the wave.</strong> The map tilts over the Kingsway corridor, where China Creek ran. The slider auto-plays 1900 → 2026 — drag to pause. Buildings rise as the streams fade underground.</div>
+        </div>
+      </article>
+
+      <!-- Chapter 2 — beat B: the mechanism -->
+      <article class="chapter" id="ch2b" data-step="burial">
+        <div class="chapter-inner">
+          <div class="mech-block" style="margin-top:0;">
+            <div class="mech-title">How a creek becomes a pipe</div>
+            <ol class="mech-steps">
+              <li><strong>Divert.</strong> Flow is intercepted upstream and routed into a new trunk line.</li>
+              <li><strong>Culvert.</strong> The channel itself is encased — brick, then concrete, then reinforced pipe as materials changed decade to decade.</li>
+              <li><strong>Backfill.</strong> The ravine or gully above the culvert is filled, often with construction spoil and municipal waste.</li>
+              <li><strong>Build.</strong> Once the surface is level and drained, the lots are subdivided and the grid closes over the top.</li>
+            </ol>
+            <p class="mech-note">Each step is reasonable on its own. Together they leave the stream still flowing — now legally and physically part of the sewer system.</p>
+          </div>
+          <p>The named creeks each went a different way. <strong>China Creek</strong> drained a substantial ravine through what is now Mount Pleasant and Grandview; it was progressively culverted and its ravine filled — the corridor now runs largely under Kingsway and the Grandview Cut. <strong>Brewery Creek</strong>, which once powered a brewery near Main and 7th, was piped into the sewer network as Mount Pleasant densified. <strong>Vivian</strong>, <strong>MacDonald</strong>, and the Kitsilano drainages went under with the West Side subdivision boom.</p>
+          <p>A combined sewer runs to treatment on a dry day. But its capacity is fixed, and a heavy Vancouver rain can exceed it — at which point the system is designed to spill the excess, a mix of stormwater <em>and</em> sewage, straight to the creeks, the Fraser, or Burrard Inlet. These <strong>combined sewer overflows</strong> are the single largest reason the city is now spending billions to separate the two flows. Daylighting a stream pulls clean stormwater out of that pipe entirely — which is why it lives in the city's sewer strategy, not only its parks plan.</p>
+          <div class="pull">
+            <span class="pull-num pipe">Combined</span>
+            <span class="pull-label">The same pipes still carry much of the city's stormwater and sewage. In heavy rain the system can overflow, discharging untreated flow to receiving waters.</span>
+          </div>
+          <p class="src"><a href="https://opendata.vancouver.ca/explore/dataset/sewer-mains/" target="_blank">CoV Sewer Mains</a> · <a href="https://abacus.library.ubc.ca/dataset.xhtml?persistentId=hdl:11272.1/AB2/D6XCQG" target="_blank">UBC / Proctor</a> · buildings © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>. The wave is a visual device, not a dated construction record (<a href="#methodology">methodology</a>).</p>
+        </div>
+      </article>
+
+      <!-- Chapter 3 — What We Lost (beat A) -->
+      <article class="chapter" id="ch3" data-step="lost">
+        <div class="chapter-inner">
+          <span class="chapter-num">CHAPTER 03 · DAMAGE</span>
+          <h2>When we buried them, we buried what they gave us.</h2>
+          <p>A salmon stream is not only a salmon stream. Burying one removes a set of physical functions at once — and each loss compounds the others.</p>
+          <div class="mech-block">
+            <div class="mech-title">What a pipe cannot do</div>
+            <ul class="mech-steps" style="list-style: none; padding-left: 0;">
+              <li><strong>Slow water down.</strong> A smooth invert moves stormwater fast, with no floodplain to spill into — the mechanism behind urban flash flooding.</li>
+              <li><strong>Keep water cool.</strong> No canopy, no shade. Runoff off hot asphalt enters warm and stays warm.</li>
+              <li><strong>Hold life.</strong> No light, no gravel, no insects. A culvert is biologically close to inert.</li>
+              <li><strong>Pass fish.</strong> Perched outfalls and dark barrels block migration even where water quality would allow it.</li>
+            </ul>
+          </div>
+        </div>
+      </article>
+
+      <!-- Chapter 3 — beat B -->
+      <article class="chapter" id="ch3b" data-step="lost">
+        <div class="chapter-inner">
+          <p>The consequences are still visible. Vancouver's designated floodplain — the coral footprint on the map — tracks the low ground the old streams once drained. The 2021 atmospheric river and heat dome both landed on a city that had traded a natural stormwater-and-cooling system for a pipe network built for neither.</p>
+          <p>The salmon loss is the one that became invisible. A run doesn't collapse loudly when the water it needs is sealed under a road — it just stops being observed, then stops being remembered.</p>
+          <div class="pull">
+            <span class="pull-num warn">Flood, heat, no fish.</span>
+            <span class="pull-label">The three losses that map most directly to the buried-streams footprint.</span>
+          </div>
+          <p class="src"><a href="https://opendata.vancouver.ca" target="_blank">CoV Designated Floodplain</a> · mechanisms per <a href="https://www.americanrivers.org/wp-content/uploads/2016/05/AmericanRivers_daylighting-streams-report.pdf" target="_blank">American Rivers</a>. No specific cooling degree-figure is claimed — the circulated "5.9°C" is unverified (<a href="#methodology">methodology</a>).</p>
+        </div>
+      </article>
+
+      <!-- Chapter 4 — Still Creek (beat A) -->
+      <article class="chapter" id="ch4" data-step="still">
+        <div class="chapter-inner">
+          <span class="chapter-num">CHAPTER 04 · THE RETURN</span>
+          <h2>Eighty years absent. Then the salmon came back.</h2>
+          <p>Still Creek runs 17 kilometres across East Vancouver and Burnaby — the one substantial stream Vancouver never finished burying. Most is culverted, but daylighted sections remain along Cornett Road and behind the industrial parcels on Grandview Highway.</p>
+          <p>In November 2012, chum salmon spawned there for the first time in roughly eighty years. It happened behind a Canadian Tire — because, starting quietly with a 1988 Council policy and then in earnest after 2002, three governments had slowly rebuilt the creek: pulling concrete flumes, planting willow and hardhack, mandating 15-to-30-metre streamside corridors at every major redevelopment. In fall 2024, chum returned again — the strongest run in years.</p>
+          <div class="pull">
+            <span class="pull-num recover">2012 · 2024</span>
+            <span class="pull-label">The return years that broke the eighty-year absence. Real — but fragile: some years, no fish reached the Vancouver reach.</span>
+          </div>
+          <div class="cta recover"><strong>Play the timeline.</strong> It walks the policy chain that produced this — ending with the Rupert &amp; Renfrew Station Area Plan (approved July 8, 2025), which commits Vancouver to more Still Creek daylighting.</div>
+        </div>
+      </article>
+
+      <!-- Chapter 4 — beat B: how it was rebuilt + the salmon record -->
+      <article class="chapter" id="ch4b" data-step="still">
+        <div class="chapter-inner">
+          <p>Restoration was not a single project but two decades of accumulating work by three governments and a community organization. Concrete flumes were pulled and replaced with naturalized channel. Native <strong>willow and hardhack</strong> were planted to shade and stabilize the banks. Biofiltration ponds were built to treat road runoff before it reached the creek.</p>
+          <p>The quiet lever was land-use policy. Redevelopment along the corridor — including large sites like <strong>Bentall</strong> and <strong>Costco</strong> — was required to hold a <strong>15-to-30-metre streamside corridor</strong>, so the creek gained room every time a parcel turned over. The <strong>Still Moon Arts Society</strong>, active since 2003, ran the streamkeeping and salmon-spotting that kept it going between capital projects.</p>
+          <p>It remains fragile. In 2017–18 no salmon reached the Vancouver reach at all — fish were stopped at the <strong>Boundary Road culvert</strong>, a reminder that a single downstream barrier can undo an entire restored corridor.</p>
+          <div class="salmon-chart" aria-label="Salmon return timeline">
+            <div class="sc-label">Chum salmon returning to Still Creek</div>
+            <svg viewBox="0 0 560 130" xmlns="http://www.w3.org/2000/svg">
+              <!-- Axis line -->
+              <line x1="18" y1="98" x2="542" y2="98" stroke="#b5c1cd" stroke-width="1"/>
+              <!-- Year ticks -->
+              <g font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#526676">
+                <text x="18"  y="118" text-anchor="start">1932</text>
+                <text x="215" y="118" text-anchor="middle">2002</text>
+                <text x="275" y="118" text-anchor="middle">2012</text>
+                <text x="340" y="118" text-anchor="middle">2016</text>
+                <text x="405" y="118" text-anchor="middle">2019</text>
+                <text x="480" y="118" text-anchor="middle">2024</text>
+              </g>
+              <!-- 80-year absence bar -->
+              <rect x="18" y="94" width="257" height="4" fill="#c8503c" opacity="0.55"/>
+              <text x="146" y="80" font-family="Source Serif 4, serif" font-size="12" font-weight="700" fill="#a8402c" text-anchor="middle">80 yrs · zero salmon</text>
+              <!-- Return dots — scaled by qualitative abundance -->
+              <!-- 2012 first return -->
+              <circle cx="275" cy="88" r="4"  fill="#1c6b48"/>
+              <!-- 2013-2016 consecutive returns, growing -->
+              <circle cx="293" cy="86" r="5"  fill="#1c6b48"/>
+              <circle cx="310" cy="84" r="6"  fill="#1c6b48"/>
+              <circle cx="323" cy="82" r="6"  fill="#1c6b48"/>
+              <circle cx="340" cy="82" r="7"  fill="#1c6b48"/>
+              <!-- 2017-2018 hollow — Vancouver reach empty, Burnaby only -->
+              <circle cx="358" cy="88" r="5" fill="none" stroke="#a86b1e" stroke-width="2"/>
+              <circle cx="376" cy="88" r="5" fill="none" stroke="#a86b1e" stroke-width="2"/>
+              <!-- 2019-2023 intermittent -->
+              <circle cx="392" cy="86" r="4"  fill="#1c6b48" opacity="0.7"/>
+              <circle cx="410" cy="88" r="3"  fill="#1c6b48" opacity="0.55"/>
+              <circle cx="428" cy="86" r="4"  fill="#1c6b48" opacity="0.7"/>
+              <circle cx="446" cy="86" r="4"  fill="#1c6b48" opacity="0.7"/>
+              <!-- 2024 abundant -->
+              <circle cx="480" cy="72" r="14" fill="#1c6b48" opacity="0.28"/>
+              <circle cx="480" cy="72" r="9"  fill="#1c6b48"/>
+              <text x="480" y="55" font-family="Source Serif 4, serif" font-size="13" font-weight="800" fill="#1c6b48" text-anchor="middle">Abundant · 2024</text>
+              <!-- Legend row -->
+              <g font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#526676">
+                <circle cx="24" cy="18" r="4" fill="#1c6b48"/>
+                <text x="34" y="21">Returned</text>
+                <circle cx="118" cy="18" r="4" fill="none" stroke="#a86b1e" stroke-width="2"/>
+                <text x="128" y="21">Absent in Vancouver reach</text>
+              </g>
+            </svg>
+            <p class="sc-note"><strong>What we know:</strong> chum returned in 2012 after ~80 years, spawned consecutively in the Vancouver reach through 2016, disappeared in 2017–18 (blocked at the Boundary Rd culvert), returned intermittently, then spawned abundantly in fall 2024. <strong>What we don't know:</strong> DFO NuSEDS doesn't publish year-by-year counts for the Still Creek reach; the shape above tracks the qualitative record from Still Moon Arts + city + press coverage, not audited counts.</p>
+          </div>
+
+          <p class="src">Sources: <a href="https://vancouver.ca/home-property-development/still-creek.aspx" target="_blank">City of Vancouver — Still Creek</a> · <a href="https://stillmoonarts.ca/salmon/" target="_blank">Still Moon Arts Society — Salmon-Spotting</a> · <a href="https://www.nationalobserver.com/2024/11/20/news/salmon-spawn-urban-streams-metro-vancouver" target="_blank">National Observer — Salmon spawn urban streams Metro Vancouver (Nov 2024)</a></p>
+        </div>
+      </article>
+
+      <!-- Chapter 5 — The Projects Underway -->
+      <article class="chapter" id="ch5" data-step="projects">
+        <div class="chapter-inner">
+          <span class="chapter-num">CHAPTER 05 · IT'S NOT JUST ONE CREEK</span>
+          <h2>Thirteen projects, three governments, one method.</h2>
+          <p>In July 2024, a 200-metre daylighted section of what was historically called First Creek opened at Tatlow Park in Kitsilano — engineered by KWL, delivered under Vancouver's Rain City Strategy, and awarded a 2025 CSLA National Honour Award. In summer 2025, Canyon Creek opened at Spanish Banks: about 85 metres of new open water, 65 parking stalls converted to habitat, funded by $992,800 from the federal Nature Infrastructure Program plus $1,175,818 from the City.</p>
+          <p>Older precedents run in the same direction — Guichon Creek through the BCIT campus, Hoy and Scott Creeks in Coquitlam feeding a community-run hatchery, the Brunette River basin's 73 square kilometres across five cities where Chinook, Coho, and Sockeye are again reaching Stoney, Deer, Eagle and Beecher creeks.</p>
+          <div class="pull">
+            <span class="pull-num recover">200 m</span>
+            <span class="pull-label">Length of the Tatlow (historically First Creek) daylighting completed 4 July 2024 in Kitsilano — one of the two most recent Vancouver additions.</span>
+          </div>
+          <p>Click any pin on the map to see status, cost where public, engineering firm, and outcome.</p>
+        </div>
+      </article>
+
+      <!-- Chapter 5 — beat B: the inventory -->
+      <article class="chapter" id="ch5b" data-step="projects">
+        <div class="chapter-inner">
+          <p><strong>Tatlow / First Creek</strong> — Kitsilano, completed 4 July 2024. ~200 m daylighted, engineered by KWL under the Rain City Strategy, connecting Tatlow and Volunteer parks toward English Bay. Won a 2025 CSLA National Honour Award.</p>
+          <p><strong>Canyon Creek</strong> — Spanish Banks, summer 2025. ~85 m of new open water, 65 parking stalls converted to habitat. Funded by <strong>$992,800</strong> from the federal Nature Infrastructure Program plus <strong>$1,175,818</strong> from the City — about <strong>$2.17 M</strong> in total.</p>
+          <p><strong>Spanish Bank Creek</strong> (1999) and <strong>Salish Creek</strong> (2012) are the earlier Vancouver precedents. <strong>Guichon Creek</strong> runs daylighted through the BCIT Burnaby campus as a teaching site. <strong>Hoy</strong> and <strong>Scott Creeks</strong> in Coquitlam feed a community-run hatchery in Town Centre Park. The <strong>Brunette River basin</strong> — 73 km² across five cities — is seeing Chinook, Coho and Sockeye return to Stoney, Deer Lake, Eagle and Beecher creeks.</p>
+          <div class="pull">
+            <span class="pull-num recover">No one owns it</span>
+            <span class="pull-label">The through-line is that no single agency drives this: it is municipalities, a regional district, engineering firms (KWL recurs), and volunteer streamkeeper societies, project by project.</span>
+          </div>
+          <p class="src">Sources: <a href="https://vancouver.ca/home-property-development/restoring-streams.aspx" target="_blank">City of Vancouver — Restoring streams</a> · <a href="https://coquitlam.ca/991/Salmon-Come-Home" target="_blank">Coquitlam — Salmon Come Home</a> · <a href="https://www.hoyscottcreeks.org/" target="_blank">Hoy-Scott Watershed Society</a></p>
+        </div>
+      </article>
+
+      <!-- Chapter 6 — The 100-Year Plan · Bowker Creek -->
+      <article class="chapter" id="ch6" data-step="bowker">
+        <div class="chapter-inner">
+          <span class="chapter-num">CHAPTER 06 · RECOVERY AT SCALE</span>
+          <h2>Victoria is unburying a stream over a century.</h2>
+          <p>Bowker Creek runs 8 kilometres through Saanich, Victoria, and Oak Bay. Two-thirds of it is buried in pipes. In 2003 the three municipalities and the Capital Regional District signed onto a Watershed Management Plan. In 2011 they adopted the Bowker Creek Blueprint — a 100-year plan to progressively daylight the creek as buildings, roads, and pipes reach end-of-life above it.</p>
+          <p>In 2015, KWL engineered the first 120 metres of daylighting at Oak Bay High School. In 2020, ISL Engineering completed a further feasibility study for corridor-scale work. The Blueprint itself is due for an update in 2026 — the milestone that timed this piece.</p>
+          <div class="pull">
+            <span class="pull-num">100 yrs</span>
+            <span class="pull-label">Length of Victoria's Bowker Creek Blueprint. The daylighting is scheduled to happen as everything above the creek turns over.</span>
+          </div>
+          <div class="mech-block">
+            <div class="mech-title">The 100-year timeline</div>
+            <ul class="mech-steps" style="list-style:none; padding-left:0;">
+              <li><strong>2003</strong> — Saanich, Victoria, Oak Bay and the CRD adopt a Bowker Creek Watershed Management Plan.</li>
+              <li><strong>2011</strong> — the three councils adopt the <strong>Bowker Creek Blueprint</strong>: a 100-year staged-daylighting plan keyed to infrastructure renewal — the creek is unburied as the buildings, roads and pipes above it reach end-of-life, not all at once.</li>
+              <li><strong>~2015</strong> — KWL engineers the first <strong>120 m</strong> of open channel at Oak Bay High School.</li>
+              <li><strong>2020</strong> — ISL Engineering completes a corridor-scale feasibility study.</li>
+              <li><strong>2026</strong> — the Blueprint is due for its scheduled update. The watershed is ~<strong>56% impervious</strong>, the creek ~<strong>66% buried</strong> — the gap the century-long plan is built to close.</li>
+            </ul>
+          </div>
+          <p class="src">Sources: <a href="https://www.crd.ca/environment/stormwater-watersheds-harbours/local-stewardship-groups/bowker-creek-initiative" target="_blank">CRD — Bowker Creek Initiative</a> · <a href="https://www.kwl.ca/project/bowker-creek-daylighting/" target="_blank">KWL — Bowker Creek Daylighting</a> · <a href="https://getinvolved.crd.bc.ca/bowker-creek-initiative" target="_blank">Get Involved CRD — Bowker Creek Blueprint update</a></p>
+        </div>
+      </article>
+
+      <!-- Chapter 7 — What Scales This -->
+      <article class="chapter" id="ch7" data-step="scales">
+        <div class="chapter-inner">
+          <span class="chapter-num">CHAPTER 07 · WHAT SCALES THIS</span>
+          <h2>Policy, money, and where the money comes from.</h2>
+          <p>Three levers explain why Vancouver has more daylit stream today than a decade ago. First: the Rain City Strategy, requiring most new development to capture the first 48 millimetres of rainfall on site. Second: corridor-setback rules at station-area plans like Rupert &amp; Renfrew — approved 8 July 2025 — which reserve 15-to-30 metres either side of Still Creek for restoration when adjacent parcels redevelop. Third: money.</p>
+          <p>British Columbia's Watershed Security Fund, run through the Real Estate Foundation of BC and the Healthy Watersheds Initiative, has distributed roughly $18 million across three intake rounds since 2024 — $5M, $7M, and $6M — with recent grants to Soowahlie First Nation for Sweltzer Creek and to Redd Fish Restoration Society on Vancouver Island.</p>
+          <p>Internationally, the cost range is wide. French daylighting has run €320 to €2,600 per metre. Taiwanese projects have been reported at €30,000 to €45,000 per metre. Large-scale US work in the mid-2000s ran roughly $1,180 in 2026 dollars per linear foot. What determines the number is not the ecology — it's what has to be moved out of the way.</p>
+          <div class="pull">
+            <span class="pull-num">$18M</span>
+            <span class="pull-label">BC Watershed Security Fund grant totals distributed 2024–2026 across three intakes. Toggle above the map to see what a modernized corridor mandate would surface as viable daylighting sites.</span>
+          </div>
+          <p>The cost range is set by what sits on top of the creek, not by the ecology: France has run <strong>€320–€2,600 per metre</strong>; Taiwan <strong>€30,000–€45,000 per metre</strong>; large-scale US work in the mid-2000s roughly <strong>$1,180 per linear foot</strong> in 2026 dollars. A creek under a park is cheap; a creek under a road, a building, and a live sewer is not.</p>
+          <p>The <strong>Watershed Security Fund</strong> — administered through the Real Estate Foundation of BC and the Healthy Watersheds Initiative — has distributed roughly <strong>$18 million</strong> across three intakes since 2024 (about $5M, $7M and $6M), with recent grants to Soowahlie First Nation for Sweltzer Creek and the Redd Fish Restoration Society on Vancouver Island. <em>(A widely-cited "$250M endowment" figure for the Fund could not be verified and is not used — see the <a href="#methodology">methodology note</a>.)</em></p>
+          <p class="src">Sources: <a href="https://vancouver.ca/files/cov/rain-city-strategy.pdf" target="_blank">Rain City Strategy PDF</a> · <a href="https://vancouver.ca/home-property-development/rupert-and-renfrew-station-area-plan.aspx" target="_blank">Rupert &amp; Renfrew Station Area Plan (approved Jul 8, 2025)</a> · <a href="https://watershedsecurityfund.ca/" target="_blank">Watershed Security Fund</a></p>
+        </div>
+      </article>
+
+      <!-- Chapter 8 — Coming Back -->
+      <article class="chapter" id="ch8" data-step="coming">
+        <div class="chapter-inner">
+          <span class="chapter-num">CHAPTER 08 · COMING BACK</span>
+          <h2>There are streams under this city. They can come back.</h2>
+          <p>The evidence is now on the map. Still Creek behind the Canadian Tire. Tatlow at Kitsilano. Canyon Creek at Spanish Banks. Guichon at BCIT. Hoy and Scott through Coquitlam's Linear Park. Bowker over a century. Sweltzer under a First Nations restoration grant. What used to be a single-site experiment is becoming a method.</p>
+          <p>Vancouver's buried streams have never stopped flowing. Turning that flow back into stream — creek by creek, corridor by corridor — is now a documented, funded, replicable practice. It is slow. It is not universal. But it is happening, and it works.</p>
+          <p>Toggle any layer above to explore the network freely.</p>
+          <div class="cta recover"><strong>Coming next in EcoLens:</strong> a Metro Vancouver deep-dive on the daylighting network, in collaboration with the Homegrown Pigeon Society.</div>
+          <div class="cta"><strong><a href="/#/map">Explore this area on the live EcoLens map →</a></strong> Every EcoLens investigation lives as a pin on the map — with live hazard layers, analysis, and the other stories.</div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ============================== Methodology ============================== -->
+  <section class="methodology" id="methodology">
+    <div class="methodology-inner">
+      <span class="m-kicker">Methodology</span>
+      <h2>How this piece was reported, and what it deliberately leaves out</h2>
+
+      <p>
+        Every quantitative claim in this piece was checked against a primary or institutional source before
+        publication. Claims that could not be traced to such a source were removed rather than softened —
+        including several that circulate widely in popular coverage of stream daylighting.
+      </p>
+
+      <dl class="m-grid">
+        <div class="m-item">
+          <dt>Historical stream network</dt>
+          <dd>Sharon Proctor's 1978 mapping for the Vancouver Aquarium, compiled from archival maps, photographs, and interviews with long-time residents. Digitized by <strong>Lesack &amp; Proctor (2011)</strong> and published through UBC Library. <strong>178 segments</strong>, 13 carrying names.</dd>
+        </div>
+        <div class="m-item">
+          <dt>Infrastructure layers</dt>
+          <dd>Sewer mains and trunk lines from City of Vancouver and Metro Vancouver open data portals under their respective open licences. Floodplain from City of Vancouver designated floodplain dataset.</dd>
+        </div>
+        <div class="m-item">
+          <dt>Building footprints</dt>
+          <dd>OpenStreetMap, retrieved July 2026 for the City of Vancouver extent. Heights use tagged <code>height</code> where present, otherwise <code>building:levels × 3.2 m</code>, otherwise an 8 m default. <strong>Present-day footprints</strong> — not a historical construction record.</dd>
+        </div>
+        <div class="m-item">
+          <dt>Project inventory</dt>
+          <dd>Compiled from municipal project pages, engineering-firm project records, regional district documentation, awards citations, and contemporaneous news coverage. Costs are quoted only where a public figure exists.</dd>
+        </div>
+      </dl>
+
+      <h3 style="font-family: var(--serif); font-size: 1.15rem; font-weight: 800; margin: 34px 0 12px; color: var(--ink);">Claims excluded after verification</h3>
+      <p>
+        The following appear in circulating coverage of daylighting but could not be substantiated against a
+        primary source, and are <strong>not asserted anywhere in this piece</strong>:
+      </p>
+      <ul style="font-family: var(--serif); font-size: 0.98rem; line-height: 1.6; color: var(--ink-soft); max-width: 74ch; padding-left: 20px;">
+        <li>A specific <strong>“5.9 °C” cooling effect</strong> attributed to daylighted streams.</li>
+        <li>A <strong>“20–80% macroinvertebrate increase”</strong> following daylighting.</li>
+        <li>The claim that <strong>only two visible streams remain</strong> in urban Vancouver — a persistent local folk claim.</li>
+        <li>Specific programme figures for <strong>Zurich's</strong> daylighting programme.</li>
+        <li>Quantified economic-benefit figures for <strong>Arcadia Creek, Kalamazoo</strong>.</li>
+        <li>A <strong>$250 M endowment</strong> figure for the BC Watershed Security Fund. Distributed grant totals are used instead.</li>
+      </ul>
+
+      <h3 style="font-family: var(--serif); font-size: 1.15rem; font-weight: 800; margin: 30px 0 12px; color: var(--ink);">Known gaps</h3>
+      <p>
+        Three gaps are worth stating plainly, because they bound what this piece can claim.
+        <strong>First</strong>, there is no published parcel-level record of Vancouver's stream-burial
+        sequence between 1880 and 1970; the chronology here reflects the general documented pattern of
+        culverting and grid expansion, not dated construction events.
+        <strong>Second</strong>, DFO's NuSEDS database does not publish year-by-year escapement counts for
+        the Still Creek reach, so the salmon-return chart in Chapter 4 represents the qualitative published
+        record — city communications, Still Moon Arts reporting, and press coverage — not audited counts.
+        <strong>Third</strong>, the strongest peer-reviewed evidence cited for the thermal-restoration
+        pathway (Jorgensen et al., 2022) is from Washington State and is used as a regional analogue;
+        BC-specific quantitative work on urban daylighting outcomes remains thin.
+      </p>
+
+      <h3 style="font-family: var(--serif); font-size: 1.15rem; font-weight: 800; margin: 30px 0 12px; color: var(--ink);">Review status</h3>
+      <p>
+        This is a <strong>public review version</strong>. It has not yet been reviewed by an
+        external subject-matter expert. Corrections and source challenges are welcome and will be
+        logged and reflected in a revised version.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================== End ============================== -->
+  <section class="end" id="end">
+    <div class="end-inner">
+      <div class="eyebrow">EcoLens · Investigation · July 2026</div>
+      <h2>The province knows how to fix this. It's happening — creek by creek.</h2>
+      <p>Every number in this piece is sourced. Where a figure could not be independently verified from a public source, it was not used. Where a common claim was contradicted by the record — including the widely-repeated "5.9°C cooling" figure and the folk claim that only two visible streams remain in urban Vancouver — it was left out. The full account of what was excluded, and why, is in the <a href="#methodology" style="color: var(--stream-pale); text-decoration: underline;">methodology note</a>.</p>
+
+      <dl class="credits">
+        <div>
+          <dt>Reporting &amp; analysis</dt>
+          <dd>Laurence Magenga</dd>
+        </div>
+        <div>
+          <dt>Data</dt>
+          <dd>UBC Library · City of Vancouver Open Data · Metro Vancouver Open Data</dd>
+        </div>
+        <div>
+          <dt>Review</dt>
+          <dd>Pending — public review version</dd>
+        </div>
+        <div>
+          <dt>Contact</dt>
+          <dd>laurencemagenga12@gmail.com</dd>
+        </div>
+      </dl>
+
+      <div class="sources">
+        <h3>Sources · Data &amp; datasets</h3>
+        <ol>
+          <li><a href="https://abacus.library.ubc.ca/dataset.xhtml?persistentId=hdl:11272.1/AB2/D6XCQG" target="_blank">UBC Library Abacus — Vancouver's Old Streams 1880–1920 (Lesack &amp; Proctor, 2011), digitized from Sharon Proctor's 1978 Vancouver Aquarium map</a></li>
+          <li><a href="https://opendata.vancouver.ca/explore/dataset/sewer-mains/" target="_blank">City of Vancouver Open Data — Sewer Mains</a></li>
+          <li><a href="https://vancouver.opendatasoft.com/explore/dataset/gvrd-sewer-trunk-mains/" target="_blank">Metro Vancouver Open Data — GVRD Sewer Trunk Mains</a></li>
+          <li><a href="https://opendata.vancouver.ca" target="_blank">City of Vancouver Open Data — Designated Floodplain</a></li>
+          <li><a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap — building footprints, City of Vancouver extent (retrieved July 2026)</a></li>
+          <li><a href="https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-stream-network" target="_blank">BC Data Catalogue — Freshwater Atlas Stream Network</a></li>
+        </ol>
+
+        <h3 style="margin-top: 28px;">Sources · Science &amp; practice</h3>
+        <ol>
+          <li><a href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0270339" target="_blank">Jorgensen et al. (2022) — riparian shading and floodplain reconnection effects on stream thermal conditions, <em>PLOS ONE</em> (Washington State; cited here as regional analogue)</a></li>
+          <li><a href="https://www.americanrivers.org/wp-content/uploads/2016/05/AmericanRivers_daylighting-streams-report.pdf" target="_blank">American Rivers — <em>Daylighting Streams: Breathing Life Into Urban Streams and Communities</em> (standard practitioner reference)</a></li>
+          <li><a href="https://greencommunitiesguide.ca/guide/nbs-implementation-overviews/stream-daylighting" target="_blank">Green Communities Guide — Stream Daylighting implementation overview</a></li>
+        </ol>
+
+        <h3 style="margin-top: 28px;">Sources · Projects, policy &amp; coverage</h3>
+        <ol>
+          <li><a href="https://vancouver.ca/home-property-development/still-creek.aspx" target="_blank">City of Vancouver — Still Creek</a></li>
+          <li><a href="https://stillmoonarts.ca/salmon/" target="_blank">Still Moon Arts Society — Salmon-Spotting</a></li>
+          <li><a href="https://blogs.ubc.ca/stillcreek/" target="_blank">UBC — Restoration of Still Creek</a></li>
+          <li><a href="https://eya.ca/news/rewilding-still-creek/" target="_blank">Environmental Youth Alliance — Rewilding Still Creek</a></li>
+          <li><a href="https://www.cbc.ca/news/canada/british-columbia/salmon-spawning-vancouver-still-creek-1.3301022" target="_blank">CBC — Salmon return to Still Creek fourth year</a></li>
+          <li><a href="https://www.nationalobserver.com/2024/11/20/news/salmon-spawn-urban-streams-metro-vancouver" target="_blank">National Observer (Nov 2024) — Salmon spawn urban streams</a></li>
+          <li><a href="https://vancouver.ca/home-property-development/restoring-streams.aspx" target="_blank">City of Vancouver — Restoring streams</a></li>
+          <li><a href="https://vancouver.ca/home-property-development/rupert-and-renfrew-station-area-plan.aspx" target="_blank">City of Vancouver — Rupert &amp; Renfrew Station Area Plan (approved Jul 8, 2025)</a></li>
+          <li><a href="https://vancouver.ca/files/cov/rain-city-strategy.pdf" target="_blank">City of Vancouver — Rain City Strategy PDF</a></li>
+          <li><a href="https://coquitlam.ca/991/Salmon-Come-Home" target="_blank">Coquitlam — Salmon Come Home</a></li>
+          <li><a href="https://www.hoyscottcreeks.org/" target="_blank">Hoy-Scott Watershed Society</a></li>
+          <li><a href="https://acecbcawards.com/guichon-creek-daylighting/" target="_blank">ACEC-BC — Guichon Creek Daylighting</a></li>
+          <li><a href="https://www.crd.ca/environment/stormwater-watersheds-harbours/local-stewardship-groups/bowker-creek-initiative" target="_blank">CRD — Bowker Creek Initiative</a></li>
+          <li><a href="https://getinvolved.crd.bc.ca/bowker-creek-initiative" target="_blank">Get Involved CRD — Bowker Creek Blueprint</a></li>
+          <li><a href="https://www.kwl.ca/project/bowker-creek-daylighting/" target="_blank">KWL — Bowker Creek Daylighting project</a></li>
+          <li><a href="https://watershedsecurityfund.ca/" target="_blank">BC Watershed Security Fund — grant programme and intake records</a></li>
+          <li><a href="https://csla-aapc.ca/awards" target="_blank">CSLA — 2025 National Honour Award (Tatlow / First Creek)</a></li>
+          <li><a href="https://www.straight.com/blogra/digitized-maps-reveal-vancouvers-lost-streams" target="_blank">Georgia Straight — Digitized maps reveal Vancouver's lost streams</a></li>
+        </ol>
+      </div>
+
+      <div class="end-foot">EcoLens · Long-form investigation · Public review version · July 2026 · <a href="/#/map" style="color: var(--stream-pale); text-decoration: underline;">Explore the live map</a></div>
+    </div>
+  </section>
+
+  <script>
+    // ============================== Data URLs ==============================
+    const DATA_UBC_STREAMS   = './data/ubc_old_streams.geojson';
+    const DATA_NAMED_STREAMS = './data/named_streams.geojson';
+    const DATA_PROJECTS      = './data/daylighting_projects.geojson';
+    const DATA_FLOODPLAIN    = './data/floodplain.geojson';
+    const DATA_SEWER_TRUNKS  = './data/sewer_trunks.geojson';
+    const DATA_BUILDINGS     = './data/buildings_corridor.geojson';
+
+    // Placeholders — replaced at load
+    let ubcStreams = { type: 'FeatureCollection', features: [] };
+    let namedStreams = { type: 'FeatureCollection', features: [] };
+    let projects = { type: 'FeatureCollection', features: [] };
+    let floodplain = { type: 'FeatureCollection', features: [] };
+    let sewerTrunks = { type: 'FeatureCollection', features: [] };
+    let buildings = { type: 'FeatureCollection', features: [] };
+
+    // Kick off the small UBC-streams fetch immediately so the cover SVG can render
+    // without waiting for the 6.8MB buildings payload or map style init.
+    const ubcStreamsPromise = fetch(DATA_UBC_STREAMS).then(r => r.ok ? r.json() : null).catch(() => null);
+    ubcStreamsPromise.then(d => {
+      if (d && d.features) {
+        ubcStreams = d;
+        renderCoverSvg(d);
+      }
+    });
+
+    // ============================== Cover SVG ==============================
+    function renderCoverSvg(geojson) {
+      // Vancouver bbox — approximate
+      const W = 400, H = 440;
+      const minLon = -123.28, maxLon = -122.95, minLat = 49.19, maxLat = 49.32;
+      const xScale = W / (maxLon - minLon);
+      const yScale = H / (maxLat - minLat);
+      const project = (lon, lat) => [(lon - minLon) * xScale, H - (lat - minLat) * yScale];
+      const glowPaths = [];
+      const sharpPaths = [];
+      for (const f of geojson.features) {
+        const g = f.geometry; if (!g) continue;
+        const drawLine = (coords) => {
+          const d = coords.map(([lon, lat], i) => {
+            const [x, y] = project(lon, lat);
+            return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
+          }).join(' ');
+          // Blurred glow behind, sharp line in front — stacks to a water-glow effect.
+          glowPaths.push(`<path d="${d}" fill="none" stroke="#7ec4e8" stroke-width="4" stroke-linecap="round" stroke-opacity="0.35" />`);
+          sharpPaths.push(`<path d="${d}" fill="none" stroke="#0f4c81" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.85" />`);
+        };
+        if (g.type === 'LineString') drawLine(g.coordinates);
+        else if (g.type === 'MultiLineString') g.coordinates.forEach(drawLine);
+      }
+      const container = document.getElementById('coverStreams');
+      if (container) container.innerHTML = glowPaths.join('') + sharpPaths.join('');
+    }
+
+    // ============================== Map init ==============================
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+      center: [-123.11, 49.25], zoom: 11.2, pitch: 0, bearing: 0,
+      attributionControl: false, antialias: true
+    });
+    // Scrollytelling: the page scroll drives the narrative, so the wheel must NOT
+    // be captured by the map to zoom. Drag-pan and double-click zoom remain for exploration.
+    map.scrollZoom.disable();
+    map.addControl(new maplibregl.AttributionControl({
+      compact: true,
+      customAttribution: 'UBC Library · Sharon Proctor 1978 · City of Vancouver Open Data · Metro Vancouver'
+    }), 'bottom-left');
+
+    map.on('load', async () => {
+      const bgLayer = map.getStyle().layers.find((l) => l.type === 'background');
+      if (bgLayer) { try { map.setPaintProperty(bgLayer.id, 'background-color', '#e8ecf0'); } catch (e) {} }
+
+      // Fetch remaining data files in parallel — UBC streams was fetched earlier for the cover SVG
+      try {
+        const [ubc, named, proj, flood, trunks, bldgs] = await Promise.all([
+          ubcStreamsPromise, // reuse the pre-fetch
+          fetch(DATA_NAMED_STREAMS).then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch(DATA_PROJECTS).then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch(DATA_FLOODPLAIN).then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch(DATA_SEWER_TRUNKS).then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch(DATA_BUILDINGS).then(r => r.ok ? r.json() : null).catch(() => null)
+        ]);
+        if (ubc && ubc.features) ubcStreams = ubc;
+        if (named && named.features) namedStreams = named;
+        if (proj && proj.features) projects = proj;
+        if (flood && flood.features) floodplain = flood;
+        if (trunks && trunks.features) sewerTrunks = trunks;
+        if (bldgs && bldgs.features) buildings = bldgs;
+        console.log(`[data] loaded: ${ubcStreams.features.length} streams · ${namedStreams.features.length} named · ${projects.features.length} projects · ${floodplain.features.length} flood polys · ${sewerTrunks.features.length} trunks · ${buildings.features.length} buildings`);
+      } catch (e) {
+        console.warn('[data] load error', e);
+      }
+
+      // --- Layers ---
+      map.addSource('ubc-streams', { type: 'geojson', data: ubcStreams });
+      map.addLayer({
+        id: 'ubc-streams-line', type: 'line', source: 'ubc-streams',
+        paint: {
+          'line-color': '#3a92c9',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.6, 12, 1.5, 14, 2.4],
+          'line-opacity': ['interpolate', ['linear'], ['zoom'], 9, 0.65, 13, 0.85]
+        },
+        layout: { visibility: 'none' }
+      });
+
+      map.addSource('named-streams', { type: 'geojson', data: namedStreams });
+      map.addLayer({
+        id: 'named-streams-line', type: 'line', source: 'named-streams',
+        paint: {
+          'line-color': '#0f4c81',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 9, 1.2, 12, 2.8, 14, 4],
+          'line-opacity': 0.92
+        },
+        layout: { visibility: 'none' }
+      });
+      map.addLayer({
+        id: 'named-streams-label', type: 'symbol', source: 'named-streams',
+        minzoom: 11.5,
+        layout: {
+          'text-field': ['get', 'Name'],
+          'symbol-placement': 'line',
+          'text-size': ['interpolate', ['linear'], ['zoom'], 11.5, 10, 13, 12.5, 15, 14],
+          'text-font': ['Roboto Bold'],
+          'symbol-spacing': 280,
+          'text-letter-spacing': 0.02,
+          visibility: 'none'
+        },
+        paint: {
+          'text-color': '#062340',
+          'text-halo-color': 'rgba(236, 240, 243, 0.95)',
+          'text-halo-width': 1.6
+        }
+      });
+
+      // Sewer trunks — the pipe network that replaced the streams
+      map.addSource('sewer-trunks', { type: 'geojson', data: sewerTrunks });
+      map.addLayer({
+        id: 'sewer-trunks-line', type: 'line', source: 'sewer-trunks',
+        paint: {
+          'line-color': '#3b4a58',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.5, 12, 1.4, 14, 2.2],
+          'line-opacity': 0.72
+        },
+        layout: { visibility: 'none' }
+      });
+
+      // 3D buildings — OSM footprints along China Creek + Still Creek corridors.
+      // fill-extrusion-height is animated by the burial slider (Ch. 2)
+      // and the Still Creek reveal (Ch. 4).
+      map.addSource('buildings', { type: 'geojson', data: buildings });
+      map.addLayer({
+        id: 'buildings-3d', type: 'fill-extrusion', source: 'buildings',
+        paint: {
+          'fill-extrusion-color': [
+            'interpolate', ['linear'], ['get', 'h'],
+            0,   '#96a5b4',
+            10,  '#6d7e8c',
+            30,  '#485a68',
+            80,  '#2b3844'
+          ],
+          'fill-extrusion-height': 0,
+          'fill-extrusion-base': 0,
+          'fill-extrusion-opacity': 0.9,
+          'fill-extrusion-vertical-gradient': true
+        },
+        layout: { visibility: 'none' }
+      });
+
+      // Floodplain (Ch. 3)
+      map.addSource('floodplain', { type: 'geojson', data: floodplain });
+      map.addLayer({
+        id: 'floodplain-fill', type: 'fill', source: 'floodplain',
+        paint: { 'fill-color': '#c8503c', 'fill-opacity': 0.22 },
+        layout: { visibility: 'none' }
+      });
+      map.addLayer({
+        id: 'floodplain-line', type: 'line', source: 'floodplain',
+        paint: { 'line-color': '#8a3624', 'line-width': 0.6, 'line-opacity': 0.55 },
+        layout: { visibility: 'none' }
+      });
+
+      // Projects (Ch. 4-8)
+      map.addSource('projects', { type: 'geojson', data: projects });
+      map.addLayer({
+        id: 'projects-halo', type: 'circle', source: 'projects',
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 14, 12, 22],
+          'circle-color': ['match', ['get', 'status'],
+            'completed',           '#1c6b48',
+            'surviving_stream',    '#1c6b48',
+            'active_restoration',  '#a86b1e',
+            'funded_restoration',  '#a86b1e',
+            'active_planning',     '#0f4c81',
+            'century_plan',        '#0f4c81',
+            '#58524a'],
+          'circle-opacity': 0.22, 'circle-blur': 0.5
+        },
+        layout: { visibility: 'none' }
+      });
+      map.addLayer({
+        id: 'projects-point', type: 'circle', source: 'projects',
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 6, 12, 9],
+          'circle-color': ['match', ['get', 'status'],
+            'completed',           '#1c6b48',
+            'surviving_stream',    '#1c6b48',
+            'active_restoration',  '#a86b1e',
+            'funded_restoration',  '#a86b1e',
+            'active_planning',     '#0f4c81',
+            'century_plan',        '#0f4c81',
+            '#58524a'],
+          'circle-stroke-color': '#ecf0f3',
+          'circle-stroke-width': 2.2
+        },
+        layout: { visibility: 'none' }
+      });
+      map.addLayer({
+        id: 'projects-label', type: 'symbol', source: 'projects',
+        minzoom: 9,
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 9, 10, 12, 13],
+          'text-font': ['Roboto Bold'],
+          'text-offset': [0, 1.2],
+          'text-anchor': 'top',
+          visibility: 'none'
+        },
+        paint: {
+          'text-color': '#131210',
+          'text-halo-color': 'rgba(236, 240, 243, 0.95)',
+          'text-halo-width': 1.5
+        }
+      });
+
+      // ============================== Interactions ==============================
+      // Hover popup for named streams (Ch. 1)
+      const STREAM_DETAIL = {
+        'Still Creek':          { where: 'East Vancouver + Burnaby',        note: 'The one Vancouver never finished burying — salmon returned 2012.' },
+        'China Creek':          { where: 'Mount Pleasant / Grandview',      note: 'Buried under Kingsway. Named for a Chinese-Canadian farming community.' },
+        'Brewery Creek':        { where: 'Mount Pleasant',                  note: 'Named for a historic brewery near Main + 7th.' },
+        'Vivian Creek':         { where: 'Kitsilano',                       note: 'Buried through the 1910s–20s.' },
+        'MacDonald Creek':      { where: 'West Side',                       note: 'Historically also called Second Creek.' },
+        'Musqueam Creek':       { where: 'West Point Grey',                 note: 'One of the last salmon-bearing streams surviving in Vancouver.' },
+        'Beaver Creek':         { where: 'Vancouver',                       note: '' },
+        'Bridge Street Creek':  { where: 'Vancouver',                       note: '' },
+        "Jerry's Cove":         { where: 'Coast · Jericho',                 note: 'Shoreline drainage into English Bay.' },
+        'Ross Creek':           { where: 'Vancouver',                       note: '' },
+        'First Creek':          { where: 'Kitsilano · Tatlow Park',         note: 'Daylighted July 2024. Also called Tatlow Creek in the modern record.' },
+        'Mackie Creek':         { where: 'Vancouver',                       note: '' },
+        "Tyndall's Creek":      { where: 'Vancouver',                       note: '' }
+      };
+      // Hover: just change cursor to signal "clickable"
+      const streamLayers = ['named-streams-line', 'ubc-streams-line'];
+      streamLayers.forEach(id => {
+        map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
+      });
+
+      // Click on any stream — named or unnamed — opens a persistent popup with the name.
+      // Query both layers to prioritize named streams even when clicking near an unnamed one.
+      map.on('click', (e) => {
+        const feats = map.queryRenderedFeatures(e.point, { layers: streamLayers });
+        if (!feats || !feats.length) return;
+        // Prefer a named-streams feature if any hit
+        const namedHit = feats.find(f => f.layer.id === 'named-streams-line');
+        const chosen = namedHit || feats[0];
+        const p = chosen.properties || {};
+        const rawName = p.Name || p.name || '';
+        const isNamed = !!rawName && rawName.trim() !== '';
+        if (isNamed) {
+          const detail = STREAM_DETAIL[rawName] || {};
+          const where = detail.where || '';
+          const note = detail.note || '';
+          const html = `
+            <p class="popup-title">${rawName}</p>
+            ${where ? `<p class="popup-body"><strong>${where}</strong>${note ? `<br>${note}` : ''}</p>` : ''}
+            <span class="popup-src">UBC · Sharon Proctor 1978</span>`;
+          new maplibregl.Popup({ closeButton: true, maxWidth: '280px' })
+            .setLngLat(e.lngLat).setHTML(html).addTo(map);
+        } else {
+          const region = p.Region ? ` · Region ${p.Region}` : '';
+          const type = p.Type ? ` · ${p.Type}` : '';
+          const html = `
+            <p class="popup-title">Historical stream</p>
+            <p class="popup-body">An unnamed segment${region}${type}.<br>One of 178 mapped in Sharon Proctor's 1978 Vancouver stream network.</p>
+            <span class="popup-src">UBC · Proctor 1978</span>`;
+          new maplibregl.Popup({ closeButton: true, maxWidth: '280px' })
+            .setLngLat(e.lngLat).setHTML(html).addTo(map);
+        }
+      });
+
+      // Click popup for projects
+      const STATUS_META = {
+        'completed':          { klass: 'done',   label: 'Completed' },
+        'surviving_stream':   { klass: 'done',   label: 'Surviving' },
+        'active_restoration': { klass: 'active', label: 'Active restoration' },
+        'funded_restoration': { klass: 'active', label: 'Funded' },
+        'active_planning':    { klass: 'plan',   label: 'Active planning' },
+        'century_plan':       { klass: 'plan',   label: '100-year plan' }
+      };
+      const parseJsonProp = (v) => {
+        if (v == null) return null;
+        if (Array.isArray(v)) return v;
+        if (typeof v !== 'string') return v;
+        try { const parsed = JSON.parse(v); return parsed; } catch (_) { return v; }
+      };
+      map.on('click', 'projects-point', (e) => {
+        const f = e.features && e.features[0]; if (!f) return;
+        const p = f.properties || {};
+        const meta = STATUS_META[p.status] || { klass: 'plan', label: p.status || '' };
+        const cities = parseJsonProp(p.cities);
+        const partners = parseJsonProp(p.partners);
+        const sources = parseJsonProp(p.sources);
+        const bits = [];
+        if (Array.isArray(cities) && cities.length) bits.push(`Location: <strong>${cities.join(', ')}</strong>`);
+        if (p.watershed) bits.push(`Watershed: <strong>${p.watershed}</strong>`);
+        if (p.restoration_started) bits.push(`Restoration started: <strong>${p.restoration_started}</strong>`);
+        if (p.restoration_completed) bits.push(`Completed: <strong>${p.restoration_completed}</strong>`);
+        if (p.salmon_returned) bits.push(`Salmon returned: <strong>${p.salmon_returned}</strong>`);
+        if (p.length_km) bits.push(`Length: <strong>${p.length_km} km</strong>`);
+        if (p.habitat_created_ha) bits.push(`New habitat: <strong>${p.habitat_created_ha} ha</strong>`);
+        if (p.basin_area_km2) bits.push(`Basin: <strong>${p.basin_area_km2} km²</strong>`);
+        if (p.buried_pct) bits.push(`Buried: <strong>${p.buried_pct}%</strong>`);
+        if (p.impervious_pct) bits.push(`Impervious surface: <strong>${p.impervious_pct}%</strong>`);
+        if (p.wsf_grant_2026) bits.push(`WSF grant: <strong>${p.wsf_grant_2026}</strong>`);
+        if (Array.isArray(partners) && partners.length) bits.push(`Partners: <strong>${partners.join(', ')}</strong>`);
+        if (p.notes) bits.push(`<em>${p.notes}</em>`);
+        const firstSrc = Array.isArray(sources) && sources[0] ? sources[0] : null;
+        const src = firstSrc ? `<span class="popup-src"><a href="${firstSrc}" target="_blank">Source</a></span>` : '';
+        const html = `
+          <p class="popup-title">${p.name || 'Project'}</p>
+          <span class="popup-status ${meta.klass}">${meta.label}</span>
+          <p class="popup-body">${bits.join('<br>')}</p>
+          ${src}`;
+        new maplibregl.Popup({ closeButton: true, maxWidth: '320px' })
+          .setLngLat(e.lngLat).setHTML(html).addTo(map);
+      });
+      map.on('mouseenter', 'projects-point', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'projects-point', () => { map.getCanvas().style.cursor = ''; });
+    });
+
+    map.on('error', (e) => console.warn('[map]', e && e.error));
+
+    // ============================== Chapter camera + UI orchestration ==============================
+    const cameras = {
+      landscape: { center: [-123.11, 49.25],  zoom: 11.2, pitch: 0,  bearing: 0 },
+      burial:    { center: [-123.078, 49.253], zoom: 13.8, pitch: 62, bearing: 24 },
+      lost:      { center: [-123.11, 49.25],  zoom: 11.2, pitch: 0,  bearing: 0 },
+      still:     { center: [-123.028, 49.267], zoom: 13.4, pitch: 55, bearing: -18 },
+      projects:  { center: [-122.98, 49.27],  zoom: 10.0, pitch: 20, bearing: 0 },
+      bowker:    { center: [-123.336, 48.436], zoom: 12.8, pitch: 42, bearing: 8 },
+      scales:    { center: [-123.02, 49.267], zoom: 11.6, pitch: 15, bearing: 0 },
+      coming:    { center: [-122.98, 49.28],  zoom: 9.6,  pitch: 25, bearing: 0 }
+    };
+
+    const stepLabels = {
+      landscape: { num: '01', label: 'The buried landscape' },
+      burial:    { num: '02', label: 'How we buried them' },
+      lost:      { num: '03', label: 'What we lost' },
+      still:     { num: '04', label: 'Still Creek · the return' },
+      projects:  { num: '05', label: 'Projects underway' },
+      bowker:    { num: '06', label: 'Bowker · 100-year plan' },
+      scales:    { num: '07', label: 'What scales this' },
+      coming:    { num: '08', label: 'Coming back' }
+    };
+
+    const legendConfig = {
+      landscape: {
+        title: 'Vancouver · 1880 – 1920',
+        rows: [
+          { cls: 'stream', label: 'Historical stream (178 total)' },
+          { cls: 'named',  label: '13 named creeks · click to see' }
+        ],
+        hint: 'Source: Sharon Proctor (1978), digitized by UBC (2011).'
+      },
+      burial: {
+        title: 'Kingsway · development wave',
+        rows: [
+          { cls: 'stream',   label: 'Historical stream (fading)' },
+          { cls: 'building', label: 'Buildings (rising)' },
+          { cls: 'pipe',     label: 'Sewer trunk (emerging)' }
+        ],
+        hint: 'Drag the slider below to bury the streams.'
+      },
+      lost: {
+        title: 'What we lost',
+        rows: [
+          { cls: 'stream', label: 'Historical stream' },
+          { cls: 'flood',  label: 'Designated floodplain' }
+        ],
+        hint: 'Floodplain outline traces the buried-stream footprint.'
+      },
+      still: {
+        title: 'Still Creek · East Vancouver',
+        rows: [
+          { cls: 'named',    label: 'Still Creek corridor' },
+          { cls: 'building', label: 'Adjacent development' },
+          { cls: 'done',     label: 'Restoration site' }
+        ],
+        hint: 'The creek runs behind Grandview Highway.'
+      },
+      projects: {
+        title: 'Metro Vancouver · daylighting sites',
+        rows: [
+          { cls: 'done',   label: 'Completed / surviving' },
+          { cls: 'active', label: 'Active restoration' },
+          { cls: 'plan',   label: 'Planning / century plan' }
+        ],
+        hint: 'Click any pin for cost, timeline, engineer, source.'
+      },
+      bowker: {
+        title: 'Bowker Creek · Victoria',
+        rows: [
+          { cls: 'done', label: 'Daylighted (2015 by KWL)' },
+          { cls: 'plan', label: '100-year Blueprint (2011)' }
+        ],
+        hint: '8 km · 66% currently buried in pipes.'
+      },
+      scales: {
+        title: 'What scales this',
+        rows: [
+          { cls: 'stream', label: 'Historical stream' },
+          { cls: 'done',   label: 'Existing daylighting' }
+        ],
+        hint: 'Toggle to see what a corridor mandate would surface.'
+      },
+      coming: {
+        title: 'Coming back',
+        rows: [
+          { cls: 'stream', label: 'Historical stream' },
+          { cls: 'done',   label: 'Completed / surviving' },
+          { cls: 'active', label: 'Active restoration' },
+          { cls: 'plan',   label: 'Planning' }
+        ],
+        hint: 'Explore freely. Click streams or pins for detail.'
+      }
+    };
+
+    const stepEl      = document.getElementById('mapStep');
+    const stepLabelEl = document.getElementById('mapStepLabel');
+    const stepNumEl   = stepEl.querySelector('.step-num');
+    const legendEl    = document.getElementById('mapLegend');
+    const burialEl    = document.getElementById('burialPanel');
+    const timelineEl  = document.getElementById('timelinePanel');
+    const filterEl    = document.getElementById('filterPanel');
+    const toggleEl    = document.getElementById('togglePanel');
+    const searchEl    = document.getElementById('searchPanel');
+
+    let currentStep = null;
+
+    function setStep(step) {
+      if (step === currentStep) return;
+      currentStep = step;
+      const cam = cameras[step];
+      if (cam) map.easeTo({ ...cam, duration: 1400, essential: true });
+
+      // Layer visibility per chapter
+      const streamsOn   = ['landscape','burial','lost','still','scales','coming'].includes(step);
+      const namedOn     = ['landscape','still','scales','coming'].includes(step);
+      const trunksOn    = false; // now revealed inside Ch. 2 building extrusion path only
+      const floodOn     = ['lost'].includes(step);
+      const projectsOn  = ['still','projects','bowker','scales','coming'].includes(step);
+      const buildingsOn = ['burial','still'].includes(step);
+
+      setVis(['ubc-streams-line'], streamsOn);
+      setVis(['named-streams-line','named-streams-label'], namedOn);
+      setVis(['sewer-trunks-line'], trunksOn);
+      setVis(['floodplain-fill','floodplain-line'], floodOn);
+      setVis(['projects-halo','projects-point','projects-label'], projectsOn);
+      setVis(['buildings-3d'], buildingsOn);
+
+      // Chapter chip
+      const l = stepLabels[step];
+      if (l) {
+        stepNumEl.textContent = l.num;
+        stepLabelEl.textContent = l.label;
+        stepEl.classList.add('show');
+      }
+
+      // Legend
+      const lc = legendConfig[step];
+      renderLegend(lc);
+      legendEl.classList.toggle('show', !!lc);
+
+      // Panels — one-hot per chapter mostly
+      burialEl.classList.toggle('show', step === 'burial');
+      timelineEl.classList.toggle('show', step === 'still');
+      filterEl.classList.toggle('show', step === 'projects');
+      toggleEl.classList.toggle('show', step === 'scales');
+      // Search visible on chapters where readers explore the map freely
+      const searchOn = ['landscape','projects','coming'].includes(step);
+      if (searchEl) searchEl.classList.toggle('show', searchOn);
+
+      // Apply per-chapter state
+      if (step === 'burial') {
+        // Reset to 0 and auto-play the burial from the start
+        lastBurialBucket = -1;
+        burialSlider.value = 0; applyBurial(0);
+        startBurialAutoplay();
+      } else {
+        stopBurialAutoplay();
+      }
+
+      if (step === 'still') {
+        applyStillReveal();
+        timelineSlider.value = 0; applyTimeline(0);
+        startTimelineAutoplay();
+      } else {
+        stopTimelineAutoplay();
+      }
+
+      if (step !== 'burial' && step !== 'still') resetBurialState();
+
+      if (step === 'projects') applyFilter(currentFilter);
+      else if (currentFilter !== 'all') applyFilter('all');
+    }
+
+    function setVis(ids, on) {
+      ids.forEach((id) => {
+        if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+      });
+    }
+
+    function renderLegend(config) {
+      if (!config) { legendEl.innerHTML = ''; return; }
+      const rows = (config.rows || []).map(it => {
+        const shape = ['done','active','plan'].includes(it.cls) ? 'dot' : (it.cls === 'flood' || it.cls === 'building' ? 'box' : '');
+        return `<div class="swatch ${it.cls}"><i class="${shape}"></i><span>${it.label}</span></div>`;
+      }).join('');
+      const title = config.title ? `<div class="legend-title">${config.title}</div>` : '';
+      const hint = config.hint ? `<div class="hint">${config.hint}</div>` : '';
+      legendEl.innerHTML = `${title}<div class="legend-rows">${rows}</div>${hint}`;
+    }
+
+    // ============================== Burial reveal (Ch. 2) ==============================
+    // Drag the slider 0 → 100 (a development index across ~1900 → 2026).
+    // Buildings extrude from 0 → their real OSM height.
+    // Streams dim from bright to nearly-gone (going underground).
+    // Sewer trunks fade in during the last third to hint at the pipe network.
+    const BURIAL_STOPS = [
+      { pct: 0,   year: '1900', note: 'Streams still on the surface. Vancouver was 14 years old.' },
+      { pct: 15,  year: '1912', note: 'First combined sewers laid along Kingsway. China Creek is starting to be culverted.' },
+      { pct: 35,  year: '1930', note: 'Mount Pleasant and Kitsilano are dense with houses. Most creek mouths are pipe.' },
+      { pct: 55,  year: '1950', note: 'Post-war grid expansion. Only Still Creek and a few Point Grey drainages remain visible.' },
+      { pct: 75,  year: '1970', note: 'Vancouver Special era. The buried-stream network is complete and largely forgotten.' },
+      { pct: 100, year: '2026', note: 'Present-day city over the buried creek system. 120 km of stream still flows underground.' }
+    ];
+
+    function burialLookup(t) {
+      // Interpolate label across stops based on slider percent (0-100)
+      for (let i = 0; i < BURIAL_STOPS.length - 1; i++) {
+        if (t <= BURIAL_STOPS[i + 1].pct) {
+          return BURIAL_STOPS[i + 1];
+        }
+      }
+      return BURIAL_STOPS[BURIAL_STOPS.length - 1];
+    }
+
+    const burialSlider = document.getElementById('burialSlider');
+    const burialYearEl = document.getElementById('burialYear');
+    const burialNoteEl = document.getElementById('burialNote');
+
+    // Updating fill-extrusion-height on tens of thousands of features re-evaluates the
+    // expression per feature on the CPU. Doing that every animation frame stutters, so we
+    // bucket the height into ~24 discrete steps and only push a GPU update when the bucket
+    // changes. The cheap per-frame work (label, stream opacity) stays smooth.
+    let lastBurialBucket = -1;
+    function applyBurial(pct) {
+      const t = Math.max(0, Math.min(100, pct)) / 100; // 0..1
+      const stop = burialLookup(pct);
+      if (burialYearEl) burialYearEl.textContent = stop.year;
+      if (burialNoteEl) burialNoteEl.textContent = stop.note;
+
+      // Buildings: bucketed extrusion (cheap-ish, ~24 updates across the whole play)
+      const bucket = Math.round(t * 24);
+      if (bucket !== lastBurialBucket && map.getLayer('buildings-3d')) {
+        lastBurialBucket = bucket;
+        const bt = bucket / 24;
+        map.setPaintProperty('buildings-3d', 'fill-extrusion-height',
+          ['*', ['coalesce', ['get', 'h'], 8], bt]);
+        map.setPaintProperty('buildings-3d', 'fill-extrusion-opacity', 0.3 + 0.6 * bt);
+      }
+      // Streams: dim as buildings rise (cheap — few features, keep smooth)
+      if (map.getLayer('ubc-streams-line')) {
+        map.setPaintProperty('ubc-streams-line', 'line-opacity', Math.max(0.12, 0.9 - t * 0.78));
+      }
+      if (map.getLayer('named-streams-line')) {
+        map.setPaintProperty('named-streams-line', 'line-opacity', Math.max(0.15, 0.92 - t * 0.8));
+      }
+      // Sewer trunks: fade in over the last two-thirds
+      if (map.getLayer('sewer-trunks-line')) {
+        const pipeVis = t > 0.35;
+        map.setLayoutProperty('sewer-trunks-line', 'visibility', pipeVis ? 'visible' : 'none');
+        if (pipeVis) {
+          map.setPaintProperty('sewer-trunks-line', 'line-opacity', Math.min(0.72, (t - 0.35) / 0.65 * 0.72));
+        }
+      }
+    }
+    burialSlider.addEventListener('input', (e) => {
+      stopBurialAutoplay(); // user drag overrides auto-play
+      applyBurial(parseInt(e.target.value, 10));
+    });
+
+    // ---- Burial auto-play ----
+    // From current position to 100 over ~11 seconds, then stop.
+    let burialTimer = null;
+    const burialPlayBtn = document.getElementById('burialPlayBtn');
+
+    function startBurialAutoplay() {
+      stopBurialAutoplay();
+      burialPlayBtn.classList.add('playing');
+      const startedAt = performance.now();
+      const startVal = parseInt(burialSlider.value, 10);
+      const duration = Math.max(3000, (100 - startVal) * 110); // ~110ms/step, min 3s
+      const tick = () => {
+        const t = Math.min(1, (performance.now() - startedAt) / duration);
+        const v = Math.round(startVal + (100 - startVal) * t);
+        burialSlider.value = v;
+        applyBurial(v);
+        if (t < 1) { burialTimer = requestAnimationFrame(tick); }
+        else { burialTimer = null; burialPlayBtn.classList.remove('playing'); }
+      };
+      burialTimer = requestAnimationFrame(tick);
+    }
+    function stopBurialAutoplay() {
+      if (burialTimer) { cancelAnimationFrame(burialTimer); burialTimer = null; }
+      burialPlayBtn.classList.remove('playing');
+    }
+    burialPlayBtn.addEventListener('click', () => {
+      if (burialTimer) { stopBurialAutoplay(); return; }
+      // If we're at 100, replay from 0
+      if (parseInt(burialSlider.value, 10) >= 100) {
+        burialSlider.value = 0; applyBurial(0);
+      }
+      startBurialAutoplay();
+    });
+
+    // ============================== Still Creek reveal (Ch. 4) ==============================
+    // Buildings visible at full height around the corridor; streams stay bright.
+    function applyStillReveal() {
+      if (map.getLayer('buildings-3d')) {
+        map.setPaintProperty('buildings-3d', 'fill-extrusion-height', ['coalesce', ['get', 'h'], 8]);
+        map.setPaintProperty('buildings-3d', 'fill-extrusion-opacity', 0.7);
+      }
+      if (map.getLayer('ubc-streams-line')) {
+        map.setPaintProperty('ubc-streams-line', 'line-opacity',
+          ['interpolate', ['linear'], ['zoom'], 9, 0.65, 13, 0.9]);
+      }
+      if (map.getLayer('named-streams-line')) {
+        map.setPaintProperty('named-streams-line', 'line-opacity', 0.95);
+      }
+      if (map.getLayer('sewer-trunks-line')) {
+        map.setLayoutProperty('sewer-trunks-line', 'visibility', 'none');
+      }
+    }
+
+    // Reset state when moving to chapters that don't use the reveal
+    function resetBurialState() {
+      lastBurialBucket = -1;
+      if (map.getLayer('buildings-3d')) {
+        map.setPaintProperty('buildings-3d', 'fill-extrusion-height', 0);
+      }
+      if (map.getLayer('ubc-streams-line')) {
+        map.setPaintProperty('ubc-streams-line', 'line-opacity',
+          ['interpolate', ['linear'], ['zoom'], 9, 0.65, 13, 0.85]);
+      }
+      if (map.getLayer('named-streams-line')) {
+        map.setPaintProperty('named-streams-line', 'line-opacity', 0.92);
+      }
+      if (map.getLayer('sewer-trunks-line')) {
+        map.setLayoutProperty('sewer-trunks-line', 'visibility', 'none');
+      }
+    }
+
+    // ============================== Timeline (Ch. 4) ==============================
+    const TIMELINE = [
+      { year: '1988', event: 'Vancouver Council endorses stream-daylighting policy' },
+      { year: '2002', event: 'Vancouver + Burnaby + Metro Vancouver begin coordinated Still Creek restoration' },
+      { year: '2007', event: 'First streamside corridor requirements applied to Bentall / Costco redevelopments' },
+      { year: '2012', event: 'Chum salmon return to Still Creek after ~80 years' },
+      { year: '2016', event: 'Consecutive returns to the Vancouver reach; some fish still stopped at Boundary Rd culvert' },
+      { year: '2024', event: 'Abundant chum return — strongest run in years' },
+      { year: '2025', event: 'Rupert & Renfrew Station Area Plan approved (8 July 2025) — commits further Still Creek widening + daylighting' }
+    ];
+
+    const timelineSlider = document.getElementById('timelineSlider');
+    const timelineYearEl = document.getElementById('timelineYear');
+    const timelineEventEl = document.getElementById('timelineEvent');
+
+    function applyTimeline(idx) {
+      const t = TIMELINE[idx] || TIMELINE[0];
+      timelineYearEl.textContent = t.year;
+      timelineEventEl.textContent = t.event;
+    }
+    timelineSlider.addEventListener('input', (e) => {
+      stopTimelineAutoplay();
+      applyTimeline(parseInt(e.target.value, 10));
+    });
+
+    // ---- Timeline auto-play ----
+    // Advance through 7 events at ~2.4s each, stop at the end (2025 = the recent milestone).
+    let timelineTimer = null;
+    const timelinePlayBtn = document.getElementById('timelinePlayBtn');
+
+    function startTimelineAutoplay() {
+      stopTimelineAutoplay();
+      timelinePlayBtn.classList.add('playing');
+      const step = () => {
+        const cur = parseInt(timelineSlider.value, 10);
+        const next = cur + 1;
+        if (next > 6) { timelineTimer = null; timelinePlayBtn.classList.remove('playing'); return; }
+        timelineSlider.value = next; applyTimeline(next);
+        timelineTimer = setTimeout(step, 2400);
+      };
+      timelineTimer = setTimeout(step, 2400);
+    }
+    function stopTimelineAutoplay() {
+      if (timelineTimer) { clearTimeout(timelineTimer); timelineTimer = null; }
+      timelinePlayBtn.classList.remove('playing');
+    }
+    timelinePlayBtn.addEventListener('click', () => {
+      if (timelineTimer) { stopTimelineAutoplay(); return; }
+      if (parseInt(timelineSlider.value, 10) >= 6) {
+        timelineSlider.value = 0; applyTimeline(0);
+      }
+      startTimelineAutoplay();
+    });
+
+    // ============================== Filter chips (Ch. 5) ==============================
+    let currentFilter = 'all';
+    const filterButtons = filterEl.querySelectorAll('.fp-chip');
+    filterButtons.forEach(b => b.addEventListener('click', () => {
+      currentFilter = b.dataset.filter;
+      filterButtons.forEach(x => x.classList.toggle('active', x === b));
+      applyFilter(currentFilter);
+    }));
+
+    function applyFilter(kind) {
+      if (!map.getLayer('projects-point')) return;
+      let expr = null;
+      if (kind === 'all')         expr = null;
+      else if (kind === 'done')   expr = ['in', ['get', 'status'], ['literal', ['completed', 'surviving_stream']]];
+      else if (kind === 'active') expr = ['in', ['get', 'status'], ['literal', ['active_restoration', 'funded_restoration']]];
+      else if (kind === 'plan')   expr = ['in', ['get', 'status'], ['literal', ['active_planning', 'century_plan']]];
+      ['projects-halo','projects-point','projects-label'].forEach(id => {
+        if (map.getLayer(id)) map.setFilter(id, expr);
+      });
+    }
+
+    // ============================== Toggle panel (Ch. 7) ==============================
+    let toggleState = 'a';
+    const tpBtnA = document.getElementById('tpBtnA');
+    const tpBtnB = document.getElementById('tpBtnB');
+    tpBtnA.addEventListener('click', () => { toggleState = 'a'; applyToggle(); });
+    tpBtnB.addEventListener('click', () => { toggleState = 'b'; applyToggle(); });
+
+    function applyToggle() {
+      tpBtnA.classList.toggle('active', toggleState === 'a');
+      tpBtnB.classList.toggle('active', toggleState === 'b');
+      // Mode a: real projects only (default)
+      // Mode b: also emphasize all UBC streams — "what could be" — thicker + brighter
+      if (currentStep !== 'scales') return;
+      if (!map.getLayer('ubc-streams-line')) return;
+      if (toggleState === 'b') {
+        map.setPaintProperty('ubc-streams-line', 'line-color', '#1c6b48');
+        map.setPaintProperty('ubc-streams-line', 'line-width', ['interpolate', ['linear'], ['zoom'], 9, 1.2, 12, 2.8, 14, 4]);
+      } else {
+        map.setPaintProperty('ubc-streams-line', 'line-color', '#3a92c9');
+        map.setPaintProperty('ubc-streams-line', 'line-width', ['interpolate', ['linear'], ['zoom'], 9, 0.6, 12, 1.5, 14, 2.4]);
+      }
+    }
+
+    // ============================== Scroll / observer / chrome ==============================
+    const chapterEls = Array.from(document.querySelectorAll('.chapter'));
+    const obs = new IntersectionObserver((entries) => {
+      const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      const step = visible.target.dataset.step;
+      if (step) setStep(step);
+    }, { root: null, threshold: [0.35, 0.55] });
+    chapterEls.forEach((el) => obs.observe(el));
+
+    const storyEl = document.getElementById('story');
+    const storyObs = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) {
+          stepEl.classList.remove('show');
+          legendEl.classList.remove('show');
+          burialEl.classList.remove('show');
+          timelineEl.classList.remove('show');
+          filterEl.classList.remove('show');
+          toggleEl.classList.remove('show');
+          if (searchEl) searchEl.classList.remove('show');
+          stopBurialAutoplay();
+          stopTimelineAutoplay();
+        }
+      });
+    }, { root: null, threshold: 0 });
+    storyObs.observe(storyEl);
+
+    // ============================== Search (Nominatim → nearest UBC stream) ==============================
+    // Type a Vancouver street or place, hit Enter. We geocode with Nominatim (free, rate-limited),
+    // pan the map there, then find the closest historical stream segment and label it.
+    const searchInput = document.getElementById('searchInput');
+    const searchStatus = document.getElementById('searchStatus');
+    let searchDebounce = null;
+    let searchAbort = null;
+
+    function setSearchStatus(msg, kind) {
+      if (!searchStatus) return;
+      searchStatus.textContent = msg || '';
+      searchStatus.className = 'search-status' + (msg ? ' show' : '') + (kind ? ' ' + kind : '');
+    }
+
+    // Great-circle-ish distance in metres (equirectangular approximation — fine at city scale)
+    function haversine(a, b) {
+      const R = 6371000;
+      const dLat = (b[1] - a[1]) * Math.PI / 180;
+      const dLon = (b[0] - a[0]) * Math.PI / 180;
+      const lat1 = a[1] * Math.PI / 180;
+      const lat2 = b[1] * Math.PI / 180;
+      const h = Math.sin(dLat/2)**2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon/2)**2;
+      return 2 * R * Math.asin(Math.sqrt(h));
+    }
+
+    // For every stream feature, walk its coord list to find the closest vertex.
+    function nearestStream(lonlat) {
+      let best = null;
+      const scan = (features) => {
+        for (const f of features) {
+          const g = f.geometry; if (!g) continue;
+          const walk = (coords) => {
+            for (const c of coords) {
+              const d = haversine(lonlat, c);
+              if (!best || d < best.dist) {
+                best = { dist: d, name: (f.properties && (f.properties.Name || f.properties.name)) || '', coord: c };
+              }
+            }
+          };
+          if (g.type === 'LineString') walk(g.coordinates);
+          else if (g.type === 'MultiLineString') g.coordinates.forEach(walk);
+        }
+      };
+      // Named streams first so name preference wins ties, then all UBC
+      scan(namedStreams.features);
+      const namedBest = best; best = null;
+      scan(ubcStreams.features);
+      // Prefer a named hit within ~600m; otherwise fall back to the closest unnamed segment
+      if (namedBest && namedBest.dist < 600) return namedBest;
+      return best;
+    }
+
+    async function runSearch(q) {
+      if (!q || q.length < 3) { setSearchStatus(''); return; }
+      if (searchAbort) searchAbort.abort();
+      searchAbort = new AbortController();
+      setSearchStatus('Searching…', '');
+      try {
+        // Bias to Vancouver by appending city + viewbox
+        const url = 'https://nominatim.openstreetmap.org/search'
+          + '?q=' + encodeURIComponent(q + ', Vancouver, BC')
+          + '&format=json&limit=1&viewbox=-123.28,49.19,-122.93,49.31&bounded=1';
+        const res = await fetch(url, { signal: searchAbort.signal, headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error('geocoder ' + res.status);
+        const json = await res.json();
+        if (!Array.isArray(json) || !json.length) {
+          setSearchStatus('No match in Vancouver. Try a nearby street or landmark.', 'error');
+          return;
+        }
+        const hit = json[0];
+        const lon = parseFloat(hit.lon), lat = parseFloat(hit.lat);
+        map.easeTo({ center: [lon, lat], zoom: 14.5, pitch: 25, bearing: 0, duration: 1400 });
+        const near = nearestStream([lon, lat]);
+        if (near) {
+          const distM = Math.round(near.dist);
+          const label = near.name || 'an unnamed stream segment';
+          const detail = STREAM_DETAIL[near.name] || {};
+          const html = `
+            <p class="popup-title">${hit.display_name.split(',')[0]}</p>
+            <p class="popup-body">
+              <strong>${label}</strong> ran ${distM < 60 ? 'right through here' : `about ${distM} m away`}.
+              ${detail.note ? `<br>${detail.note}` : ''}
+            </p>
+            <span class="popup-src">UBC · Proctor 1978</span>`;
+          new maplibregl.Popup({ closeButton: true, maxWidth: '300px' })
+            .setLngLat([lon, lat]).setHTML(html).addTo(map);
+          setSearchStatus(`Nearest stream: ${label} · ~${distM} m`, 'hit');
+        } else {
+          setSearchStatus('Found the place, but no historical stream nearby.', '');
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        setSearchStatus('Search failed. Check your connection.', 'error');
+      }
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); runSearch(searchInput.value.trim()); }
+      });
+      // Debounced type-to-search kicks in after 700ms idle
+      searchInput.addEventListener('input', () => {
+        if (searchDebounce) clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => runSearch(searchInput.value.trim()), 700);
+      });
+    }
+
+    const chromeEl = document.getElementById('chrome');
+    const progressFill = document.getElementById('progressFill');
+    const chromeMeta = document.getElementById('chromeMeta');
+    function onScroll() {
+      const y = window.scrollY;
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      progressFill.style.width = Math.max(0, Math.min(100, (y / h) * 100)) + '%';
+      chromeEl.classList.toggle('scrolled', y > 80);
+      if (currentStep && y > window.innerHeight * 1.6 && y < document.documentElement.scrollHeight - window.innerHeight * 1.2) {
+        const l = stepLabels[currentStep];
+        if (l) chromeMeta.textContent = 'Ch. ' + l.num + ' · ' + l.label;
+      } else if (y >= document.documentElement.scrollHeight - window.innerHeight * 1.2) {
+        chromeMeta.textContent = 'Sources';
+      } else {
+        chromeMeta.textContent = '';
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  </script>
+</body>
+</html>

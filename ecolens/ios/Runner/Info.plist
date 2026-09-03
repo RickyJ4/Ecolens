@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Ecolens</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>ecolens</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	
+	<!-- 📸 Camera & Photo Library Permissions -->
+	<key>NSCameraUsageDescription</key>
+	<string>EcoLens needs camera access to let you capture and report environmental issues or planting activities.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>EcoLens needs photo library access to upload images for your community reports.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>EcoLens needs microphone access when recording videos for reports.</string>
+
+	<!-- 📍 Location Permissions -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>EcoLens uses your location to show relevant environmental data and verify report locations.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>EcoLens needs location access to alert you of nearby environmental threats.</string>
+
+
+    <!-- 🌐 Network & Map Configuration -->
+    <key>io.flutter.embedded_views_preview</key>
+    <true/>
+
+    <!-- 📡 Background Modes -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>location</string>
+        <string>fetch</string>
+    </array>
+
+    <!-- 🏃 Motion & Fitness Permissions -->
+    <key>NSMotionUsageDescription</key>
+    <string>EcoLens uses motion sensors to detect movement during Silent Hunt mode for wildlife observation.</string>
+
+    <!-- 🎵 Music Library (for audio playback) -->
+    <key>NSAppleMusicUsageDescription</key>
+    <string>EcoLens may access your music library for audio features.</string>
+
+    <!-- 🔒 Face ID Permission -->
+    <key>NSFaceIDUsageDescription</key>
+    <string>EcoLens uses Face ID for secure authentication.</string>
+
+    <!-- 🌍 App Transport Security -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+        <key>NSAllowsArbitraryLoadsInWebContent</key>
+        <true/>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
+
+    <!-- 📱 Status Bar Configuration -->
+    <key>UIStatusBarHidden</key>
+    <false/>
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <true/>
+
+    <!-- 🔗 URL Schemes for Deep Linking -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>ecolens</string>
+            </array>
+            <key>CFBundleURLName</key>
+            <string>com.ecolens.app</string>
+        </dict>
+    </array>
+
+    <!-- 📍 Location Always Usage (Background) -->
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>EcoLens needs continuous location access to monitor environmental threats in the background.</string>
+
+    <!-- 🎤 Speech Recognition -->
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>EcoLens uses speech recognition for voice commands.</string>
+</dict>
+</plist>

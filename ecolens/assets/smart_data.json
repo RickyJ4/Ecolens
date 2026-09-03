@@ -1,0 +1,317 @@
+[
+  {
+    "id": "zone_9.3_21.0",
+    "lat": 9.3,
+    "lon": 21.0,
+    "fire_count": 21,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 48,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "Low (Erosion Risk)",
+      "elevation": 416.0,
+      "slope": 5,
+      "temp": 19.6
+    },
+    "last_updated": "2025-12-17 15:02"
+  },
+  {
+    "id": "zone_-20.2_138.4",
+    "lat": -20.2,
+    "lon": 138.4,
+    "fire_count": 17,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 46,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "High",
+      "elevation": 260.0,
+      "slope": 9,
+      "temp": 27.6
+    },
+    "last_updated": "2025-12-17 15:02"
+  },
+  {
+    "id": "zone_-33.8_-71.5",
+    "lat": -33.8,
+    "lon": -71.5,
+    "fire_count": 16,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 36,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "High",
+      "elevation": 233.0,
+      "slope": 1,
+      "temp": 15.9
+    },
+    "last_updated": "2025-12-17 15:02"
+  },
+  {
+    "id": "zone_-34.3_115.7",
+    "lat": -34.3,
+    "lon": 115.7,
+    "fire_count": 15,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 39,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "High",
+      "elevation": 46.0,
+      "slope": 6,
+      "temp": 15.9
+    },
+    "last_updated": "2025-12-17 15:02"
+  },
+  {
+    "id": "zone_9.8_31.5",
+    "lat": 9.8,
+    "lon": 31.5,
+    "fire_count": 15,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 39,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "High",
+      "elevation": 394.0,
+      "slope": 5,
+      "temp": 21.5
+    },
+    "last_updated": "2025-12-17 15:02"
+  },
+  {
+    "id": "zone_7.8_29.5",
+    "lat": 7.8,
+    "lon": 29.5,
+    "fire_count": 10,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 26,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "High",
+      "elevation": 400.0,
+      "slope": 5,
+      "temp": 21.8
+    },
+    "last_updated": "2025-12-17 15:02"
+  },
+  {
+    "id": "zone_3.8_32.0",
+    "lat": 3.8,
+    "lon": 32.0,
+    "fire_count": 10,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 29,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "High",
+      "elevation": 676.0,
+      "slope": 13,
+      "temp": 21.5
+    },
+    "last_updated": "2025-12-17 15:02"
+  },
+  {
+    "id": "zone_7.8_32.4",
+    "lat": 7.8,
+    "lon": 32.4,
+    "fire_count": 9,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 26,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "High",
+      "elevation": 406.0,
+      "slope": 8,
+      "temp": 22.1
+    },
+    "last_updated": "2025-12-17 15:02"
+  },
+  {
+    "id": "zone_7.9_26.5",
+    "lat": 7.9,
+    "lon": 26.5,
+    "fire_count": 9,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 42,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "Low (Erosion Risk)",
+      "elevation": 561.0,
+      "slope": 44,
+      "temp": 18.7
+    },
+    "last_updated": "2025-12-17 15:02"
+  },
+  {
+    "id": "zone_9.4_20.2",
+    "lat": 9.4,
+    "lon": 20.2,
+    "fire_count": 9,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 23,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "High",
+      "elevation": 393.0,
+      "slope": 3,
+      "temp": 19.8
+    },
+    "last_updated": "2025-12-17 15:02"
+  },
+  {
+    "id": "zone_-33.9_-71.8",
+    "lat": -33.9,
+    "lon": -71.8,
+    "fire_count": 9,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 23,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "High",
+      "elevation": 84.0,
+      "slope": 0,
+      "temp": 14.3
+    },
+    "last_updated": "2025-12-17 15:02"
+  },
+  {
+    "id": "zone_-20.2_138.3",
+    "lat": -20.2,
+    "lon": 138.3,
+    "fire_count": 9,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 30,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "High",
+      "elevation": 238.0,
+      "slope": 9,
+      "temp": 27.4
+    },
+    "last_updated": "2025-12-17 15:02"
+  },
+  {
+    "id": "zone_-20.3_138.4",
+    "lat": -20.3,
+    "lon": 138.4,
+    "fire_count": 8,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 26,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "High",
+      "elevation": 237.0,
+      "slope": 5,
+      "temp": 27.8
+    },
+    "last_updated": "2025-12-17 15:03"
+  },
+  {
+    "id": "zone_17.8_-93.1",
+    "lat": 17.8,
+    "lon": -93.1,
+    "fire_count": 8,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 23,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "High",
+      "elevation": 43.0,
+      "slope": 5,
+      "temp": 27.1
+    },
+    "last_updated": "2025-12-17 15:03"
+  },
+  {
+    "id": "zone_5.5_31.0",
+    "lat": 5.5,
+    "lon": 31.0,
+    "fire_count": 8,
+    "analysis": {
+      "region": "Global Zone",
+      "risk_score": 35,
+      "drivers": [
+        "Unknown"
+      ],
+      "species_at_risk": [
+        "Local Fauna"
+      ],
+      "reforest_potential": "Low (Erosion Risk)",
+      "elevation": 511.0,
+      "slope": 36,
+      "temp": 22.4
+    },
+    "last_updated": "2025-12-17 15:03"
+  }
+]
