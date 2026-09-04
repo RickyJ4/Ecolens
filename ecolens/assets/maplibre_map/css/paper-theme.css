@@ -694,6 +694,7 @@ body.flyout-open #atlas-dock { display: none; }
 #atlas-dock #atm-panel {
     position: static !important; width: auto !important; max-width: none !important;
     max-height: none !important; box-shadow: none !important; border: none !important;
+    max-width: 920px !important;
     padding: 0 !important; margin: 0 0 6px !important; background: transparent !important;
 }
 .dock-form { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; }
@@ -711,3 +712,22 @@ body.flyout-open #atlas-dock { display: none; }
    and step aside while the transcript is open. */
 body.rail-mode .time-slider-container { bottom: 78px; }
 body.dock-open .time-slider-container { display: none; }
+
+/* ---------- time window behind a tab on the Ask bar ----------
+   The slider shows only while its tab on the dock is open, so the bottom
+   of the map is the Ask bar alone. The dock no longer has a stats row: the
+   in-view counts ride in the input placeholder. */
+.time-slider-container { display: none; }
+body.time-open:not(.dock-open) .time-slider-container { display: block; }
+body.rail-mode .time-slider-container { bottom: 72px; }
+.dock-stats { display: none; }
+.dock-time {
+    font-family: var(--mono-data); font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--ink-soft); background: var(--paper-deep); border: 1px solid var(--rule);
+    border-radius: 2px; padding: 6px 8px; cursor: pointer; white-space: nowrap; line-height: 1;
+}
+.dock-time:hover { color: var(--ink); border-color: var(--ink-soft); }
+.dock-time.open { background: var(--survey); color: var(--paper); border-color: var(--survey); }
+
+/* a readable measure for answers, live and archived */
+.dock-turn { max-width: 920px; }

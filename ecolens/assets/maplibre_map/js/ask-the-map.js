@@ -59,13 +59,17 @@ const AskTheMap = (function () {
         measures: /\bmeasures?\b|\bresponse\b|\bofficial|\balerts?\b|\bwarnings?\b|\borders?\b|being (done|implemented)/i,
         earthquakes: /\bearthquakes?\b|\bquakes?\b|\bseismic|\btremor/i,
         floods: /\bfloods?(ing)?\b|\binundat/i,
-        drought: /\bdrought\b|\bdry (conditions|spell)/i,
+        drought: /\bdroughts?\b|\bdry (conditions|spell)/i,
         cyclone: /\bcyclones?\b|\btyphoons?\b|\bhurricanes?\b|\btropical storms?\b/i,
         volcano: /\bvolcano(es)?\b|\beruptions?\b|\bvolcanic\b/i,
         tsunami: /\btsunamis?\b/i,
         // "What is going on" questions are answered from the GDACS wire.
         wire: /\blatest\b|\bmost recent\b|\brecent\b|\bhappening\b|\bgoing on\b|\bon the wire\b|\bright now\b|\btoday\b|\bthis week\b/i,
     };
+
+    // Hazards whose bare question (no place, no "near me") is answered
+    // from the whole wire rather than the current view.
+    const WORLD_BY_DEFAULT = ['floods', 'drought', 'cyclone', 'volcano', 'tsunami', 'earthquakes'];
 
     const DEEP_PATTERNS = /\bwhy\b|\bcorrelat|\bcompare|\bcluster|\bstatistic|\btrend\b|\bdriv(ing|er)|\bexposure\b|\brisk analysis\b/i;
     const NEAR_ME_PATTERNS = /\bmy area\b|\bnear me\b|\baround me\b|\bmy region\b|\bhere\b|\bnearby\b/i;
@@ -226,7 +230,8 @@ const AskTheMap = (function () {
             // Only the wire can be answered for the whole planet. A named
             // place (even one that fails to geocode) or "near me" pins the
             // question to somewhere.
-            worldwide: !place && !nearMe && GLOBAL_CUES.test(text),
+            worldwide: !place && !nearMe &&
+                (GLOBAL_CUES.test(text) || topics.some(k => WORLD_BY_DEFAULT.includes(k))),
             raw: text,
         };
     }
@@ -938,15 +943,47 @@ const AskTheMap = (function () {
     // `findings` as input and returning prose — the data gathering and
     // provenance lines above stay deterministic either way.
 
+    /** A published country list, tidied for one line: blanks and repeats
+     *  dropped, four or more names folded into a count. */
+    function foldCountries(text) {
+        const names = [];
+        String(text || '').split(',').forEach(part => {
+            const t = part.trim();
+            if (t && !names.includes(t)) names.push(t);
+        });
+        if (!names.length) return '';
+        return names.length >= 4 ? names.length + ' countries' : names.join(', ');
+    }
+
+    /** "Drought in A, B, C, D, E: fact" reads as "Drought across 5 countries: fact". */
+    function foldHeadline(text) {
+        const h = String(text || '');
+        const inAt = h.indexOf(' in ');
+        if (inAt < 0) return h;
+        const colon = h.indexOf(':', inAt);
+        const list = colon < 0 ? h.slice(inAt + 4) : h.slice(inAt + 4, colon);
+        const names = list.split(',').map(t => t.trim()).filter(Boolean);
+        if (names.length < 4) return h;
+        return h.slice(0, inAt) + ' across ' + names.length + ' countries' + (colon < 0 ? '' : h.slice(colon));
+    }
+
     function wireItemsHtml(section, sectionIndex) {
         let html = '';
         (section.items || []).forEach((it, i) => {
+            // The plain wire headline is "Type: event name, country list";
+            // fold the list the same way the meta line does.
+            const country = String(it.country || '');
+            let headline = String(it.headline || '');
+            if (country && headline.endsWith(', ' + country)) {
+                headline = headline.slice(0, headline.length - country.length) + foldCountries(country);
+            }
+            headline = foldHeadline(headline);
             html += '<div class="atm-wire-item">' +
                 '<div class="atm-wire-head">' +
                 (it.level ? '<span class="atm-wire-level">' + esc(it.level) + ' alert</span> ' : '') +
-                '<span class="atm-wire-headline">' + esc(it.headline) + '</span></div>' +
+                '<span class="atm-wire-headline">' + esc(headline) + '</span></div>' +
                 '<div class="atm-wire-meta">' +
-                esc([it.country, it.status,
+                esc([foldCountries(it.country), it.status,
                     it.updated ? 'updated ' + it.updated : (it.from ? 'from ' + it.from : '')]
                     .filter(Boolean).join(' · ')) + '</div>' +
                 (it.detail
@@ -1084,73 +1121,73 @@ const AskTheMap = (function () {
                 border: 1px solid var(--ink, #232019); border-radius: 3px; padding: 14px 16px;
                 box-shadow: 4px 4px 0 rgba(35,32,25,0.14); color: var(--ink, #232019); display: none;
                 font-family: system-ui, sans-serif; }
-            #atm-panel .atm-live { margin-top: 11px; padding: 9px 11px;
+            .atm-scope .atm-live { margin-top: 11px; padding: 9px 11px;
                 background: var(--paper-deep, #EAE6D6);
                 border-left: 3px solid var(--survey, #2B5A73); border-radius: 3px; }
-            #atm-panel .atm-live-head { font-size: 11px; font-weight: 700;
+            .atm-scope .atm-live-head { font-size: 11px; font-weight: 700;
                 text-transform: uppercase; letter-spacing: 1.1px;
                 color: var(--survey, #2B5A73); display: flex; align-items: center; gap: 7px; }
-            #atm-panel .atm-live-step { font-size: 11.5px; line-height: 1.45;
+            .atm-scope .atm-live-step { font-size: 11.5px; line-height: 1.45;
                 color: var(--ink-soft, #5B564A); margin-top: 5px; }
-            #atm-panel .atm-spin { width: 9px; height: 9px; border-radius: 50%;
+            .atm-scope .atm-spin { width: 9px; height: 9px; border-radius: 50%;
                 border: 2px solid var(--survey, #2B5A73); border-top-color: transparent;
                 display: inline-block; animation: atm-spin 0.9s linear infinite; }
             @keyframes atm-spin { to { transform: rotate(360deg); } }
             @media (prefers-reduced-motion: reduce) {
-                #atm-panel .atm-spin { animation: none; }
+                .atm-scope .atm-spin { animation: none; }
             }
-            #atm-panel .atm-answer { margin-top: 12px; padding: 12px 13px;
+            .atm-scope .atm-answer { margin-top: 12px; padding: 12px 13px;
                 background: var(--paper-raised, #FBF9F1);
                 border: 1px solid var(--rule, #D9D2BF);
                 border-left: 3px solid var(--survey, #2B5A73); border-radius: 3px; }
-            #atm-panel .atm-answer-kicker { font-size: 8.5px; font-weight: 800;
+            .atm-scope .atm-answer-kicker { font-size: 8.5px; font-weight: 800;
                 letter-spacing: 1.4px; text-transform: uppercase;
                 color: var(--survey, #2B5A73); margin-bottom: 7px; }
-            #atm-panel .atm-answer p { font-family: var(--serif, Georgia, serif);
+            .atm-scope .atm-answer p { font-family: var(--serif, Georgia, serif);
                 font-size: 13px; line-height: 1.55; color: var(--ink, #232019);
                 margin: 0 0 8px; }
-            #atm-panel .atm-answer .atlas-answer-row { display: flex;
+            .atm-scope .atm-answer .atlas-answer-row { display: flex;
                 justify-content: space-between; padding: 3px 0;
                 border-top: 1px solid var(--rule, #D9D2BF); font-size: 11.5px;
                 color: var(--ink-soft, #5B564A); }
-            #atm-panel .atm-jump { display: block; width: 100%; margin-top: 10px;
+            .atm-scope .atm-jump { display: block; width: 100%; margin-top: 10px;
                 padding: 8px 11px; background: var(--survey, #2B5A73);
                 color: var(--paper-raised, #FBF9F1); border: none; border-radius: 3px;
                 cursor: pointer; font-size: 11.5px; font-weight: 600; text-align: left; }
-            #atm-panel .atm-jump:hover { background: var(--ink, #232019); }
-            #atm-panel .atm-note { font-size: 11.5px; line-height: 1.45;
+            .atm-scope .atm-jump:hover { background: var(--ink, #232019); }
+            .atm-scope .atm-note { font-size: 11.5px; line-height: 1.45;
                 color: var(--ink-soft, #5B564A); background: var(--paper-deep, #EAE6D6);
                 border-left: 2px solid var(--ink-faint, #8C8574); border-radius: 2px;
                 padding: 7px 9px; margin-bottom: 11px; }
-            #atm-panel .atm-head { font-size: 9px; font-weight: 700; text-transform: uppercase;
+            .atm-scope .atm-head { font-size: 9px; font-weight: 700; text-transform: uppercase;
                 letter-spacing: 1.4px; color: var(--ink-faint, #8C8574); margin-bottom: 10px; }
-            #atm-panel .atm-section { margin-bottom: 12px; }
-            #atm-panel .atm-title { font-size: 14px; font-weight: 700; margin-bottom: 3px;
+            .atm-scope .atm-section { margin-bottom: 12px; }
+            .atm-scope .atm-title { font-size: 14px; font-weight: 700; margin-bottom: 3px;
                 font-family: var(--serif, Georgia, serif); }
-            #atm-panel .atm-body { font-size: 12.5px; line-height: 1.5; color: var(--ink-soft, #5B564A); }
-            #atm-panel .atm-source { font-size: 10px; color: var(--ink-faint, #8C8574); margin-top: 3px; }
-            #atm-panel .atm-prov { font-size: 10.5px; color: var(--ink-soft, #5B564A);
+            .atm-scope .atm-body { font-size: 12.5px; line-height: 1.5; color: var(--ink-soft, #5B564A); }
+            .atm-scope .atm-source { font-size: 10px; color: var(--ink-faint, #8C8574); margin-top: 3px; }
+            .atm-scope .atm-prov { font-size: 10.5px; color: var(--ink-soft, #5B564A);
                 border-top: 1px solid var(--rule, #D9D2BF);
                 padding-top: 8px; margin-top: 4px; line-height: 1.45; }
-            #atm-panel .atm-deep { margin-top: 10px; width: 100%; background: var(--survey-wash, #E3EAEA);
+            .atm-scope .atm-deep { margin-top: 10px; width: auto; display: inline-block; background: var(--survey-wash, #E3EAEA);
                 color: var(--survey, #2B5A73); border: 1px solid var(--survey, #2B5A73); border-radius: 3px;
-                padding: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
-            #atm-panel .atm-deep:hover { background: var(--survey, #2B5A73); color: var(--paper, #F2EFE4); }
-            #atm-panel .atm-wire-item { border-top: 1px solid var(--rule, #D9D2BF);
+                padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
+            .atm-scope .atm-deep:hover { background: var(--survey, #2B5A73); color: var(--paper, #F2EFE4); }
+            .atm-scope .atm-wire-item { border-top: 1px solid var(--rule, #D9D2BF);
                 padding: 7px 0 8px; margin-top: 6px; }
-            #atm-panel .atm-wire-head { font-size: 12.5px; line-height: 1.4; color: var(--ink, #232019); }
-            #atm-panel .atm-wire-level { font-size: 9px; font-weight: 700; text-transform: uppercase;
+            .atm-scope .atm-wire-head { font-size: 12.5px; line-height: 1.4; color: var(--ink, #232019); }
+            .atm-scope .atm-wire-level { font-size: 9px; font-weight: 700; text-transform: uppercase;
                 letter-spacing: 1.1px; color: var(--survey, #2B5A73); margin-right: 4px; }
-            #atm-panel .atm-wire-headline { font-family: var(--serif, Georgia, serif); font-weight: 700; }
-            #atm-panel .atm-wire-meta { font-family: var(--mono-data, Consolas, monospace);
+            .atm-scope .atm-wire-headline { font-family: var(--serif, Georgia, serif); font-weight: 700; }
+            .atm-scope .atm-wire-meta { font-family: var(--mono-data, Consolas, monospace);
                 font-size: 10.5px; color: var(--ink-faint, #8C8574); margin-top: 2px; }
-            #atm-panel .atm-wire-detail { font-size: 12px; line-height: 1.45;
+            .atm-scope .atm-wire-detail { font-size: 12px; line-height: 1.45;
                 color: var(--ink-soft, #5B564A); margin-top: 3px; }
-            #atm-panel .atm-story { margin-top: 5px; background: transparent;
+            .atm-scope .atm-story { margin-top: 5px; background: transparent;
                 color: var(--survey, #2B5A73); border: 1px solid var(--survey, #2B5A73);
                 border-radius: 3px; padding: 3px 9px; font-size: 11px; font-weight: 600; cursor: pointer; }
-            #atm-panel .atm-story:hover { background: var(--survey, #2B5A73); color: var(--paper, #F2EFE4); }
-            #atm-panel .atm-answer-plain { margin-top: 12px; padding: 10px 13px;
+            .atm-scope .atm-story:hover { background: var(--survey, #2B5A73); color: var(--paper, #F2EFE4); }
+            .atm-scope .atm-answer-plain { margin-top: 12px; padding: 10px 13px;
                 font-family: var(--serif, Georgia, serif); font-size: 13px; line-height: 1.5;
                 color: var(--ink, #232019); background: var(--paper-raised, #FBF9F1);
                 border: 1px solid var(--rule, #D9D2BF); border-radius: 3px; }
@@ -1172,6 +1209,7 @@ const AskTheMap = (function () {
 
         const panel = document.createElement('div');
         panel.id = 'atm-panel';
+        panel.className = 'atm-scope';
         panel.innerHTML = '<button id="atm-close" type="button">✕</button><div id="atm-content"></div>';
         document.body.appendChild(panel);
 

@@ -1314,7 +1314,7 @@ const IntelligenceLayers = (() => {
                 },
             ],
             popup: (props) =>
-                `<div style="font-family:Inter,sans-serif;color:#fff;min-width:200px;">
+                `<div style="font-family:Inter,sans-serif;color:var(--ink);min-width:200px;">
                     <div style="font-size:11px;text-transform:uppercase;opacity:0.55;letter-spacing:0.5px;">48 h Precipitation Forecast</div>
                     <div style="font-size:22px;font-weight:700;margin-top:4px;">${props.precip_mm_48h} mm</div>
                     <div style="font-size:11px;opacity:0.75;margin-top:4px;text-transform:capitalize;">${props.severity} rainfall</div>
@@ -1353,7 +1353,7 @@ const IntelligenceLayers = (() => {
                 },
             }],
             popup: (props) =>
-                `<div style="font-family:Inter,sans-serif;color:#fff;min-width:220px;max-width:300px;">
+                `<div style="font-family:Inter,sans-serif;color:var(--ink);min-width:220px;max-width:300px;">
                     <div style="font-size:11px;text-transform:uppercase;opacity:0.55;letter-spacing:0.5px;">Sea surface temperature</div>
                     <div style="font-size:22px;font-weight:700;margin-top:4px;">${props.sst_c}°C</div>
                     <div style="font-size:10px;opacity:0.55;margin-top:6px;">Open-Meteo Marine · current reading at this grid node</div>
@@ -1635,12 +1635,12 @@ const IntelligenceLayers = (() => {
                 },
             ],
             popup: (props) =>
-                `<div style="font-family:Inter,sans-serif;color:#fff;max-width:300px;">
+                `<div style="font-family:Inter,sans-serif;color:var(--ink);max-width:300px;">
                     <div style="font-size:10px;text-transform:uppercase;opacity:0.55;letter-spacing:0.5px;">NASA EONET · ${props.category}</div>
                     <div style="font-size:14px;font-weight:700;margin:4px 0;">${props.title}</div>
                     <div style="font-size:11px;opacity:0.7;">${(props.date || '').split('T')[0]}${props.magnitude ? ' · ' + props.magnitude + ' ' + props.magnitude_unit : ''}</div>
                     <div style="font-size:10px;opacity:0.55;margin-top:4px;">Tracking source: ${props.sources}</div>
-                    ${props.url ? `<a href="${props.url}" target="_blank" style="display:inline-block;margin-top:8px;font-size:11px;color:#7dd3fc;">Event details →</a>` : ''}
+                    ${props.url ? `<a href="${props.url}" target="_blank" style="display:inline-block;margin-top:8px;font-size:11px;color:var(--survey);font-weight:700;">Event details →</a>` : ''}
                 </div>`,
         },
 
@@ -1665,17 +1665,38 @@ const IntelligenceLayers = (() => {
                     'circle-stroke-width': 2,
                 },
             }],
-            popup: (props) =>
-                `<div style="font-family:Inter,sans-serif;color:#fff;max-width:300px;">
-                    <div style="font-size:10px;text-transform:uppercase;opacity:0.55;letter-spacing:0.5px;">GDACS · ${props.event_type}</div>
-                    <div style="font-size:14px;font-weight:700;margin:4px 0;">${props.event_name}</div>
-                    <div style="font-size:11px;opacity:0.7;">${props.country}</div>
-                    <div style="display:inline-block;margin-top:6px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;
-                        background:${props.alert_level === 'Red' ? '#dc2626' : props.alert_level === 'Orange' ? '#f97316' : '#22c55e'};">
-                        ${props.alert_level} alert
+            popup: (props) => {
+                // Every line is a field GDACS published; the story button hands
+                // the guid to the shell (or opens the report outside the app).
+                const esc = (v) => String(v == null ? "" : v)
+                    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+                const TYPES = { EQ: "Earthquake", FL: "Flood", TC: "Tropical cyclone", VO: "Volcano",
+                                DR: "Drought", WF: "Wildfire", TS: "Tsunami" };
+                const level = String(props.alert_level || "");
+                const colour = level === "Red" ? "#C3402B" : level === "Orange" ? "#B07D2B"
+                    : level === "Green" ? "#3E7A4C" : "#8C8574";
+                const kicker = [level ? level + " alert" : "", TYPES[props.event_type] || props.event_type, props.country]
+                    .filter(Boolean).join(" · ");
+                const line = props.impact || props.affected || props.severity || "";
+                const from = (props.from_date || "").split("T")[0];
+                const to = (props.to_date || "").split("T")[0];
+                const dates = [from, to].filter(Boolean).join(" → ");
+                const current = props.is_current === true || props.is_current === "true";
+                const id = props.id || "";
+                const url = props.url || "";
+                const btn = "font:700 11px Inter,sans-serif;border-radius:3px;padding:5px 9px;cursor:pointer;";
+                return `<div class="gdacs-pop" style="font-family:Inter,sans-serif;color:var(--ink);max-width:320px;">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.6px;font-weight:700;color:${colour};">${esc(kicker)}</div>
+                    <div style="font-family:Lora,Georgia,serif;font-size:15px;font-weight:700;line-height:1.25;margin:5px 0 4px;color:var(--ink);">${esc(props.headline || props.event_name)}</div>
+                    ${line ? `<div style="font-size:11.5px;line-height:1.45;color:var(--ink-soft);">${esc(line)}</div>` : ""}
+                    <div style="font-size:10px;margin-top:6px;color:var(--ink-faint);font-family:JetBrains Mono,monospace;">${esc(dates)}${dates ? " · " : ""}${current ? "current" : "closed"} · as published by GDACS</div>
+                    <div style="margin-top:9px;display:flex;gap:6px;flex-wrap:wrap;">
+                        <button type="button" class="gdacs-pop-story" data-id="${esc(id)}" data-url="${esc(url)}"
+                            style="${btn}color:#fff;background:var(--survey);border:1px solid var(--survey);">Read the story →</button>
+                        ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener" style="${btn}color:var(--survey);background:transparent;border:1px solid var(--rule);text-decoration:none;">GDACS report</a>` : ""}
                     </div>
-                    <div style="font-size:10px;opacity:0.55;margin-top:6px;">${(props.from_date || '').split('T')[0]} → ${(props.to_date || '').split('T')[0]}</div>
-                </div>`,
+                </div>`;
+            },
         },
 
         nwsalerts: {
@@ -1715,7 +1736,7 @@ const IntelligenceLayers = (() => {
                 },
             ],
             popup: (props) =>
-                `<div style="font-family:Inter,sans-serif;color:#fff;max-width:320px;">
+                `<div style="font-family:Inter,sans-serif;color:var(--ink);max-width:320px;">
                     <div style="font-size:10px;text-transform:uppercase;opacity:0.55;letter-spacing:0.5px;">NWS · ${props.severity}</div>
                     <div style="font-size:14px;font-weight:700;margin:4px 0;">${props.event}</div>
                     <div style="font-size:11px;opacity:0.7;">${props.area}</div>
@@ -1754,7 +1775,7 @@ const IntelligenceLayers = (() => {
                 },
             }],
             popup: (props) =>
-                `<div style="font-family:Inter,sans-serif;color:#fff;min-width:220px;">
+                `<div style="font-family:Inter,sans-serif;color:var(--ink);min-width:220px;">
                     <div style="font-size:11px;text-transform:uppercase;opacity:0.55;letter-spacing:0.5px;">Fire-spread cue</div>
                     <div style="font-size:14px;font-weight:700;margin-top:4px;">Wind ${props.wind_speed?.toFixed?.(0) ?? props.wind_speed} km/h</div>
                     <div style="font-size:11px;opacity:0.75;">Direction ${props.wind_direction?.toFixed?.(0) ?? props.wind_direction}°</div>
@@ -1803,19 +1824,19 @@ const IntelligenceLayers = (() => {
             ],
             popup: (props) => {
                 const known = props.escalation !== 'unknown' && props.forecast_mm_48h != null;
-                const colour = props.escalation === 'rising' ? '#dc2626'
-                    : props.escalation === 'steady' ? '#f97316'
-                    : props.escalation === 'easing' ? '#22c55e' : '#8C8574';
+                const colour = props.escalation === 'rising' ? '#C3402B'
+                    : props.escalation === 'steady' ? '#B07D2B'
+                    : props.escalation === 'easing' ? '#3E7A4C' : '#8C8574';
                 const body = known
                     ? `<div style="font-size:11px;opacity:0.8;">Nearest rainfall forecast node: <b>${props.forecast_mm_48h} mm</b> over 48 h</div>
                        <div style="font-size:10px;opacity:0.55;line-height:1.45;margin-top:4px;">Open-Meteo GFS · nearest grid node carrying measurable rain, ${props.forecast_node_km} km away on a 15°×25° global grid. A regional signal, not a catchment forecast for this river.</div>`
                     : `<div style="font-size:11px;opacity:0.8;">No rainfall forecast node within ${PRECIP_SAMPLE_MAX_KM} km.</div>
                        <div style="font-size:10px;opacity:0.55;line-height:1.45;margin-top:4px;">EcoLens cannot say whether this flood is rising or easing. That is missing evidence, not a sign the water is falling. GloFAS river discharge forecasts, or the national hydrological service for this basin, would answer it.</div>`;
-                return `<div style="font-family:Inter,sans-serif;color:#fff;max-width:300px;">
+                return `<div style="font-family:Inter,sans-serif;color:var(--ink);max-width:300px;">
                     <div style="font-size:10px;text-transform:uppercase;opacity:0.55;letter-spacing:0.5px;">Flood × rainfall forecast</div>
                     <div style="font-size:14px;font-weight:700;margin:4px 0;">${props.name || 'Flood zone'}</div>
                     ${body}
-                    <div style="display:inline-block;margin-top:8px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${colour};">
+                    <div style="display:inline-block;margin-top:8px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${colour};color:#fff;">
                         ${known ? String(props.escalation).toUpperCase() : 'NO FORECAST IN RANGE'}
                     </div>
                     ${known ? '<div style="font-size:10px;opacity:0.5;line-height:1.45;margin-top:6px;">That badge is an EcoLens classification of the node above. No forecaster issued it.</div>' : ''}
@@ -1827,6 +1848,22 @@ const IntelligenceLayers = (() => {
     // ----------------------------------------------------------
     //  WIRING
     // ----------------------------------------------------------
+
+    // The story button inside a GDACS popup: hand the guid to the Flutter
+    // shell, which opens the story in Environmental News; outside the shell,
+    // open the published report instead. Bound once, survives setHTML().
+    document.addEventListener("click", (e) => {
+        const btn = e.target && e.target.closest ? e.target.closest(".gdacs-pop-story") : null;
+        if (!btn) return;
+        e.preventDefault();
+        const id = btn.getAttribute("data-id") || "";
+        const url = btn.getAttribute("data-url") || "";
+        if (window.EcoLensBridge && typeof window.EcoLensBridge.sendToFlutter === "function") {
+            window.EcoLensBridge.sendToFlutter("openNewsStory", { id: id || null, url });
+        } else if (url) {
+            window.open(url, "_blank", "noopener");
+        }
+    });
 
     /** Resolve an EcoLens beforeId hint to the first layer that exists. */
     const resolveBeforeId = (beforeId) => {

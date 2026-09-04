@@ -27,7 +27,8 @@
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     const fmt = (n) => n.toLocaleString('en-US');
 
-    let dock, stats, transcript, form, input, toggle, status;
+    let dock, stats, transcript, form, input, toggle, status, timeTab;
+    const BASE_HINT = 'Ask about what is on the map: which fires in BC are burning hardest right now?';
     let open = false;
     let statsTimer = null;
 
@@ -59,19 +60,40 @@
         return out;
     }
 
+    /** The in-view counts ride in the input's placeholder: one bar, no
+     *  second row. The hover title carries the loaded totals. */
     function renderStats() {
-        if (!stats) return;
+        if (!input) return;
         const rows = countInView();
-        if (!rows || !rows.length) {
-            stats.innerHTML = '<span class="dock-stats-label">In view</span><span class="dock-stat muted">layers loading…</span>';
-            return;
-        }
-        stats.innerHTML =
-            '<span class="dock-stats-label" title="Counted inside the current map view, from the loaded layers">In view</span>' +
-            rows.map(r =>
-                `<span class="dock-stat" title="${fmt(r.total)} loaded in total">` +
-                `<i style="background:${r.color}"></i>${fmt(r.inView)} <em>${esc(r.label)}</em></span>`
-            ).join('');
+        if (!rows || !rows.length) { input.placeholder = BASE_HINT; return; }
+        const inView = rows.filter(r => r.inView > 0).map(r => `${fmt(r.inView)} ${r.label}`);
+        input.placeholder = inView.length
+            ? `Ask about what is on the map · in view: ${inView.join(', ')}`
+            : BASE_HINT;
+        input.title = 'Counted inside the current map view: ' +
+            rows.map(r => `${fmt(r.inView)} ${r.label} (${fmt(r.total)} loaded)`).join(' · ');
+    }
+
+    // ---------- time window tab ----------
+    // The slider (day / week / month / year) sits behind a tab on the bar so
+    // the bottom of the map is the Ask bar alone until the window matters.
+
+    function timeLabel() {
+        const el = document.getElementById('time-current');
+        return (el && el.textContent.trim()) || 'Time window';
+    }
+
+    function renderTimeTab() {
+        if (!timeTab) return;
+        const open = document.body.classList.contains('time-open');
+        timeTab.textContent = (open ? '▾ ' : '▴ ') + timeLabel();
+        timeTab.classList.toggle('open', open);
+        timeTab.title = open ? 'Hide the event time window' : 'Event time window: ' + timeLabel() + '. Click to change it.';
+    }
+
+    function setTimeOpen(next) {
+        document.body.classList.toggle('time-open', !!next);
+        renderTimeTab();
     }
 
     function scheduleStats() {
@@ -95,12 +117,17 @@
         const content = document.getElementById('atm-content');
         if (!content || !content.childNodes.length) return;
         const turn = document.createElement('div');
-        turn.className = 'dock-turn answer';
+        turn.className = 'dock-turn answer atm-scope';
         while (content.firstChild) turn.appendChild(content.firstChild);
         // Ids must not survive the move: the mirror dedupes on #atm-answer and
         // the live-progress hook writes to #atm-live-step.
         turn.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
-        turn.querySelectorAll('button').forEach(b => { if (!b.classList.contains('atm-jump')) b.disabled = true; });
+        // Progress chrome belongs to the live turn only; story and jump
+        // buttons keep working from the history.
+        turn.querySelectorAll('.atm-live, .atm-deep').forEach(el => el.remove());
+        turn.querySelectorAll('button').forEach(b => {
+            if (!b.classList.contains('atm-jump') && !b.classList.contains('atm-story')) b.disabled = true;
+        });
         const panel = document.getElementById('atm-panel');
         transcript.insertBefore(turn, panel || null);
         const turns = transcript.querySelectorAll('.dock-turn');
@@ -144,9 +171,9 @@
         dock = document.createElement('div');
         dock.id = 'atlas-dock';
         dock.innerHTML =
-            '<div class="dock-stats" id="dock-stats"></div>' +
             '<div class="dock-transcript" id="dock-transcript" hidden></div>' +
             '<form class="dock-form" id="dock-form" autocomplete="off">' +
+            '  <button type="button" class="dock-time" id="dock-time">▴ Last 7 days</button>' +
             '  <span class="dock-kicker">Ask</span>' +
             '  <input id="dock-input" type="text" ' +
             '    placeholder="Ask about what is on the map: which fires in BC are burning hardest right now?" />' +
@@ -161,9 +188,16 @@
         input = dock.querySelector('#dock-input');
         toggle = dock.querySelector('#dock-toggle');
         status = dock.querySelector('#dock-status');
+        timeTab = dock.querySelector('#dock-time');
 
         form.addEventListener('submit', (e) => { e.preventDefault(); submit(input.value); });
         toggle.addEventListener('click', () => setOpen(!open));
+        timeTab.addEventListener('click', () => setTimeOpen(!document.body.classList.contains('time-open')));
+        document.addEventListener('input', (e) => { if (e.target && e.target.id === 'time-slider') renderTimeTab(); });
+        document.addEventListener('click', (e) => {
+            if (e.target && e.target.closest && e.target.closest('.time-window-btn')) setTimeout(renderTimeTab, 0);
+        });
+        renderTimeTab();
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && open && document.activeElement !== input) setOpen(false);
         });
@@ -205,7 +239,7 @@
             renderStatus();
             if ((a && b) || tries > 120) clearInterval(tick);
         }, 500);
-        setInterval(renderStatus, 10000);
+        setInterval(() => { renderStatus(); renderTimeTab(); }, 10000);
         setInterval(renderStats, 60000);
         console.log('[AtlasDock] Ready');
     }
@@ -213,5 +247,5 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
 
-    window.AtlasDock = { submit, setOpen, renderStats };
+    window.AtlasDock = { submit, setOpen, renderStats, setTimeOpen };
 })();

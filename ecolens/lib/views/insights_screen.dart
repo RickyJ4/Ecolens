@@ -14,7 +14,6 @@ import 'package:ecolens/viewmodels/dashboard_viewmodel.dart';
 import 'package:ecolens/viewmodels/InsightsViewModel.dart';
 import 'package:ecolens/viewmodels/hazard_viewmodel.dart';
 import 'package:ecolens/viewmodels/navigation_viewmodel.dart';
-import 'package:ecolens/model/hazard_models.dart';
 import 'package:ecolens/views/widgets/atlas_finding_card.dart';
 
 /// ─────────────────────────────────────────────────────────
@@ -62,90 +61,6 @@ class _InsightsScreenState extends State<InsightsScreen> {
   // NEVER fabricate numbers. NEVER present simulated values as real.
   // ═══════════════════════════════════════════════════════════════
 
-  /// Generates a situation summary ONLY from actual loaded hazard data.
-  /// Returns 'noData: true' when insufficient data is available.
-  Map<String, dynamic> _generateSituationSummary(HazardViewModel hazardVm) {
-    final fireData = hazardVm.hazardData[HazardType.wildfire] ?? [];
-    final floodData = hazardVm.hazardData[HazardType.flood] ?? [];
-    final droughtData = hazardVm.hazardData[HazardType.drought] ?? [];
-    final glacierData = hazardVm.hazardData[HazardType.glacier] ?? [];
-    final ndviData = hazardVm.hazardData[HazardType.ndvi] ?? [];
-
-    final int activeFires = fireData.length;
-    final int activeFloods = floodData.length;
-    final int glacierCount = glacierData.length;
-    final bool hasDrought = droughtData.isNotEmpty;
-    final bool hasNdvi = ndviData.isNotEmpty;
-    final bool hasAnyData =
-        activeFires > 0 ||
-        activeFloods > 0 ||
-        hasDrought ||
-        hasNdvi ||
-        glacierCount > 0;
-
-    if (!hasAnyData) {
-      return {
-        'summary':
-            'No hazard data loaded. Open the map and enable hazard layers '
-            'to populate the intelligence feed with verified real-time data.',
-        'riskLevel': 'UNKNOWN',
-        'activeFires': 0,
-        'activeFloods': 0,
-        'glacierCount': 0,
-        'hasDrought': false,
-        'hasNdvi': false,
-        'noData': true,
-        'sources': <String>[],
-      };
-    }
-
-    // Risk level derived ONLY from actual counts
-    String riskLevel = 'LOW';
-    if (activeFires > 100 || activeFloods > 2) riskLevel = 'MODERATE';
-    if (activeFires > 500 || activeFloods > 5) riskLevel = 'ELEVATED';
-    if (activeFires > 1000 || activeFloods > 10) riskLevel = 'HIGH';
-
-    // Build summary from ONLY what we actually have
-    final parts = <String>[];
-    final sources = <String>[];
-
-    if (activeFires > 0) {
-      parts.add('$activeFires active fire detections');
-      sources.add('NASA FIRMS / NIFC');
-    }
-    if (activeFloods > 0) {
-      parts.add('$activeFloods flood gauge alerts');
-      sources.add('NOAA NWPS');
-    }
-    if (hasDrought) {
-      parts.add('Drought conditions detected');
-      sources.add('US Drought Monitor');
-    }
-    if (glacierCount > 0) {
-      parts.add('$glacierCount glaciers monitored');
-      sources.add('GLIMS');
-    }
-    if (hasNdvi) {
-      parts.add('Vegetation monitoring active');
-      sources.add('MODIS / Sentinel-2');
-    }
-
-    final summary =
-        'Current conditions: ${parts.join('. ')}. '
-        'Overall assessed risk: $riskLevel.';
-
-    return {
-      'summary': summary,
-      'riskLevel': riskLevel,
-      'activeFires': activeFires,
-      'activeFloods': activeFloods,
-      'glacierCount': glacierCount,
-      'hasDrought': hasDrought,
-      'hasNdvi': hasNdvi,
-      'noData': false,
-      'sources': sources,
-    };
-  }
 
 
 
@@ -154,10 +69,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
     HazardViewModel hazardVm,
     DashboardViewModel dashboardVm,
   ) {
-    final situationData = _generateSituationSummary(hazardVm);
     final scopedNodes = _scopedInsightNodes(vm);
-    final hasAnyLoadedData =
-        scopedNodes.isNotEmpty || (situationData['noData'] != true);
+    final hasAnyLoadedData = scopedNodes.isNotEmpty;
 
     return Scaffold(
       backgroundColor: EcoPaper.paper,
@@ -210,19 +123,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       if (vm.isAnalysisSlow || vm.analysisError != null)
                         _buildAnalysisStatusBanner(vm),
                       _buildInsightsHero(scopedNodes, vm),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 4),
                       if (dashboardVm.scopedPlaceId != null)
                         _buildPlaceScopeBanner(dashboardVm),
                       // A reader sent here by Ask-the-Map came for one answer.
                       // It leads the page, directly under the masthead.
                       ..._buildAtlasFindings(vm),
                       _buildNewsFeed(scopedNodes, vm),
-                      const SizedBox(height: 18),
-                      _buildAreaContext(scopedNodes, hazardVm),
-                      const SizedBox(height: 18),
-                      _buildEvidenceAndCoverage(situationData, vm),
-                      const SizedBox(height: 18),
-                      _buildNextSteps(scopedNodes, hazardVm),
                       const SizedBox(height: 36),
                     ],
                   ),
@@ -427,420 +334,434 @@ class _InsightsScreenState extends State<InsightsScreen> {
     );
   }
 
+  // ════════════════════════════════════════════════
+  // FRONT PAGE
+  // The wire laid out like a newspaper front: a dateline and index between
+  // rules, one lead story beside its published map, the other Red and
+  // Orange stories in columns, then the rest of the wire as ruled briefs.
+  // Every figure on the page is a published GDACS value or a count of them.
+  // ════════════════════════════════════════════════
+
+  static const Map<String, String> _wireTypeLabels = {
+    'EQ': 'Earthquakes',
+    'FL': 'Floods',
+    'TC': 'Cyclones',
+    'VO': 'Volcanoes',
+    'DR': 'Droughts',
+    'WF': 'Wildfires',
+    'TS': 'Tsunamis',
+  };
+
+  /// The masthead strip: today's dateline on the left, the state of the wire
+  /// on the right, a hairline, then the wire index by hazard type.
   Widget _buildInsightsHero(
     List<IntelligenceNode> scopedNodes,
     InsightsViewModel vm,
   ) {
-    final topNode = _leadNode(scopedNodes);
-    final String summary;
-    if (topNode == null) {
-      summary = vm.newsError != null
-          ? 'The live feed is unavailable right now. ${vm.newsError}'
-          : 'Waiting for the first refresh of the GDACS alert wire. '
-              'Alerts appear here as soon as the server mirror runs.';
+    final updated = vm.newsUpdatedAt;
+    final dateline =
+        DateFormat('EEEE d MMMM yyyy').format(DateTime.now()).toUpperCase();
+    final red = vm.newsByLevel['Red'] ?? 0;
+    final orange = vm.newsByLevel['Orange'] ?? 0;
+    final green = vm.newsByLevel['Green'] ?? 0;
+    final String status;
+    if (vm.newsCount == 0) {
+      status = vm.newsError != null
+          ? 'THE WIRE COULD NOT BE READ'
+          : 'WAITING FOR THE FIRST REFRESH OF THE GDACS WIRE';
     } else {
-      summary = 'Leading the wire: ${topNode.headline}. ${_feedScopeSentence(vm)}';
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: EcoPaper.card,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: EcoPaper.paperDeep,
-                  borderRadius: BorderRadius.circular(3),
-                  border: Border.all(color: EcoPaper.rule),
-                ),
-                child: const Icon(Icons.newspaper, color: EcoPaper.survey),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Environmental News',
-                      style: EcoPaper.headline(size: 22),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'The GDACS alert wire, refreshed every 15 minutes, and answers carried over from the map.',
-                      style: EcoPaper.body(
-                        color: EcoPaper.inkSoft,
-                        size: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Text(
-            summary,
-            style: EcoPaper.deck(size: 14),
-          ),
-        ],
-      ),
-    );
-  }
-
-
-  /// Replaces the previous "Who can use this" marketing cards with real
-  /// area context derived from the loaded hazard data + scoped nodes.
-  /// Every number on this panel is computed from data, not hardcoded.
-  Widget _buildAreaContext(
-    List<IntelligenceNode> scopedNodes,
-    HazardViewModel hazardVm,
-  ) {
-    // Hazard activity (counts per type currently loaded)
-    final fireCount = (hazardVm.hazardData[HazardType.wildfire] ?? []).length;
-    final floodCount = (hazardVm.hazardData[HazardType.flood] ?? []).length;
-    final droughtCount = (hazardVm.hazardData[HazardType.drought] ?? []).length;
-    final glacierCount = (hazardVm.hazardData[HazardType.glacier] ?? []).length;
-    final ndviCount = (hazardVm.hazardData[HazardType.ndvi] ?? []).length;
-    final totalHazards = fireCount + floodCount + droughtCount + glacierCount + ndviCount;
-
-    // Dominant hazard type in this scope
-    final hazardCounts = <String, int>{
-      'wildfire': fireCount,
-      'flood': floodCount,
-      'drought': droughtCount,
-      'glacier': glacierCount,
-      'vegetation stress': ndviCount,
-    };
-    final dominantEntry = hazardCounts.entries
-        .where((e) => e.value > 0)
-        .fold<MapEntry<String, int>?>(
-          null,
-          (best, e) => best == null || e.value > best.value ? e : best,
-        );
-
-    // Only surface counts of live, source-attached hazard layers. Synthetic
-    // stats (population aggregated from nearest-place estimates, largest
-    // hectares, geographic spread) reach the user as if they were ground
-    // truth and they are not.
-    final factCards = <_AreaContextFact>[
-      _AreaContextFact(
-        icon: Icons.sensors,
-        label: 'Live hazard signals',
-        value: '$totalHazards',
-        sub: totalHazards == 0
-            ? 'No live hazard layers loaded. Open the map and enable layers.'
-            : [
-                if (fireCount > 0) '$fireCount fire',
-                if (floodCount > 0) '$floodCount flood',
-                if (droughtCount > 0) '$droughtCount drought',
-                if (glacierCount > 0) '$glacierCount glacier',
-                if (ndviCount > 0) '$ndviCount NDVI',
-              ].join(' · '),
-        color: EcoPaper.survey,
-      ),
-      if (dominantEntry != null)
-        _AreaContextFact(
-          icon: Icons.trending_up,
-          label: 'Dominant signal',
-          value: dominantEntry.key,
-          sub:
-              '${dominantEntry.value} of $totalHazards loaded signals are ${dominantEntry.key} events.',
-          color: EcoPaper.amber,
-        ),
-    ];
-
-    if (factCards.isEmpty) {
-      return const SizedBox.shrink();
+      status = [
+        '${vm.newsCount} ALERTS ON THE GDACS WIRE',
+        if (red > 0) '$red RED',
+        if (orange > 0) '$orange ORANGE',
+        if (green > 0) '$green GREEN',
+        if (updated != null) 'REFRESHED ${_timeAgo(updated).toUpperCase()}',
+      ].join('  ·  ');
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader(
-          Icons.layers_outlined,
-          'Loaded on the map',
-          'Counted from the hazard layers currently loaded on the map.',
-        ),
-        const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth > 820 && factCards.length > 1;
-            if (isWide) {
-              final cellWidth = (constraints.maxWidth - 10) / factCards.length;
-              return Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: factCards
-                    .map((f) => SizedBox(
-                          width: cellWidth,
-                          child: _areaContextCard(f),
-                        ))
-                    .toList(),
+        const SizedBox(height: 6),
+        _doubleRule(),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final narrow = c.maxWidth < 680;
+              final left = Text(
+                dateline,
+                style: EcoPaper.label(size: 10.5, color: EcoPaper.ink),
               );
-            }
-            return Column(
-              children: [
-                for (final f in factCards) ...[
-                  _areaContextCard(f),
-                  const SizedBox(height: 10),
+              final right = Text(
+                status,
+                textAlign: narrow ? TextAlign.left : TextAlign.right,
+                style: EcoPaper.label(size: 10.5, color: EcoPaper.inkSoft),
+              );
+              if (narrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [left, const SizedBox(height: 5), right],
+                );
+              }
+              return Row(
+                children: [
+                  left,
+                  const SizedBox(width: 18),
+                  Expanded(child: right),
                 ],
-              ],
-            );
-          },
+              );
+            },
+          ),
         ),
+        EcoPaper.hairline,
+        if (vm.newsByType.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: _wireIndex(vm),
+          ),
+          EcoPaper.hairline,
+        ],
       ],
     );
   }
 
-  Widget _areaContextCard(_AreaContextFact f) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: EcoPaper.card,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  /// A newspaper double rule: a heavy line over a fine one.
+  Widget _doubleRule() => Column(
         children: [
-          Row(
-            children: [
-              Icon(f.icon, color: f.color, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  f.label.toUpperCase(),
-                  style: EcoPaper.label(),
+          Container(height: 2, color: EcoPaper.ink),
+          const SizedBox(height: 2),
+          Container(height: 1, color: EcoPaper.ink),
+        ],
+      );
+
+  /// The wire index: how many alerts of each hazard type the mirror holds,
+  /// straight from news_meta/latest.
+  Widget _wireIndex(InsightsViewModel vm) {
+    const order = ['EQ', 'FL', 'TC', 'VO', 'DR', 'WF', 'TS'];
+    final keys = <String>[
+      ...order.where((k) => (vm.newsByType[k] ?? 0) > 0),
+      ...vm.newsByType.keys
+          .where((k) => !order.contains(k) && (vm.newsByType[k] ?? 0) > 0),
+    ];
+    if (keys.isEmpty) return const SizedBox.shrink();
+    return Wrap(
+      spacing: 22,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text('ON THE WIRE',
+            style: EcoPaper.label(size: 9, color: EcoPaper.inkFaint)),
+        for (final k in keys)
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: '${vm.newsByType[k]} ',
+                  style: EcoPaper.data(size: 12, color: EcoPaper.ink),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            f.value,
-            style: EcoPaper.data(size: 22),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            f.sub,
-            style: EcoPaper.body(
-              color: EcoPaper.inkSoft,
-              size: 12,
+                TextSpan(
+                  text: (_wireTypeLabels[k] ?? k).toUpperCase(),
+                  style: EcoPaper.label(size: 9.5, color: EcoPaper.inkSoft),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 
 
-  /// The wire. Items arrive pre-ordered from Firestore (Red, Orange, Green;
-  /// newest activity first within each level), so the order here is the
-  /// order the feed delivered.
+
+
+
+
+  /// The front page proper: lead, second tier, briefs.
   Widget _buildNewsFeed(
     List<IntelligenceNode> nodes,
     InsightsViewModel vm,
   ) {
     final sorted = _orderedCases(nodes);
-    final visible = sorted.take(10).toList();
     // The stream is capped at 120 documents; the meta document carries the
     // true total so the "more" line never under-counts.
     final total = vm.newsCount > sorted.length ? vm.newsCount : sorted.length;
-    final updated = vm.newsUpdatedAt;
 
-    return _insightsPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionHeader(
-            Icons.rss_feed,
-            'Latest alerts',
-            'Red, then orange, then green; the most recently updated first. '
-                'Tap an item for the published report.',
-          ),
-          if (updated != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 6, left: 27),
-              child: Text(
-                'Refreshed ${_timeAgo(updated)} · '
-                '${DateFormat('d MMM, HH:mm').format(updated.toLocal())} local',
-                style: EcoPaper.data(size: 10.5, color: EcoPaper.inkFaint),
+    if (sorted.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: _emptyState(
+          icon: Icons.notifications_none,
+          title: vm.newsError != null
+              ? 'The wire could not be read'
+              : 'Nothing on the wire yet',
+          body: vm.newsError ??
+              'The server mirrors the GDACS alert feed every 15 minutes. '
+                  'If this persists, the refresh job has not run.',
+        ),
+      );
+    }
+
+    // The lead is the top-ranked alert that has a composed story; the other
+    // Red and Orange stories form the second tier; everything else is a brief.
+    final lead = sorted.firstWhere(
+      (n) => _article(n) != null,
+      orElse: () => sorted.first,
+    );
+    final second = <IntelligenceNode>[];
+    final rest = <IntelligenceNode>[];
+    for (final n in sorted) {
+      if (identical(n, lead)) continue;
+      final level =
+          (n.causeData['alert_level'] ?? '').toString().toLowerCase();
+      final isStory = _article(n) != null;
+      if (isStory && (level == 'red' || level == 'orange') && second.length < 4) {
+        second.add(n);
+      } else {
+        rest.add(n);
+      }
+    }
+    final briefs = rest.take(18).toList();
+    final shown = 1 + second.length + briefs.length;
+
+    return LayoutBuilder(
+      builder: (context, c) {
+        final w = c.maxWidth;
+        final wide = w >= 860;
+        final storyCols = w >= 760 ? 2 : 1;
+        final briefCols = w >= 980 ? 3 : (w >= 600 ? 2 : 1);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _newsLead(lead, vm, wide: wide),
+            if (second.isNotEmpty) ...[
+              EcoPaper.hairline,
+              const SizedBox(height: 16),
+              _columns(
+                [for (final n in second) _storyCard(n, vm)],
+                storyCols,
+                gutter: 32,
               ),
-            ),
-          const SizedBox(height: 12),
-          if (visible.isEmpty)
-            _emptyState(
-              icon: Icons.notifications_none,
-              title: vm.newsError != null
-                  ? 'The wire could not be read'
-                  : 'Nothing on the wire yet',
-              body: vm.newsError ??
-                  'The server mirrors the GDACS alert feed every 15 minutes. '
-                      'If this persists, the refresh job has not run.',
-            )
-          else ...[
-            // Stories lead; alerts the server has not composed a story for
-            // yet (mostly green wildfires) keep the compact card.
-            for (var i = 0; i < visible.length; i++)
-              _article(visible[i]) == null
-                  ? _newsItemCard(visible[i], vm)
-                  : (i == 0
-                      ? _newsLead(visible[i], vm)
-                      : _newsTeaser(visible[i], vm)),
+              const SizedBox(height: 22),
+            ],
+            if (briefs.isNotEmpty) ...[
+              _doubleRule(),
+              Padding(
+                padding: const EdgeInsets.only(top: 9, bottom: 6),
+                child: Row(
+                  children: [
+                    Text(
+                      'ALSO ON THE WIRE',
+                      style: EcoPaper.label(size: 10, color: EcoPaper.ink),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        _byLevelSentence(vm),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: EcoPaper.inkFaint,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _columns(
+                [for (final n in briefs) _newsBrief(n, vm)],
+                briefCols,
+                gutter: 28,
+              ),
+            ],
+            if (total > shown)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  '${total - shown} more alerts on the wire, as published by GDACS.',
+                  style:
+                      GoogleFonts.inter(color: EcoPaper.inkFaint, fontSize: 12),
+                ),
+              ),
           ],
-          if (total > visible.length)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                '${total - visible.length} more on the wire.',
-                style: GoogleFonts.inter(color: EcoPaper.inkFaint, fontSize: 12),
+        );
+      },
+    );
+  }
+
+  /// Lays [items] out in [cols] newspaper columns, reading across then down,
+  /// with a hairline between the columns.
+  Widget _columns(List<Widget> items, int cols, {double gutter = 24}) {
+    if (cols <= 1 || items.length <= 1) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: items,
+      );
+    }
+    final buckets = List.generate(cols, (_) => <Widget>[]);
+    for (var i = 0; i < items.length; i++) {
+      buckets[i % cols].add(items[i]);
+    }
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var c = 0; c < cols; c++) ...[
+            if (c > 0) ...[
+              SizedBox(width: gutter / 2),
+              const VerticalDivider(
+                color: EcoPaper.rule,
+                width: 1,
+                thickness: 1,
+              ),
+              SizedBox(width: gutter / 2),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: buckets[c],
               ),
             ),
+          ],
         ],
       ),
     );
   }
 
-  /// One wire item. Everything on it is a field GDACS published: the alert
-  /// level, the event type, the headline assembled from its own name and
-  /// country, its severity statement, and when it was last updated.
-  Widget _newsItemCard(IntelligenceNode node, InsightsViewModel vm) {
-    final c = node.causeData;
-    final level = (c['alert_level'] ?? '').toString();
-    final typeLabel = (c['type_label'] ?? node.type).toString();
-    final severity = _publishedSeverity(node);
-    final lastActivity =
-        DateTime.tryParse((c['last_activity'] ?? '').toString());
-    final isCurrent = c['is_current'] == true;
-    final metaBits = <String>[
-      if (node.country.isNotEmpty) node.country,
-      if (severity.isNotEmpty) severity,
-    ];
-    final String when;
-    if (lastActivity == null) {
-      when = '';
-    } else if (isCurrent) {
-      when = 'Active · updated ${_timeAgo(lastActivity)}';
-    } else {
-      when = 'Closed · last update ${_timeAgo(lastActivity)}';
-    }
-    final who = _whoIsAffectedLine(node);
-    final facts = _factsLine(node);
-
+  /// A second-tier story: a rule in its alert colour, kicker, headline,
+  /// standfirst, the EcoLens line, meta and the map link.
+  Widget _storyCard(IntelligenceNode node, InsightsViewModel vm) {
+    final a = _article(node)!;
+    final level = (node.causeData['alert_level'] ?? '').toString();
     return InkWell(
       onTap: () {
         HapticFeedback.mediumImpact();
         vm.openNewsItem(node);
       },
-      borderRadius: BorderRadius.circular(3),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: EcoPaper.well,
-        child: Row(
+        margin: const EdgeInsets.only(bottom: 18),
+        padding: const EdgeInsets.only(top: 12, bottom: 4),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: _alertColor(level), width: 2)),
+        ),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: EcoPaper.paperRaised,
-                borderRadius: BorderRadius.circular(3),
-                border: Border.all(color: EcoPaper.rule),
-              ),
-              child: Icon(_nodeIcon(node), color: _alertColor(level), size: 21),
+            Text(_kicker(node),
+                style: EcoPaper.label(size: 9.5, color: _alertColor(level))),
+            const SizedBox(height: 8),
+            Text(
+              _displayHeadline(node, a),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: EcoPaper.headline(size: 19).copyWith(height: 1.18),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      if (level.isNotEmpty)
-                        _tinyBadge(
-                          '${level.toUpperCase()} ALERT',
-                          _alertColor(level),
-                        ),
-                      _tinyBadge(typeLabel.toUpperCase(), EcoPaper.survey),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    node.headline,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: EcoPaper.headline(size: 14),
-                  ),
-                  if (metaBits.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      metaBits.join(' · '),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: EcoPaper.body(
-                        color: EcoPaper.inkSoft,
-                        size: 12,
-                      ),
-                    ),
-                  ],
-                  if (when.isNotEmpty) ...[
-                    const SizedBox(height: 5),
-                    Text(
-                      when,
-                      style: EcoPaper.data(size: 10.5, color: EcoPaper.inkFaint),
-                    ),
-                  ],
-                  if (who.isNotEmpty) ...[
-                    const SizedBox(height: 9),
-                    Text(
-                      'WHO IS AFFECTED',
-                      style: EcoPaper.label(size: 9, color: EcoPaper.inkFaint),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      who,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: EcoPaper.body(color: EcoPaper.ink, size: 12.5),
-                    ),
-                  ],
-                  if (facts.isNotEmpty) ...[
-                    const SizedBox(height: 5),
-                    Text(
-                      facts,
-                      style: EcoPaper.data(size: 11, color: EcoPaper.inkSoft),
-                    ),
-                  ],
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: [
-                      _cardButton(
-                        Icons.article_outlined,
-                        'Full report',
-                        () => vm.openNewsItem(node),
-                      ),
-                      _cardButton(
-                        Icons.map_outlined,
-                        'View on map',
-                        () => _viewOnMap(node),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            const SizedBox(height: 8),
+            Text(
+              (a['standfirst'] ?? '').toString(),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: EcoPaper.deck(size: 13.5),
+            ),
+            _ecolensSummaryLine(a),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(child: _storyMeta(node, a, size: 10)),
+                _textLink('View on map', () => _viewOnMap(node)),
+              ],
             ),
           ],
         ),
       ),
     );
   }
+
+  /// A brief: kicker, headline, the heaviest published report, facts, time.
+  /// Alerts without a composed story (mostly green wildfires) live here too;
+  /// tapping opens the published report.
+  Widget _newsBrief(IntelligenceNode node, InsightsViewModel vm) {
+    final c = node.causeData;
+    final level = (c['alert_level'] ?? '').toString();
+    final a = _article(node);
+    final headline = a == null ? node.headline : _displayHeadline(node, a);
+    final lastActivity =
+        DateTime.tryParse((c['last_activity'] ?? '').toString());
+    final isCurrent = c['is_current'] == true;
+    final who = _whoIsAffectedLine(node);
+    final facts = _factsLine(node);
+    final String when;
+    if (lastActivity == null) {
+      when = '';
+    } else if (isCurrent) {
+      when = 'updated ${_timeAgo(lastActivity)}';
+    } else {
+      when = 'closed · ${_timeAgo(lastActivity)}';
+    }
+    final foot = [if (facts.isNotEmpty) facts, if (when.isNotEmpty) when];
+    return InkWell(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        vm.openNewsItem(node);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: EcoPaper.rule)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(_kicker(node),
+                style: EcoPaper.label(size: 8.5, color: _alertColor(level))),
+            const SizedBox(height: 5),
+            Text(
+              headline,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: EcoPaper.headline(size: 14.5).copyWith(height: 1.22),
+            ),
+            if (who.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                who,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: EcoPaper.body(color: EcoPaper.inkSoft, size: 12),
+              ),
+            ],
+            if (foot.isNotEmpty) ...[
+              const SizedBox(height: 5),
+              Text(
+                foot.join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: EcoPaper.data(size: 10, color: EcoPaper.inkFaint),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _textLink(String label, VoidCallback onTap) => TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          foregroundColor: EcoPaper.survey,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700),
+        ),
+      );
+
+
 
   /// GDACS alert-level colour. Red and Orange are GDACS's own scale.
   Color _alertColor(String level) {
@@ -870,18 +791,6 @@ class _InsightsScreenState extends State<InsightsScreen> {
     return DateFormat('d MMM yyyy').format(t.toLocal());
   }
 
-  /// Honest scope line: how many events, how many at the two higher levels,
-  /// and when the mirror last ran. Every number comes from news_meta/latest.
-  String _feedScopeSentence(InsightsViewModel vm) {
-    if (vm.newsCount == 0) return '';
-    final red = vm.newsByLevel['Red'] ?? 0;
-    final orange = vm.newsByLevel['Orange'] ?? 0;
-    final parts = <String>['${vm.newsCount} GDACS alerts on the wire'];
-    if (red > 0 || orange > 0) parts.add('$red red and $orange orange');
-    final updated = vm.newsUpdatedAt;
-    if (updated != null) parts.add('refreshed ${_timeAgo(updated)}');
-    return '${parts.join(', ')}.';
-  }
 
   String _byLevelSentence(InsightsViewModel vm) {
     if (vm.newsByLevel.isEmpty) return 'Alert levels as published by GDACS.';
@@ -903,256 +812,12 @@ class _InsightsScreenState extends State<InsightsScreen> {
     }
   }
 
-  Widget _buildEvidenceAndCoverage(
-    Map<String, dynamic> situationData,
-    InsightsViewModel vm,
-  ) {
-    // Counts only the layers this tally actually sums. Drought and NDVI
-    // reach situationData as booleans, so they are named in neither.
-    final liveSignalCount =
-        (situationData['activeFires'] as int? ?? 0) +
-        (situationData['activeFloods'] as int? ?? 0) +
-        (situationData['glacierCount'] as int? ?? 0);
-
-    return _insightsPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionHeader(
-            Icons.dataset,
-            'Where these numbers come from',
-            'What is loaded, and what it is drawn from.',
-          ),
-          const SizedBox(height: 14),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth > 720;
-              final cards = [
-                _coverageItem(
-                  Icons.sensors,
-                  'Live hazard layers',
-                  NumberFormat.compact().format(liveSignalCount),
-                  'Fire, flood and glacier signals currently loaded.',
-                ),
-                _coverageItem(
-                  Icons.newspaper,
-                  'GDACS alerts on the wire',
-                  NumberFormat.compact().format(
-                    vm.newsCount > 0 ? vm.newsCount : vm.allAlerts.length,
-                  ),
-                  _byLevelSentence(vm),
-                ),
-                _coverageItem(
-                  Icons.update,
-                  'Wire refreshed',
-                  vm.newsUpdatedAt == null
-                      ? 'Pending'
-                      : _timeAgo(vm.newsUpdatedAt!),
-                  'A scheduled job mirrors the GDACS RSS feed every 15 minutes; '
-                      'this page updates the moment it writes.',
-                ),
-              ];
-
-              if (isWide) {
-                return Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: cards
-                      .map(
-                        (card) => SizedBox(
-                          width: (constraints.maxWidth - 10) / 2,
-                          child: card,
-                        ),
-                      )
-                      .toList(),
-                );
-              }
-
-              return Column(
-                children: [
-                  for (final card in cards) ...[
-                    card,
-                    const SizedBox(height: 10),
-                  ],
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNextSteps(
-    List<IntelligenceNode> nodes,
-    HazardViewModel hazardVm,
-  ) {
-    final recommendations = _recommendations(nodes, hazardVm);
-
-    return _insightsPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionHeader(
-            Icons.route,
-            'What to do next',
-            'Three suggestions, based on what is loaded.',
-          ),
-          const SizedBox(height: 12),
-          for (var i = 0; i < recommendations.length; i++)
-            Padding(
-              padding: EdgeInsets.only(
-                bottom: i == recommendations.length - 1 ? 0 : 12,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 26,
-                    height: 26,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: EcoPaper.paperDeep,
-                      borderRadius: BorderRadius.circular(3),
-                      border: Border.all(color: EcoPaper.rule),
-                    ),
-                    child: Text(
-                      '${i + 1}',
-                      style: EcoPaper.data(
-                        size: 12,
-                        color: EcoPaper.survey,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      recommendations[i],
-                      style: EcoPaper.body(
-                        color: EcoPaper.inkSoft,
-                        size: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  List<String> _recommendations(
-    List<IntelligenceNode> nodes,
-    HazardViewModel hazardVm,
-  ) {
-    final recs = <String>[];
-    final fireData = hazardVm.hazardData[HazardType.wildfire] ?? [];
-    final floodData = hazardVm.hazardData[HazardType.flood] ?? [];
-    final droughtData = hazardVm.hazardData[HazardType.drought] ?? [];
-    final topNode = _leadNode(nodes);
-
-    if (topNode != null) {
-      recs.add(
-        'Open "${topNode.headline}" for the GDACS report: alert level, severity and the published population statement.',
-      );
-    }
-
-    recs.add(
-      'On the map, turn on "Who is affected" and "Areas affected" to see the published impact figures and source geometry for the same events.',
-    );
-
-    if (fireData.isNotEmpty || floodData.isNotEmpty || droughtData.isNotEmpty) {
-      recs.add(
-        'The hazard layers you have loaded stay attached, so what is observed now sits beside what GDACS has reported.',
-      );
-    } else {
-      recs.add(
-        'Load fire, flood or drought layers on the map to put live detections beside these reports.',
-      );
-    }
-
-    return recs.take(3).toList();
-  }
-
-  Widget _sectionHeader(IconData icon, String title, String subtitle) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Icon(icon, color: EcoPaper.survey, size: 18),
-        const SizedBox(width: 9),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: EcoPaper.headline(size: 15),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: GoogleFonts.inter(color: EcoPaper.inkFaint, fontSize: 11),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _insightsPanel({required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: EcoPaper.card,
-      child: child,
-    );
-  }
 
 
-  Widget _coverageItem(IconData icon, String label, String value, String body) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: EcoPaper.well,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: EcoPaper.survey, size: 20),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: EcoPaper.data(size: 15),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    color: EcoPaper.survey,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  body,
-                  style: EcoPaper.body(
-                    color: EcoPaper.inkSoft,
-                    size: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
+
+
+
 
   Widget _emptyState({
     required IconData icon,
@@ -1186,26 +851,6 @@ class _InsightsScreenState extends State<InsightsScreen> {
     );
   }
 
-  Widget _tinyBadge(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(3),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-      ),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: GoogleFonts.inter(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
 
   /// Feed order for the case list. Cases whose source actually supplied a
   /// score sort first, highest first; everything else keeps the order the
@@ -1228,37 +873,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
     return indexed.map((e) => e.value).toList();
   }
 
-  IntelligenceNode? _leadNode(List<IntelligenceNode> nodes) {
-    if (nodes.isEmpty) return null;
-    return _orderedCases(nodes).first;
-  }
 
-  IconData _nodeIcon(IntelligenceNode node) {
-    final value = '${node.type} ${node.headline}'.toLowerCase();
-    if (value.contains('fire') || value.contains('burn')) {
-      return Icons.local_fire_department;
-    }
-    if (value.contains('flood') || value.contains('water')) {
-      return Icons.water_drop;
-    }
-    if (value.contains('drought')) return Icons.wb_sunny;
-    if (value.contains('cyclone') || value.contains('hurricane') ||
-        value.contains('typhoon')) {
-      return Icons.cyclone;
-    }
-    if (value.contains('quake') || value.contains('seism')) {
-      return Icons.vibration;
-    }
-    if (value.contains('volcan')) return Icons.volcano;
-    if (value.contains('tsunami')) return Icons.tsunami;
-    if (value.contains('glacier') || value.contains('ice')) {
-      return Icons.ac_unit;
-    }
-    if (value.contains('forest') || value.contains('deforest')) {
-      return Icons.forest;
-    }
-    return Icons.eco;
-  }
 
   String _nodeLocation(IntelligenceNode node) {
     final parts = [
@@ -1589,12 +1204,76 @@ class _InsightsScreenState extends State<InsightsScreen> {
     final c = node.causeData;
     final level = (c['alert_level'] ?? '').toString();
     final type = (c['type_label'] ?? node.type).toString();
+    final where = _shortCountry(node);
     return [
       if (level.isNotEmpty) '$level alert',
       type,
-      if (node.country.isNotEmpty) node.country,
+      if (where.isNotEmpty) where,
     ].join(' · ').toUpperCase();
   }
+
+  /// A country line that fits on one line: up to three names, otherwise a
+  /// count, so a 25-country drought is not a wall of orange capitals. The
+  /// story view keeps the full published list.
+  String _shortCountry(IntelligenceNode node) {
+    final list = node.causeData['affected_countries'];
+    final names = list is List
+        ? list.map((e) => e.toString().trim()).where((s) => s.isNotEmpty).toList()
+        : node.country
+            .split(',')
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+    if (names.isEmpty) return node.country;
+    if (names.length <= 3) return names.join(', ');
+    return '${names.length} countries';
+  }
+
+  /// The composed headline, with a long country list folded into a count so
+  /// it reads as a headline. The story view keeps the full list.
+  String _displayHeadline(IntelligenceNode node, Map<String, dynamic> a) {
+    final h = (a['headline'] ?? node.headline).toString();
+    final list = node.causeData['affected_countries'];
+    final n = list is List ? list.length : 0;
+    if (n < 4) return h;
+    final inAt = h.indexOf(' in ');
+    if (inAt < 0) return h;
+    final colon = h.indexOf(':', inAt);
+    final listPart =
+        colon < 0 ? h.substring(inAt + 4) : h.substring(inAt + 4, colon);
+    // Only fold when the segment after "in" really is the country list.
+    if (listPart.split(',').length < 4) return h;
+    final tail = colon < 0 ? '' : h.substring(colon);
+    return '${h.substring(0, inAt)} across $n countries$tail';
+  }
+
+  /// The lead figure: the first published GDACS map, with its own label as
+  /// the caption; failing that, the first Copernicus or ECHO product.
+  MapEntry<String, String>? _heroFigure(IntelligenceNode node) {
+    final c = node.causeData;
+    final maps = c['map_images'];
+    if (maps is List) {
+      for (final e in maps) {
+        if (e is Map && (e['url'] ?? '').toString().isNotEmpty) {
+          final label = (e['label'] ?? '').toString();
+          return MapEntry(
+              e['url'].toString(), label.isEmpty ? 'Event map' : label);
+        }
+      }
+    }
+    final products = c['products'];
+    if (products is List) {
+      for (final e in products) {
+        if (e is Map && (e['image'] ?? '').toString().isNotEmpty) {
+          final title = (e['title'] ?? '').toString();
+          return MapEntry(
+              e['image'].toString(), title.isEmpty ? 'Published map' : title);
+        }
+      }
+    }
+    return null;
+  }
+
 
   String _readTime(Map<String, dynamic> a) {
     final w = a['word_count'];
@@ -1623,11 +1302,26 @@ class _InsightsScreenState extends State<InsightsScreen> {
     return t == null ? '' : '${DateFormat('d MMM HH:mm').format(t.toUtc())} UTC';
   }
 
+  /// The dateline as published, tidied: blanks and duplicates dropped, and
+  /// a list of four or more countries folded into a count.
+  String _cleanDateline(Map<String, dynamic> a) {
+    final raw = (a['dateline'] ?? '').toString();
+    final names = <String>[];
+    for (final p in raw.split(',')) {
+      final t = p.trim();
+      if (t.isNotEmpty && !names.contains(t)) names.add(t);
+    }
+    if (names.isEmpty) return '';
+    if (names.length >= 4) return '${names.length} countries';
+    return names.join(', ');
+  }
+
   Widget _storyMeta(IntelligenceNode node, Map<String, dynamic> a,
       {double size = 10.5}) {
     final asOf = DateTime.tryParse((a['as_of'] ?? '').toString());
+    final dateline = _cleanDateline(a);
     final bits = <String>[
-      if ((a['dateline'] ?? '').toString().isNotEmpty) a['dateline'].toString(),
+      if (dateline.isNotEmpty) dateline,
       if (asOf != null) 'as of ${_timeAgo(asOf)}',
       if (_readTime(a).isNotEmpty) _readTime(a),
     ];
@@ -1637,109 +1331,89 @@ class _InsightsScreenState extends State<InsightsScreen> {
     );
   }
 
-  /// The lead story: map, kicker, headline, standfirst, meta, actions.
-  Widget _newsLead(IntelligenceNode node, InsightsViewModel vm) {
-    final a = _article(node)!;
-    final hero = _heroImage(node);
+  /// The lead story: headline column beside the published map when the
+  /// page is wide enough, stacked otherwise.
+  Widget _newsLead(IntelligenceNode node, InsightsViewModel vm,
+      {required bool wide}) {
+    final a = _article(node);
     final level = (node.causeData['alert_level'] ?? '').toString();
+    final figure = _heroFigure(node);
+    final headline = a == null ? node.headline : _displayHeadline(node, a);
+    final standfirst = a == null
+        ? _whoIsAffectedLine(node)
+        : (a['standfirst'] ?? '').toString();
+
+    final text = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(_kicker(node),
+            style: EcoPaper.label(size: 10, color: _alertColor(level))),
+        const SizedBox(height: 10),
+        Text(
+          headline,
+          style: EcoPaper.headline(size: wide ? 32 : 26)
+              .copyWith(height: 1.12, fontWeight: FontWeight.w700),
+        ),
+        if (standfirst.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Text(standfirst, style: EcoPaper.deck(size: 16, color: EcoPaper.ink)),
+        ],
+        if (a != null) _ecolensSummaryLine(a),
+        const SizedBox(height: 10),
+        if (a != null) _storyMeta(node, a, size: 11),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            _cardButton(
+              Icons.article_outlined,
+              a == null ? 'Full report' : 'Read the story',
+              () => vm.openNewsItem(node),
+            ),
+            _cardButton(Icons.map_outlined, 'View on map',
+                () => _viewOnMap(node)),
+          ],
+        ),
+      ],
+    );
+
+    final image = figure == null
+        ? null
+        : _publishedImage(figure.key, figure.value, 'GDACS',
+            maxHeight: wide ? 380 : 240);
+
+    final Widget body;
+    if (wide && image != null) {
+      body = Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 11, child: text),
+          const SizedBox(width: 30),
+          Expanded(flex: 9, child: image),
+        ],
+      );
+    } else {
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [if (image != null) image, text],
+      );
+    }
+
     return InkWell(
       onTap: () {
         HapticFeedback.mediumImpact();
         vm.openNewsItem(node);
       },
-      borderRadius: BorderRadius.circular(3),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(16),
-        decoration: EcoPaper.well,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (hero != null)
-              _publishedImage(hero, 'Event map', 'GDACS', maxHeight: 260),
-            Text(_kicker(node),
-                style: EcoPaper.label(size: 9.5, color: _alertColor(level))),
-            const SizedBox(height: 6),
-            Text(a['headline'].toString(), style: EcoPaper.headline(size: 22)),
-            const SizedBox(height: 8),
-            Text((a['standfirst'] ?? '').toString(),
-                style: EcoPaper.deck(size: 14.5)),
-            _ecolensSummaryLine(a),
-            const SizedBox(height: 8),
-            _storyMeta(node, a),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                _cardButton(Icons.article_outlined, 'Read the story',
-                    () => vm.openNewsItem(node)),
-                _cardButton(Icons.map_outlined, 'View on map',
-                    () => _viewOnMap(node)),
-              ],
-            ),
-          ],
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 22),
+        child: body,
       ),
     );
   }
 
-  /// Every other story: kicker, headline, standfirst, meta.
-  Widget _newsTeaser(IntelligenceNode node, InsightsViewModel vm) {
-    final a = _article(node)!;
-    final level = (node.causeData['alert_level'] ?? '').toString();
-    return InkWell(
-      onTap: () {
-        HapticFeedback.mediumImpact();
-        vm.openNewsItem(node);
-      },
-      borderRadius: BorderRadius.circular(3),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: EcoPaper.well,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(_kicker(node),
-                style: EcoPaper.label(size: 9, color: _alertColor(level))),
-            const SizedBox(height: 5),
-            Text(
-              a['headline'].toString(),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: EcoPaper.headline(size: 16),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              (a['standfirst'] ?? '').toString(),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: EcoPaper.body(color: EcoPaper.inkSoft, size: 13),
-            ),
-            _ecolensSummaryLine(a),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(child: _storyMeta(node, a, size: 10)),
-                TextButton(
-                  onPressed: () => _viewOnMap(node),
-                  child: Text(
-                    'View on map',
-                    style: GoogleFonts.inter(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: EcoPaper.survey,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   /// The full article.
   Widget _buildStoryView(
@@ -2684,6 +2358,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
               url,
               fit: maxHeight == null ? BoxFit.contain : BoxFit.cover,
               width: double.infinity,
+              // GDACS sends no CORS headers; on the web the fetch path
+              // fails and the <img> element path succeeds.
+              webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
               errorBuilder: (context, error, stackTrace) => Padding(
                 padding: const EdgeInsets.all(12),
                 child: Text(
@@ -3523,20 +3200,3 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
 }
 
-/// Single fact rendered in the area-context grid. All values are derived
-/// from live data at call time — never hardcoded.
-class _AreaContextFact {
-  final IconData icon;
-  final String label;
-  final String value;
-  final String sub;
-  final Color color;
-
-  const _AreaContextFact({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.sub,
-    required this.color,
-  });
-}
